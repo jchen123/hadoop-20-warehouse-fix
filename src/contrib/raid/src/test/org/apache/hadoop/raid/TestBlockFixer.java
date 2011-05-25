@@ -19,53 +19,42 @@ package org.apache.hadoop.raid;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.net.URI;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.GregorianCalendar;
-import java.util.Iterator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Properties;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.zip.CRC32;
 
-import org.junit.Test;
-import static org.junit.Assert.*;
+import junit.framework.TestCase;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
-import org.apache.hadoop.util.StringUtils;
-import org.apache.hadoop.fs.BlockLocation;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FilterFileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hdfs.DFSUtil;
+import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.RaidDFSUtil;
-import org.apache.hadoop.mapred.MiniMRCluster;
-import org.apache.hadoop.hdfs.protocol.ClientProtocol;
-import org.apache.hadoop.hdfs.protocol.LocatedBlock;
-import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
-import org.apache.hadoop.hdfs.protocol.Block;
-import org.apache.hadoop.hdfs.DistributedFileSystem;
-import org.apache.hadoop.hdfs.DistributedRaidFileSystem;
 import org.apache.hadoop.hdfs.TestRaidDfs;
-import org.apache.hadoop.hdfs.DFSUtil;
-import org.apache.hadoop.raid.RaidNode;
-import org.apache.hadoop.raid.RaidUtils;
+import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
+import org.apache.hadoop.mapred.MiniMRCluster;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.util.StringUtils;
+import org.junit.Test;
 
 
-public class TestBlockFixer {
+public class TestBlockFixer extends TestCase {
   final static Log LOG = LogFactory.getLog(
                             "org.apache.hadoop.raid.TestBlockFixer");
   final static String TEST_DIR = new File(System.getProperty("test.build.data",
@@ -83,6 +72,52 @@ public class TestBlockFixer {
   RaidNode cnode = null;
   String jobTrackerName = null;
   Random rand = new Random();
+  static {
+    ParityFilePair.disableCacheUsedInTestOnly();
+  }
+
+  @Test
+  public void testFilterUnfixableFiles() throws IOException {
+    conf = new Configuration();
+    dfs = new MiniDFSCluster(conf, NUM_DATANODES, true, null);
+    dfs.waitActive();
+    FileSystem fs = dfs.getFileSystem();
+
+    try {
+      Configuration testConf = new Configuration();
+      testConf.set("hdfs.raid.locations", "/raid");
+      testConf.set("hdfs.raidrs.locations", "/raidrs");
+      BlockFixer blockFixer = new LocalBlockFixer(testConf);
+
+      String p1 = "/user/foo/f1";
+      String p2 = "/user/foo/f2";
+      String p3 = "/user/foo/bar/f1";
+      String p4 = "/raid/user/foo";
+      String p5 = "/raidrs/user/foo/bar";
+      fs.mkdirs(new Path(p4));
+
+      List<String> fileList = new ArrayList<String>();
+      fileList.add(p1);
+      fileList.add(p2);
+      fileList.add(p3);
+
+      blockFixer.filterUnfixableSourceFiles(fs, fileList.iterator());
+      // p3 should be filtered out.
+      assertEquals(2, fileList.size());
+
+      Set<String> filtered = new HashSet<String>();
+      for (String p: fileList) filtered.add(p);
+      assertFalse("File not filtered", filtered.contains(p3));
+
+      fileList.add(p3);
+      fs.mkdirs(new Path(p5));
+      blockFixer.filterUnfixableSourceFiles(fs, fileList.iterator());
+      // Nothing is filtered.
+      assertEquals(3, fileList.size());
+    } finally {
+      dfs.shutdown();
+    }
+  }
 
   /**
    * Tests isXorParityFile and isRsParityFile
@@ -112,24 +147,26 @@ public class TestBlockFixer {
    */
   @Test
   public void testTrashFilter() {
-    List<Path> files = new LinkedList<Path>();
+    List<String> files = new LinkedList<String>();
     // Paths that do not match the trash pattern.
-    Path p1 = new Path("/user/raid/raidtest/f1");
-    Path p2 = new Path("/user/.Trash/"); 
+    String p1 = "/user/raid/raidtest/f1";
+    String p2 = "/user/.Trash/";
     // Paths that match the trash pattern.
-    Path p3 = new Path("/user/raid/.Trash/raidtest/f1");
-    Path p4 = new Path("/user/raid/.Trash/");
+    String p3 = "/user/raid/.Trash/raidtest/f1";
+    String p4 = "/user/raid/.Trash/";
+    String p5 = "/tmp/foo";
     files.add(p1);
     files.add(p3);
     files.add(p4);
     files.add(p2);
+    files.add(p5);
 
     Configuration conf = new Configuration();
     RaidUtils.filterTrash(conf, files);
 
     assertEquals("expected 2 non-trash files but got " + files.size(),
                  2, files.size());
-    for (Path p: files) {
+    for (String p: files) {
       assertTrue("wrong file returned by filterTrash",
                  p == p1 || p == p2);
     }
@@ -487,9 +524,7 @@ public class TestBlockFixer {
     LOG.info("Test " + testName + " created test files");
 
     // create an instance of the RaidNode
-    // HAR block size = 2 * src block size = 2 * parity block size.
     Configuration localConf = new Configuration(conf);
-    localConf.setLong("har.block.size", blockSize * 2);
     localConf.set(RaidNode.RAID_LOCATION_KEY, "/destraid");
     localConf.setInt("raid.blockfix.interval", 1000);
     if (local) {
@@ -521,9 +556,8 @@ public class TestBlockFixer {
       DistributedFileSystem dfs = (DistributedFileSystem)fileSys;
       LocatedBlocks locs = RaidDFSUtil.getBlockLocations(
         dfs, partFile.toUri().getPath(), 0, partStat.getLen());
-      // 7 parity blocks => 4 har blocks.
       assertEquals("wrong number of har blocks",
-                   4, locs.getLocatedBlocks().size());
+                   7, locs.getLocatedBlocks().size());
       cnode.stop(); cnode.join();
 
       String[] corruptFiles = DFSUtil.getCorruptFiles(dfs);
@@ -532,7 +566,7 @@ public class TestBlockFixer {
                    0, cnode.blockFixer.filesFixed());
 
       // Corrupt parity blocks for different stripes.
-      int[] corruptBlockIdxs = new int[]{0, 3};
+      int[] corruptBlockIdxs = new int[]{0, 1, 6};
       for (int idx: corruptBlockIdxs)
         corruptBlock(locs.get(idx).getBlock().getBlockName());
       reportCorruptBlocks(dfs, partFile, corruptBlockIdxs,
@@ -645,7 +679,7 @@ public class TestBlockFixer {
         LOG.info("Test testBlockFix waiting for fixing job 2 to start");
         Thread.sleep(10);
       }
-      assertEquals("2 jobs not running", 2, blockFixer.jobsRunning());
+      assertTrue(blockFixer.jobsRunning() >= 2);
 
       while (blockFixer.filesFixed() < 2 &&
              System.currentTimeMillis() - start < 240000) {
@@ -676,11 +710,11 @@ public class TestBlockFixer {
 
   /**
    * tests that the distributed block fixer obeys
-   * the limit on how many files to fix simultaneously
+   * the limit on how many jobs to submit simultaneously.
    */
   @Test
-  public void testMaxPendingFiles() throws Exception {
-    LOG.info("Test testMaxPendingFiles started.");
+  public void testMaxPendingJobs() throws Exception {
+    LOG.info("Test testMaxPendingJobs started.");
     long blockSize = 8192L;
     int stripeLength = 3;
     mySetup(stripeLength, -1); // never har
@@ -693,7 +727,7 @@ public class TestBlockFixer {
                                                           1, 20, blockSize);
     long file1Len = fileSys.getFileStatus(file1).getLen();
     long file2Len = fileSys.getFileStatus(file2).getLen();
-    LOG.info("Test testMaxPendingFiles created test files");
+    LOG.info("Test testMaxPendingJobs created test files");
 
     // create an instance of the RaidNode
     Configuration localConf = new Configuration(conf);
@@ -702,7 +736,7 @@ public class TestBlockFixer {
     localConf.set("raid.blockfix.classname", 
                   "org.apache.hadoop.raid.DistBlockFixer");
     localConf.setLong("raid.blockfix.filespertask", 2L);
-    localConf.setLong("raid.blockfix.maxpendingfiles", 1L);
+    localConf.setLong("raid.blockfix.maxpendingjobs", 1L);
 
     try {
       cnode = RaidNode.createRaidNode(null, localConf);
@@ -770,13 +804,79 @@ public class TestBlockFixer {
       assertTrue("file not fixed",
                  TestRaidDfs.validateFile(dfs, file2, file2Len, crc2));
     } catch (Exception e) {
-      LOG.info("Test testMaxPendingFiles exception " + e +
+      LOG.info("Test testMaxPendingJobs exception " + e +
                StringUtils.stringifyException(e));
       throw e;
     } finally {
       myTearDown();
     }
 
+  }
+
+  static class FakeDistBlockFixer extends DistBlockFixer {
+    Map<String, List<String>> submittedJobs =
+      new HashMap<String, List<String>>();
+    FakeDistBlockFixer(Configuration conf) {
+      super(conf);
+    }
+
+    @Override
+    void submitJob(Job job, List<String> filesInJob, int priority) {
+      LOG.info("Job " + job.getJobName() + " was submitted ");
+      submittedJobs.put(job.getJobName(), filesInJob);
+    }
+  }
+
+  public void testMultiplePriorities() throws Exception {
+    Path srcFile = new Path("/home/test/file1");
+    int repl = 1;
+    int numBlocks = 8;
+    long blockSize = 16384;
+    int stripeLength = 3;
+    Path destPath = new Path("/raidrs");
+    ErasureCodeType code = ErasureCodeType.RS;
+    mySetup(stripeLength, -1); // never har
+    try {
+      // Create test file and raid it.
+      TestRaidDfs.createTestFilePartialLastBlock(
+        fileSys, srcFile, repl, numBlocks, blockSize);
+      FileStatus stat = fileSys.getFileStatus(srcFile);
+      RaidNode.doRaid1(conf, stat,
+        destPath, code, new RaidNode.Statistics(), RaidUtils.NULL_PROGRESSABLE,
+        false, repl, repl, stripeLength);
+
+      // Corrupt first block of file.
+      int blockIdxToCorrupt = 1;
+      LOG.info("Corrupt block " + blockIdxToCorrupt + " of file " + srcFile);
+      LocatedBlocks locations = getBlockLocations(srcFile, stat.getLen());
+      corruptBlock(locations.get(blockIdxToCorrupt).getBlock().getBlockName());
+      reportCorruptBlocks(fileSys, srcFile, new int[]{1}, blockSize);
+
+      // Create Block Fixer and fix.
+      FakeDistBlockFixer distBlockFixer = new FakeDistBlockFixer(conf);
+      assertEquals(0, distBlockFixer.submittedJobs.size());
+
+      // One job should be submitted.
+      distBlockFixer.checkAndFixBlocks();
+      assertEquals(1, distBlockFixer.submittedJobs.size());
+
+      // No new job should be submitted since we already have one.
+      distBlockFixer.checkAndFixBlocks();
+      assertEquals(1, distBlockFixer.submittedJobs.size());
+
+      // Corrupt one more block.
+      blockIdxToCorrupt = 4;
+      LOG.info("Corrupt block " + blockIdxToCorrupt + " of file " + srcFile);
+      locations = getBlockLocations(srcFile, stat.getLen());
+      corruptBlock(locations.get(blockIdxToCorrupt).getBlock().getBlockName());
+      reportCorruptBlocks(fileSys, srcFile, new int[]{4}, blockSize);
+
+      // A new job should be submitted since two blocks are corrupt.
+      distBlockFixer.checkAndFixBlocks();
+      assertEquals(2, distBlockFixer.submittedJobs.size());
+    } finally {
+      myTearDown();
+    }
   }
 
   private static DistributedFileSystem getDFS(
@@ -930,16 +1030,20 @@ public class TestBlockFixer {
     long blockSize) throws IOException {
 
     FSDataInputStream in = fs.open(file);
-    for (int idx: idxs) {
-      long offset = idx * blockSize;
-      LOG.info("Reporting corrupt block " + file + ":" + offset);
-      in.seek(offset);
-      try {
-        in.readFully(new byte[(int)blockSize]);
-        fail("Expected exception not thrown for " + file + ":" + offset);
-      } catch (org.apache.hadoop.fs.ChecksumException e) {
-      } catch (org.apache.hadoop.fs.BlockMissingException bme) {
+    try {
+      for (int idx: idxs) {
+        long offset = idx * blockSize;
+        LOG.info("Reporting corrupt block " + file + ":" + offset);
+        in.seek(offset);
+        try {
+          in.readFully(new byte[(int)blockSize]);
+          fail("Expected exception not thrown for " + file + ":" + offset);
+        } catch (org.apache.hadoop.fs.ChecksumException e) {
+        } catch (org.apache.hadoop.fs.BlockMissingException bme) {
+        }
       }
+    } finally {
+      in.close();
     }
   }
 }

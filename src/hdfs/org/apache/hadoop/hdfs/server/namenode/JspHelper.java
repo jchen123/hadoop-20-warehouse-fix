@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Random;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -39,6 +40,7 @@ import javax.servlet.jsp.JspWriter;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.DFSClient;
+import org.apache.hadoop.hdfs.protocol.DataTransferProtocol;
 import org.apache.hadoop.hdfs.protocol.DatanodeID;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
@@ -47,6 +49,7 @@ import org.apache.hadoop.hdfs.protocol.FSConstants.UpgradeAction;
 import org.apache.hadoop.hdfs.server.common.HdfsConstants;
 import org.apache.hadoop.hdfs.server.common.UpgradeStatusReport;
 import org.apache.hadoop.hdfs.server.datanode.DataNode;
+import org.apache.hadoop.http.HttpServer;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.net.NetUtils;
@@ -106,14 +109,16 @@ public class JspHelper {
         UnixUserGroupInformation.UGI_PROPERTY_NAME, webUGI);
   }
 
-  public DatanodeID randomNode() throws IOException {
+  public DatanodeInfo randomNode() throws IOException {
     return fsn.getRandomDatanode();
   }
 
   /**
-   * prefer the node which has maximum local copies of all blocks
+   * Get an array of nodes that can serve the streaming request
+   * The best one is the first in the array which has maximum 
+   * local copies of all blocks
    */
-  public DatanodeInfo bestNode(LocatedBlocks blks) throws IOException {
+  public DatanodeInfo[] bestNode(LocatedBlocks blks) throws IOException {
     // insert all known replica locations into a tree map where the
     // key is the DatanodeInfo
     TreeMap<DatanodeInfo, NodeRecord> map = 
@@ -134,26 +139,34 @@ public class JspHelper {
     NodeRecord[] nodes = (NodeRecord[]) 
                          values.toArray(new NodeRecord[values.size()]);
     Arrays.sort(nodes, new NodeRecordComparator());
-    return bestNode(nodes, false);
+    try {
+      List<NodeRecord> candidates = bestNode(nodes, false);
+      return candidates.toArray(new DatanodeInfo[candidates.size()]);
+    } catch (IOException e) {
+      return new DatanodeInfo[] {randomNode()};
+    }
   }
 
   /**
    * return a random node from the replicas of this block
    */
-  public DatanodeInfo bestNode(LocatedBlock blk) throws IOException {
+  public static DatanodeInfo bestNode(LocatedBlock blk) throws IOException {
     DatanodeInfo [] nodes = blk.getLocations();
-    return bestNode(nodes, true);
+    return bestNode(nodes, true).get(0);
   }
 
   /**
-   * Choose a datanode from the specified list. If doRamdom is true, then
+   * Choose a list datanodes from the specified list. The best one is
+   * the first one in the list.
+   * 
+   * If doRamdom is true, then
    * a random datanode is selected. Otherwise, a node that appears earlier
    * in the list has more probability of being selected
    */
-  private DatanodeInfo bestNode(DatanodeInfo[] nodes, boolean doRandom) 
+  public static <T extends DatanodeID> List<T> bestNode(T[] nodes, boolean doRandom) 
     throws IOException {
-    TreeSet<DatanodeInfo> deadNodes = new TreeSet<DatanodeInfo>();
-    DatanodeInfo chosenNode = null;
+    TreeSet<T> deadNodes = new TreeSet<T>();
+    T chosenNode = null;
     int failures = 0;
     Socket s = null;
     int index = -1;
@@ -182,18 +195,33 @@ public class JspHelper {
         s.connect(targetAddr, HdfsConstants.READ_TIMEOUT);
         s.setSoTimeout(HdfsConstants.READ_TIMEOUT);
       } catch (IOException e) {
+        HttpServer.LOG.warn("Failed to connect to "+chosenNode.name, e);
         deadNodes.add(chosenNode);
         s.close();
         s = null;
         failures++;
+      } finally {
+        if (s!=null) {
+          s.close();
+        }
       }
       if (failures == nodes.length)
         throw new IOException("Could not reach the block containing the data. Please try again");
         
     }
-    s.close();
-    return chosenNode;
+    List<T> candidates;
+    if (doRandom) {
+      candidates = new ArrayList<T>(1);
+      candidates.add(chosenNode);
+    } else {
+      candidates = new ArrayList<T>(nodes.length - index);
+      for (int i=index; i<nodes.length - index; i++) {
+        candidates.add(nodes[i]);
+      }
+    }
+    return candidates;
   }
+  
   public void streamBlockInAscii(InetSocketAddress addr, long blockId, 
                                  long genStamp, long blockSize, 
                                  long offsetIntoBlock, long chunkSizeToView, JspWriter out) 
@@ -207,11 +235,12 @@ public class JspHelper {
       
       // Use the block name for file name. 
       DFSClient.BlockReader blockReader = 
-        DFSClient.BlockReader.newBlockReader(s, addr.toString() + ":" + blockId,
-                                             blockId, genStamp ,offsetIntoBlock, 
-                                             amtToRead, 
-                                             conf.getInt("io.file.buffer.size",
-                                                         4096));
+        DFSClient.BlockReader.newBlockReader(
+                                    DataTransferProtocol.DATA_TRANSFER_VERSION,
+                                    s, addr.toString() + ":" + blockId,
+                                    blockId, genStamp ,offsetIntoBlock, 
+                                    amtToRead, 
+                                    conf.getInt("io.file.buffer.size", 4096));
         
     byte[] buf = new byte[(int)amtToRead];
     int readOffset = 0;
@@ -280,7 +309,7 @@ public class JspHelper {
     long missingBlocks = fsn.getMissingBlocksCount();
     if (missingBlocks > 0) {
       return "<br> WARNING :" + 
-             " There are about " + missingBlocks +
+             " There are " + missingBlocks +
              " missing blocks. Please check the log or run fsck. <br><br>";
     }
     return "";

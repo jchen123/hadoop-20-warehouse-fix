@@ -92,7 +92,8 @@ public class DFSck extends Configured implements Tool {
   static void printUsage() {
     System.err.println("Usage: DFSck <path> [-list-corruptfileblocks | " +
                        "[-move | -delete | -openforwrite ] " +
-                       "[-files [-blocks [-locations | -racks]]]] ");
+                       "[-files [-blocks [-locations | -racks]]]] " +
+                       "[-limit <limit>]");
     System.err.println("\t<path>\tstart checking from this path");
     System.err.println("\t-move\tmove corrupted files to /lost+found");
     System.err.println("\t-delete\tdelete corrupted files");
@@ -103,6 +104,8 @@ public class DFSck extends Configured implements Tool {
     System.err.println("\t-blocks\tprint out block report");
     System.err.println("\t-locations\tprint out locations for every block");
     System.err.println("\t-racks\tprint out network topology for data-node locations");
+    System.err.println("\t-limit\tlimit output to <limit> corrupt files. " +
+                       "The default value of the limit is 500.");
     System.err.println("\t\tBy default fsck ignores files opened for write, " +
                        "use -openforwrite to report such files. They are usually " +
                        " tagged CORRUPT or HEALTHY depending on their block " +
@@ -114,7 +117,7 @@ public class DFSck extends Configured implements Tool {
    * To get the list, we need to call iteratively until the server says
    * there is no more left.
    */
-  private Integer listCorruptFileBlocks(String dir, String baseUrl)
+  private Integer listCorruptFileBlocks(String dir, int limit, String baseUrl)
     throws IOException {
     int errCode = -1;
     int numCorrupt = 0;
@@ -138,7 +141,8 @@ public class DFSck extends Configured implements Tool {
         while ((line = input.readLine()) != null) {
           if ((line.endsWith(noCorruptLine)) || 
               (line.endsWith(noMoreCorruptLine)) ||
-              (line.endsWith(NamenodeFsck.NONEXISTENT_STATUS))) {
+              (line.endsWith(NamenodeFsck.NONEXISTENT_STATUS)) ||
+              numCorrupt >= limit) {
             allDone = true;
             break;
           }
@@ -182,13 +186,20 @@ public class DFSck extends Configured implements Tool {
     }
     StringBuffer url = new StringBuffer("http://"+fsName+"/fsck?path=");
     String dir = "/";
+    int limit = 500; // limit output.
     // find top-level dir first
-    for (int idx = 0; idx < args.length; idx++) {
-      if (!args[idx].startsWith("-")) { dir = args[idx]; break; }
+    for (int idx = 0; idx < args.length; ) {
+      if (args[idx].equals("-limit")) {
+        idx++; // Skip over limit value
+      } else if (!args[idx].startsWith("-")) {
+        dir = args[idx];
+        break;
+      }
+      idx++;
     }
     url.append(URLEncoder.encode(dir, "UTF-8"));
     boolean doListCorruptFileBlocks = false;
-    for (int idx = 0; idx < args.length; idx++) {
+    for (int idx = 0; idx < args.length; ) {
       if (args[idx].equals("-move")) { url.append("&move=1"); }
       else if (args[idx].equals("-delete")) { url.append("&delete=1"); }
       else if (args[idx].equals("-files")) { url.append("&files=1"); }
@@ -199,10 +210,14 @@ public class DFSck extends Configured implements Tool {
       else if (args[idx].equals("-list-corruptfileblocks")) {
         url.append("&listcorruptfileblocks=1");
         doListCorruptFileBlocks = true;
+      } else if (args[idx].equals("-limit")) {
+        idx++;
+        limit = Integer.parseInt(args[idx]);
       }
+      idx++;
     }
     if (doListCorruptFileBlocks) {
-      return listCorruptFileBlocks(dir, url.toString());
+      return listCorruptFileBlocks(dir, limit, url.toString());
     }
     URL path = new URL(url.toString());
     URLConnection connection = path.openConnection();

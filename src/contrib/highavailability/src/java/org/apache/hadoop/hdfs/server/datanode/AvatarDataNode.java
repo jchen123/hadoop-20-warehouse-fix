@@ -68,11 +68,13 @@ import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.authorize.ConfiguredPolicy;
 import org.apache.hadoop.security.authorize.PolicyProvider;
 import org.apache.hadoop.security.authorize.ServiceAuthorizationManager;
+import org.apache.hadoop.hdfs.AvatarZooKeeperClient;
 import org.apache.hadoop.hdfs.HDFSPolicyProvider;
 import org.apache.hadoop.http.HttpServer;
 
 import org.apache.hadoop.hdfs.protocol.AvatarProtocol;
 import org.apache.hadoop.hdfs.server.namenode.AvatarNode;
+import org.apache.zookeeper.data.Stat;
 
 /**
  * This is an implementation of the AvatarDataNode, a wrapper
@@ -109,6 +111,8 @@ public class AvatarDataNode extends DataNode {
   boolean doneRegister2 = false;    // not yet registered with namenode2
   OfferService offerService1;
   OfferService offerService2;
+  volatile OfferService primaryOfferService = null;
+  volatile boolean shutdown = false;
   Thread of1;
   Thread of2;
   private DataStorage storage;
@@ -116,6 +120,7 @@ public class AvatarDataNode extends DataNode {
   private HttpServer infoServer;
   private Thread dataNodeThread;
   Method transferBlockMethod;
+  AvatarZooKeeperClient zkClient = null;
 
   public AvatarDataNode(Configuration conf, AbstractList<File> dataDirs, 
                         String dnThreadName) throws IOException {
@@ -179,6 +184,7 @@ public class AvatarDataNode extends DataNode {
     nameAddr2 = AvatarDataNode.getNameNodeAddress(getConf(), "fs.default.name1", "dfs.namenode.dn-address1");
     avatarAddr1 = AvatarDataNode.getAvatarNodeAddress(getConf(), "fs.default.name0");
     avatarAddr2 = AvatarDataNode.getAvatarNodeAddress(getConf(), "fs.default.name1");
+    zkClient = new AvatarZooKeeperClient(getConf(), null);
 
     // get version and id info from the name-node
     NamespaceInfo nsInfo = handshake(true);
@@ -310,54 +316,81 @@ public class AvatarDataNode extends DataNode {
   // If doWait is true, then return only when at least one handshake is
   // successful.
   //
-  private synchronized NamespaceInfo handshake(boolean doWait) throws IOException {
+  private synchronized NamespaceInfo handshake(boolean startup) throws IOException {
     NamespaceInfo nsInfo = null;
+    boolean firstIsPrimary = false;
     do {
+      if (startup) {
+        InetSocketAddress addr = DataNode.getNameNodeAddress(getConf());
+        String addrStr = addr.getHostName() + ":" + addr.getPort();
+        Stat stat = new Stat();
+        try {
+          String primaryAddress =
+            zkClient.getPrimaryAvatarAddress(addrStr, stat, true);
+          String firstNNAddress = nameAddr1.getHostName() + ":" +
+            nameAddr1.getPort();
+          firstIsPrimary = firstNNAddress.equalsIgnoreCase(primaryAddress);
+        } catch (Exception ex) {
+          LOG.error("Could not get the primary address from ZooKeeper", ex);
+        }
+      }
       try {
-        if (namenode1 == null) {
-          namenode1 = (DatanodeProtocol) 
-                           RPC.getProxy(DatanodeProtocol.class,
-                             DatanodeProtocol.versionID,
-                           nameAddr1, 
-                           getConf());
-          ((DatanodeProtocols)namenode).setDatanodeProtocol(namenode1, 0);
+        if ((firstIsPrimary && startup) || !startup) {
+          if (namenode1 == null) {
+            namenode1 = (DatanodeProtocol) 
+                             RPC.getProxy(DatanodeProtocol.class,
+                               DatanodeProtocol.versionID,
+                             nameAddr1, 
+                             getConf());
+            ((DatanodeProtocols)namenode).setDatanodeProtocol(namenode1, 0);
+          }
+          if (avatarnode1 == null) {
+            avatarnode1 = (AvatarProtocol) 
+                             RPC.getProxy(AvatarProtocol.class,
+                               AvatarProtocol.versionID,
+                             avatarAddr1, 
+                             getConf());
+          }
+          if (startup) {
+            nsInfo = handshake(namenode1, nameAddr1);
+          }
         }
-        if (avatarnode1 == null) {
-          avatarnode1 = (AvatarProtocol) 
-                           RPC.getProxy(AvatarProtocol.class,
-                             AvatarProtocol.versionID,
-                           avatarAddr1, 
-                           getConf());
-        }
-        nsInfo = handshake(namenode1, nameAddr1);
       } catch(ConnectException se) {  // namenode has not been started
         LOG.info("Server at " + nameAddr1 + " not available yet, Zzzzz...");
       } catch(SocketTimeoutException te) {  // namenode is busy
         LOG.info("Problem connecting to server timeout. " + nameAddr1);
+      } catch (IOException ioe) {
+        LOG.info("Problem connecting to server. " + nameAddr1, ioe);
       }
       try {
-        if (namenode2 == null) {
-          namenode2 = (DatanodeProtocol) 
-                           RPC.getProxy(DatanodeProtocol.class,
-                           DatanodeProtocol.versionID,
-                           nameAddr2, 
-                           getConf());
-          ((DatanodeProtocols)namenode).setDatanodeProtocol(namenode2, 1);
+        if ((!firstIsPrimary && startup) || !startup) {
+          if (namenode2 == null) {
+            namenode2 = (DatanodeProtocol) 
+                             RPC.getProxy(DatanodeProtocol.class,
+                             DatanodeProtocol.versionID,
+                             nameAddr2, 
+                             getConf());
+            ((DatanodeProtocols)namenode).setDatanodeProtocol(namenode2, 1);
+          }
+          if (avatarnode2 == null) {
+            avatarnode2 = (AvatarProtocol) 
+                             RPC.getProxy(AvatarProtocol.class,
+                               AvatarProtocol.versionID,
+                             avatarAddr2, 
+                             getConf());
+          }
+          if (startup) {
+            nsInfo = handshake(namenode2, nameAddr2);
+          }
         }
-        if (avatarnode2 == null) {
-          avatarnode2 = (AvatarProtocol) 
-                           RPC.getProxy(AvatarProtocol.class,
-                             AvatarProtocol.versionID,
-                           avatarAddr2, 
-                           getConf());
-        }
-        nsInfo = handshake(namenode2, nameAddr2);
       } catch(ConnectException se) {  // namenode has not been started
         LOG.info("Server at " + nameAddr2 + " not available yet, Zzzzz...");
       } catch(SocketTimeoutException te) {  // namenode is busy
         LOG.info("Problem connecting to server timeout. " + nameAddr2);
+      } catch (IOException ioe) {
+        LOG.info("Problem connecting to server. " + nameAddr2, ioe);
       }
-    } while (doWait && nsInfo == null && shouldRun);
+    } while (startup && nsInfo == null && shouldRun);
     return nsInfo;
   }
 
@@ -444,6 +477,21 @@ public class AvatarDataNode extends DataNode {
     }
     return  true;
   }
+  
+  boolean isPrimaryOfferService(OfferService service) {
+    return primaryOfferService == service;
+  }
+  
+  void setPrimaryOfferService(OfferService service) {
+    this.primaryOfferService = service;
+    if (service != null)
+      LOG.info("Primary namenode is set to be " + service.avatarnodeAddress);
+    else {
+      LOG.info("Failover has happened. Stop accessing commands from " +
+      		"either namenode until the new primary is completely in" +
+      		"sync with all the datanodes");
+    }
+  }
 
   @Override
   public void run() {
@@ -452,7 +500,7 @@ public class AvatarDataNode extends DataNode {
     // start dataXceiveServer
     dataXceiverServer.start();
 
-    while (shouldRun) {
+    while (shouldRun && !shutdown) {
       try {
 
         // try handshaking with any namenode that we have not yet tried
@@ -487,7 +535,7 @@ public class AvatarDataNode extends DataNode {
       } catch (Exception ex) {
         LOG.error("Exception: " + StringUtils.stringifyException(ex));
       }
-      if (shouldRun) {
+      if (shouldRun && !shutdown) {
         try {
           Thread.sleep(5000);
         } catch (InterruptedException ie) {
@@ -550,6 +598,15 @@ public class AvatarDataNode extends DataNode {
   }
 
  /**
+  * Tells the datanode to start the shutdown process.
+  */
+  public synchronized void shutdownDN() {
+    shutdown = true;
+    if (dataNodeThread != null) {
+      dataNodeThread.interrupt();
+    }
+  }
+ /**
    * Shut down this instance of the datanode.
    * Returns only after shutdown is complete.
    * This can be called from one of the Offer services thread
@@ -557,7 +614,7 @@ public class AvatarDataNode extends DataNode {
    */
   @Override
   public synchronized void shutdown() {
-    if (of1 != null && Thread.currentThread() != of1) {
+   if (of1 != null) {
       offerService1.stop();
       of1.interrupt();
       try {
@@ -565,7 +622,7 @@ public class AvatarDataNode extends DataNode {
       } catch (InterruptedException ie) {
       }
     }
-    if (of2 != null && Thread.currentThread() != of2) {
+    if (of2 != null) {
       offerService2.stop();
       of2.interrupt();
       try {
@@ -580,6 +637,8 @@ public class AvatarDataNode extends DataNode {
         LOG.warn("Exception shutting down DataNode", e);
       }
     }
+    ((DatanodeProtocols)this.namenode).shutdown();
+    this.namenode = null;
     super.shutdown();
     if (storage != null) {
       try {
@@ -587,7 +646,8 @@ public class AvatarDataNode extends DataNode {
       } catch (IOException ie) {
       }
     }
-    if (dataNodeThread != null) {
+    if (dataNodeThread != null &&
+        Thread.currentThread() != dataNodeThread) {
       dataNodeThread.interrupt();
       try {
         dataNodeThread.join();
@@ -654,7 +714,7 @@ public class AvatarDataNode extends DataNode {
   /**
    * Returns the IP address of the namenode
    */
-  private static InetSocketAddress getNameNodeAddress(Configuration conf,
+  static InetSocketAddress getNameNodeAddress(Configuration conf,
                                                       String cname, String cname2) {
     String fs = conf.get(cname);
     String fs2 = conf.get(cname2);

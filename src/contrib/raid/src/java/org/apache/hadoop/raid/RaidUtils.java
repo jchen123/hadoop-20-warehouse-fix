@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Iterator;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.hadoop.conf.Configuration;
@@ -34,32 +35,31 @@ import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.util.Progressable;
 
 public class RaidUtils {
-  /**
-   * A {@link Progressable} that does nothing.
-   *
-   * We could have used Reporter.NULL here but that would introduce
-   * a dependency on mapreduce.
-   */ 
-  public static class DummyProgressable implements Progressable {
+  public static Progressable NULL_PROGRESSABLE = new Progressable() {
     /**
      * Do nothing.
-     */
+     **/
     @Override
-      public void progress() {
+    public void progress() {
     }
-  }
+  };
 
   /**
-   * Removes files matching the trash file pattern.
+   * Removes files matching the trash/tmp file pattern.
    */
-  public static void filterTrash(Configuration conf, List<Path> files) {
+  public static void filterTrash(Configuration conf, List<String> files) {
+    filterTrash(conf, files.iterator());
+  }
+
+  public static void filterTrash(Configuration conf, Iterator<String> fileIt) {
     // Remove files under Trash.
     String trashPattern = conf.get("raid.blockfixer.trash.pattern",
-                                   "^/user/.*/\\.Trash.*");
-    for (Iterator<Path> it = files.iterator(); it.hasNext(); ) {
-      String pathStr = it.next().toString();
-      if (Pattern.matches(trashPattern, pathStr)) {
-        it.remove();
+                                   "^/user/.*/\\.Trash.*|^/tmp/.*");
+    Pattern compiledPattern = Pattern.compile(trashPattern);
+    while (fileIt.hasNext()) {
+      Matcher m = compiledPattern.matcher(fileIt.next());
+      if (m.matches()) {
+        fileIt.remove();
       }
     }
   }
@@ -93,6 +93,38 @@ public class RaidUtils {
       IOUtils.readFully(in, buf, 0, toRead);
       bytesRead += toRead;
       out.write(buf, 0, toRead);
+    }
+  }
+
+  /**
+   * Parse a condensed configuration option and set key:value pairs.
+   * @param conf the configuration object.
+   * @param optionKey the name of condensed option. The value corresponding
+   *        to this should be formatted as key:value,key:value...
+   */
+  public static void parseAndSetOptions(
+      Configuration conf, String optionKey) {
+    String optionValue = conf.get(optionKey);
+    if (optionValue != null) {
+      RaidNode.LOG.info("Parsing option " + optionKey);
+      // Parse the option value to get key:value pairs.
+      String[] keyValues = optionValue.trim().split(",");
+      for (String keyValue: keyValues) {
+        String[] fields = keyValue.trim().split(":");
+        String key = fields[0].trim();
+        String value = fields[1].trim();
+        conf.set(key, value);
+      }
+    } else {
+      RaidNode.LOG.error("Option " + optionKey + " not found");
+    }
+  }
+
+  public static void closeStreams(InputStream[] streams) throws IOException {
+    for (InputStream stm: streams) {
+      if (stm != null) {
+        stm.close();
+      }
     }
   }
 

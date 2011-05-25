@@ -66,3 +66,20 @@ then
         export HADOOP_SLAVES="${HADOOP_CONF_DIR}/$slavesfile"
     fi
 fi
+
+#check to see if the instance is given
+if [ $# -gt 1 ]
+then
+    if [ "--instance" = "$1" ]
+    then
+        shift
+        instance=$1
+        if [ "$instance" != "0" && "$instance" != "1" ]
+        then
+            echo "Instance must be 0 or 1"
+            exit -1
+        fi
+        shift
+        export HADOOP_INSTANCE=$instance
+    fi
+fi

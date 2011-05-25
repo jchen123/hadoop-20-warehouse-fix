@@ -18,38 +18,18 @@
 
 package org.apache.hadoop.raid;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hdfs.DFSUtil;
-
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-
-import org.apache.hadoop.util.StringUtils;
-
-import org.apache.hadoop.net.NetUtils;
-
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DFSUtil;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
-
-import org.apache.hadoop.raid.RaidNode;
-import org.apache.hadoop.raid.RaidUtils;
-import org.apache.hadoop.raid.protocol.PolicyInfo.ErasureCodeType;
+import org.apache.hadoop.util.StringUtils;
 
 /**
  * This class fixes source file blocks using the parity file,
@@ -61,13 +41,10 @@ import org.apache.hadoop.raid.protocol.PolicyInfo.ErasureCodeType;
 public class LocalBlockFixer extends BlockFixer {
   public static final Log LOG = LogFactory.getLog(LocalBlockFixer.class);
 
-  private java.util.HashMap<String, java.util.Date> history;
-  
   private BlockFixerHelper helper;
 
   public LocalBlockFixer(Configuration conf) throws IOException {
     super(conf);
-    history = new java.util.HashMap<String, java.util.Date>();
     helper = new BlockFixerHelper(getConf());
   }
 
@@ -91,12 +68,10 @@ public class LocalBlockFixer extends BlockFixer {
       // Sleep before proceeding to fix files.
       Thread.sleep(blockFixInterval);
 
-      // Purge history older than the history interval.
-      purgeHistory();
-
-      List<Path> corruptFiles = getCorruptFiles();
-
-      filterUnfixableSourceFiles(corruptFiles.iterator());
+      List<String> corruptFiles = getCorruptFiles();
+      FileSystem parityFs = new Path("/").getFileSystem(getConf());
+      filterUnfixableSourceFiles(parityFs, corruptFiles.iterator());
+      RaidNodeMetrics.getInstance().numFilesToFix.set(corruptFiles.size());
 
       if (corruptFiles.isEmpty()) {
         // If there are no corrupt files, retry after some time.
@@ -106,16 +81,15 @@ public class LocalBlockFixer extends BlockFixer {
 
       helper.sortCorruptFiles(corruptFiles);
 
-      for (Path srcPath: corruptFiles) {
+      for (String srcPath: corruptFiles) {
         if (!running) break;
         try {
-          boolean fixed = helper.fixFile(srcPath);
-          LOG.info("Adding " + srcPath + " to history");
-          history.put(srcPath.toString(), new java.util.Date());
+          boolean fixed = helper.fixFile(new Path(srcPath), RaidUtils.NULL_PROGRESSABLE);
           if (fixed) {
             incrFilesFixed();
           }
         } catch (IOException ie) {
+          incrFileFixFailures();
           LOG.error("Hit error while processing " + srcPath +
             ": " + StringUtils.stringifyException(ie));
           // Do nothing, move on to the next file.
@@ -124,46 +98,25 @@ public class LocalBlockFixer extends BlockFixer {
     }
   }
 
-
-  /**
-   * We maintain history of fixed files because a fixed file may appear in
-   * the list of corrupt files if we loop around too quickly.
-   * This function removes the old items in the history so that we can
-   * recognize files that have actually become corrupt since being fixed.
-   */
-  void purgeHistory() {
-    java.util.Date cutOff = new java.util.Date(System.currentTimeMillis() -
-                                               historyInterval);
-    List<String> toRemove = new java.util.ArrayList<String>();
-
-    for (String key: history.keySet()) {
-      java.util.Date item = history.get(key);
-      if (item.before(cutOff)) {
-        toRemove.add(key);
-      }
-    }
-    for (String key: toRemove) {
-      LOG.info("Removing " + key + " from history");
-      history.remove(key);
-    }
-  }
-
   /**
    * @return A list of corrupt files as obtained from the namenode
    */
-  List<Path> getCorruptFiles() throws IOException {
+  List<String> getCorruptFiles() throws IOException {
     DistributedFileSystem dfs = helper.getDFS(new Path("/"));
 
     String[] files = DFSUtil.getCorruptFiles(dfs);
-    List<Path> corruptFiles = new LinkedList<Path>();
+    List<String> corruptFiles = new LinkedList<String>();
     for (String f: files) {
-      Path p = new Path(f);
-      if (!history.containsKey(p.toString())) {
-        corruptFiles.add(p);
-      }
+      corruptFiles.add(f);
     }
     RaidUtils.filterTrash(getConf(), corruptFiles);
     return corruptFiles;
+  }
+
+  @Override
+  public BlockFixer.Status getStatus() {
+    throw new UnsupportedOperationException(LocalBlockFixer.class +
+        " doesn't do getStatus()");
   }
 
 }

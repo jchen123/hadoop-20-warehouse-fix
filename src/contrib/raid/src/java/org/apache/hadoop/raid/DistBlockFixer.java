@@ -18,53 +18,44 @@
 
 package org.apache.hadoop.raid;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.InputStreamReader;
 import java.io.BufferedReader;
-import java.util.List;
-import java.util.LinkedList;
-import java.util.Map;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
-import java.util.Set;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Date;
-import java.text.SimpleDateFormat;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
-
-import org.apache.hadoop.hdfs.DistributedFileSystem;
-import org.apache.hadoop.hdfs.DFSUtil;
-
-import org.apache.hadoop.conf.Configuration;
-
+import org.apache.hadoop.hdfs.tools.DFSck;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.WritableComparable;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Writable;
-
-import org.apache.hadoop.util.StringUtils;
-
-import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapred.JobInProgress;
+import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.mapreduce.InputSplit;
-
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
+import org.apache.hadoop.mapreduce.JobID;
+import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+import org.apache.hadoop.util.StringUtils;
 
 /**
  * distributed block fixer, uses map reduce jobs to fix corrupt files
@@ -75,8 +66,8 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
  *
  * raid.blockfix.fairscheduler.pool - the pool to use for block fixer jobs
  *
- * raid.blockfix.maxpendingfiles    - maximum number of files to fix 
- *                                    simultaneously
+ * raid.blockfix.maxpendingjobs    - maximum number of block fixer jobs
+ *                                    running simultaneously
  */
 public class DistBlockFixer extends BlockFixer {
   // volatile should be sufficient since only the block fixer thread
@@ -86,23 +77,30 @@ public class DistBlockFixer extends BlockFixer {
   private static final String WORK_DIR_PREFIX = "blockfixer";
   private static final String IN_FILE_SUFFIX = ".in";
   private static final String PART_PREFIX = "part-";
+  private static final Pattern LIST_CORRUPT_FILE_PATTERN =
+      Pattern.compile("blk_-*\\d+\\s+(.*)");
   
   private static final String BLOCKFIX_FILES_PER_TASK = 
     "raid.blockfix.filespertask";
-  private static final String BLOCKFIX_MAX_PENDING_FILES =
-    "raid.blockfix.maxpendingfiles";
-  private static final String BLOCKFIX_POOL = 
-    "raid.blockfix.fairscheduler.pool";
-  // mapred.fairscheduler.pool is only used in the local configuration
-  // passed to a block fixing job
-  private static final String MAPRED_POOL = 
-    "mapred.fairscheduler.pool";
+  private static final String BLOCKFIX_MAX_PENDING_JOBS =
+    "raid.blockfix.maxpendingjobs";
+  private static final String HIGH_PRI_SCHEDULER_OPTION =
+    "raid.blockfix.highpri.scheduleroption";
+  private static final String LOW_PRI_SCHEDULER_OPTION =
+    "raid.blockfix.lowpri.scheduleroption";
+  private static final String MAX_FIX_TIME_FOR_FILE =
+    "raid.blockfix.max.fix.time.for.file";
 
   // default number of files to fix in a task
   private static final long DEFAULT_BLOCKFIX_FILES_PER_TASK = 10L;
 
+  private static final int BLOCKFIX_TASKS_PER_JOB = 50;
+
   // default number of files to fix simultaneously
-  private static final long DEFAULT_BLOCKFIX_MAX_PENDING_FILES = 1000L;
+  private static final long DEFAULT_BLOCKFIX_MAX_PENDING_JOBS = 100L;
+
+  private static final long DEFAULT_MAX_FIX_FOR_FILE =
+    4 * 60 * 60 * 1000;  // 4 hrs.
  
   protected static final Log LOG = LogFactory.getLog(DistBlockFixer.class);
 
@@ -110,23 +108,20 @@ public class DistBlockFixer extends BlockFixer {
   private long filesPerTask;
 
   // number of files to fix simultaneously
-  final private long maxPendingFiles;
+  final private long maxPendingJobs;
 
-  // number of files being fixed right now
-  private long pendingFiles;
+  final private long maxFixTimeForFile;
 
-  // pool name to use (may be null, in which case no special pool is used)
-  private String poolName;
-
-  private long lastCheckTime;
-
-  private final SimpleDateFormat dateFormat = 
-    new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+  private final SimpleDateFormat dateFormat =
+    new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
 
   private Map<String, CorruptFileInfo> fileIndex = 
     new HashMap<String, CorruptFileInfo>();
   private Map<Job, List<CorruptFileInfo>> jobIndex =
     new HashMap<Job, List<CorruptFileInfo>>();
+
+  private long jobCounter = 0;
+  private volatile BlockFixer.Status lastStatus = null;
 
   static enum Counter {
     FILES_SUCCEEDED, FILES_FAILED, FILES_NOACTION
@@ -135,12 +130,8 @@ public class DistBlockFixer extends BlockFixer {
   public DistBlockFixer(Configuration conf) {
     super(conf);
     filesPerTask = DistBlockFixer.filesPerTask(getConf());
-    maxPendingFiles = DistBlockFixer.maxPendingFiles(getConf());
-    pendingFiles = 0L;
-    poolName = conf.get(BLOCKFIX_POOL);
-
-    // start off due for the first iteration
-    lastCheckTime = System.currentTimeMillis() - blockFixInterval;
+    maxPendingJobs = DistBlockFixer.maxPendingJobs(getConf());
+    maxFixTimeForFile = DistBlockFixer.maxFixTimeForFile(getConf());
   }
 
   /**
@@ -154,9 +145,14 @@ public class DistBlockFixer extends BlockFixer {
   /**
    * determines how many files to fix simultaneously
    */ 
-  protected static long maxPendingFiles(Configuration conf) {
-    return conf.getLong(BLOCKFIX_MAX_PENDING_FILES, 
-                        DEFAULT_BLOCKFIX_MAX_PENDING_FILES);
+  protected static long maxPendingJobs(Configuration conf) {
+    return conf.getLong(BLOCKFIX_MAX_PENDING_JOBS,
+                        DEFAULT_BLOCKFIX_MAX_PENDING_JOBS);
+  }
+
+  protected static long maxFixTimeForFile(Configuration conf) {
+    return conf.getLong(MAX_FIX_TIME_FOR_FILE,
+                        DEFAULT_MAX_FIX_FOR_FILE);
   }
 
   /**
@@ -164,33 +160,23 @@ public class DistBlockFixer extends BlockFixer {
    */
   public void run() {
     while (running) {
-      // check if it is time to run the block fixer
-      long now = System.currentTimeMillis();
-      if (now >= lastCheckTime + blockFixInterval) {
-        lastCheckTime = now;
-        try {
-          checkAndFixBlocks(now);
-        } catch (InterruptedException ignore) {
-          LOG.info("interrupted");
-        } catch (Exception e) {
-          // log exceptions and keep running
-          LOG.error(StringUtils.stringifyException(e));
-        } catch (Error e) {
-          LOG.error(StringUtils.stringifyException(e));
-          throw e;
-        }
+      try {
+        checkAndFixBlocks();
+        updateStatus();
+      } catch (InterruptedException ignore) {
+        LOG.info("interrupted");
+      } catch (Exception e) {
+        // log exceptions and keep running
+        LOG.error(StringUtils.stringifyException(e));
+      } catch (Error e) {
+        LOG.error(StringUtils.stringifyException(e));
+        throw e;
       }
-      
-      // try to sleep for the remainder of the interval
-      long sleepPeriod = (lastCheckTime - System.currentTimeMillis()) + 
-        blockFixInterval;
-      
-      if ((sleepPeriod > 0L) && running) {
-        try {
-          Thread.sleep(sleepPeriod);
-        } catch (InterruptedException ignore) {
-          LOG.info("interrupted");
-        }
+
+      try {
+        Thread.sleep(blockFixInterval);
+      } catch (InterruptedException ignore) {
+        LOG.info("interrupted");
       }
     }
   }
@@ -198,25 +184,103 @@ public class DistBlockFixer extends BlockFixer {
   /**
    * checks for corrupt blocks and fixes them (if any)
    */
-  private void checkAndFixBlocks(long startTime)
+  void checkAndFixBlocks()
     throws IOException, InterruptedException, ClassNotFoundException {
     checkJobs();
 
-    if (pendingFiles >= maxPendingFiles) {
+    if (jobIndex.size() >= maxPendingJobs) {
+      LOG.info("Waiting for " + jobIndex.size() + " pending jobs");
       return;
     }
 
-    List<Path> corruptFiles = getCorruptFiles();
-    filterUnfixableSourceFiles(corruptFiles.iterator());
+    Map<String, Integer> corruptFiles = getCorruptFiles();
+    FileSystem fs = new Path("/").getFileSystem(getConf());
+    Map<String, Integer> corruptFilePriority =
+      computePriorities(fs, corruptFiles);
 
-    String startTimeStr = dateFormat.format(new Date(startTime));
+    int totalCorruptFiles =
+      corruptFilePriority.size() + fileIndex.size();
+    RaidNodeMetrics.getInstance().numFilesToFix.set(totalCorruptFiles);
 
-    LOG.info("found " + corruptFiles.size() + " corrupt files");
+    String startTimeStr = dateFormat.format(new Date());
 
-    if (corruptFiles.size() > 0) {
-      String jobName = "blockfixer." + startTime;
-      startJob(jobName, corruptFiles);
+    LOG.info("Found " + corruptFilePriority.size() + " corrupt files");
+
+    if (corruptFilePriority.size() > 0) {
+      for (int pri = 1; pri >= 0; pri--) {
+        String jobName = "blockfixer." + jobCounter +
+          ".pri" + pri + "." + startTimeStr;
+        jobCounter++;
+        startJob(jobName, corruptFilePriority, pri);
+      }
     }
+  }
+
+  // Compute integer priority. Urgency is indicated by higher numbers.
+  Map<String, Integer> computePriorities(
+      FileSystem fs, Map<String, Integer> corruptFiles) throws IOException {
+
+    Map<String, Integer> corruptFilePriority = new HashMap<String, Integer>();
+    String[] parityDestPrefixes = destPrefixes();
+    Set<String> srcDirsToWatchOutFor = new HashSet<String>();
+    // Loop over parity files once.
+    for (Iterator<String> it = corruptFiles.keySet().iterator(); it.hasNext(); ) {
+      String p = it.next();
+      if (BlockFixer.isSourceFile(p, parityDestPrefixes)) {
+        continue;
+      }
+      // Find the parent of the parity file.
+      Path parent = new Path(p).getParent();
+      // If the file was a HAR part file, the parent will end with _raid.har. In
+      // that case, the parity directory is the parent of the parent.
+      if (parent.toUri().getPath().endsWith(RaidNode.HAR_SUFFIX)) {
+        parent = parent.getParent();
+      }
+      String parentUriPath = parent.toUri().getPath();
+      // Remove the RAID prefix to get the source dir.
+      srcDirsToWatchOutFor.add(
+        parentUriPath.substring(parentUriPath.indexOf(Path.SEPARATOR, 1)));
+      int numCorrupt = corruptFiles.get(p);
+      int priority = (numCorrupt > 1) ? 1 : 0;
+      CorruptFileInfo fileInfo = fileIndex.get(p);
+      if (fileInfo == null || priority > fileInfo.getHighestPriority()) {
+        corruptFilePriority.put(p, priority);
+      }
+    }
+    // Loop over src files now.
+    for (Iterator<String> it = corruptFiles.keySet().iterator(); it.hasNext(); ) {
+      String p = it.next();
+      if (BlockFixer.isSourceFile(p, parityDestPrefixes)) {
+        if (BlockFixer.doesParityDirExist(fs, p, parityDestPrefixes)) {
+          int numCorrupt = corruptFiles.get(p);
+          FileStatus stat = fs.getFileStatus(new Path(p));
+          int priority = 0;
+          if (stat.getReplication() > 1) {
+            // If we have a missing block when replication > 1, it is high pri.
+            priority = 1;
+          } else {
+            // Replication == 1. Assume Reed Solomon parity exists.
+            // If we have more than one missing block when replication == 1, then
+            // high pri.
+            priority = (numCorrupt > 1) ? 1 : 0;
+          }
+          // If priority is low, check if the scan of corrupt parity files found
+          // the src dir to be risky.
+          if (priority == 0) {
+            Path parent = new Path(p).getParent();
+            String parentUriPath = parent.toUri().getPath();
+            if (srcDirsToWatchOutFor.contains(parentUriPath)) {
+              priority = 1;
+            }
+          }
+          CorruptFileInfo fileInfo = fileIndex.get(p);
+          if (fileInfo == null || priority > fileInfo.getHighestPriority()) {
+            corruptFilePriority.put(p, priority);
+          }
+        }
+      }
+    }
+    return corruptFilePriority;
   }
 
   /**
@@ -224,43 +288,51 @@ public class DistBlockFixer extends BlockFixer {
    */
   private void failJob(Job job) throws IOException {
     // assume no files have been fixed
-    LOG.info("job " + job.getID() + "(" + job.getJobName() +
+    LOG.error("Job " + job.getID() + "(" + job.getJobName() +
       ") finished (failed)");
+    // We do not change metrics here since we do not know for sure if file
+    // fixing failed.
     for (CorruptFileInfo fileInfo: jobIndex.get(job)) {
-      fileInfo.fail();
+      boolean failed = true;
+      fileInfo.finishJob(job.getJobName(), failed);
     }
     numJobsRunning--;
   }
 
   /**
    * Handle a successful job.
-   */ 
+   */
   private void succeedJob(Job job, long filesSucceeded, long filesFailed)
     throws IOException {
-    LOG.info("job " + job.getID() + "(" + job.getJobName() +
+    String jobName = job.getJobName();
+    LOG.info("Job " + job.getID() + "(" + jobName +
       ") finished (succeeded)");
 
     if (filesFailed == 0) {
       // no files have failed
       for (CorruptFileInfo fileInfo: jobIndex.get(job)) {
-        fileInfo.succeed();
+        boolean failed = false;
+        fileInfo.finishJob(jobName, failed);
       }
     } else {
       // we have to look at the output to check which files have failed
       Set<String> failedFiles = getFailedFiles(job);
-      
+
       for (CorruptFileInfo fileInfo: jobIndex.get(job)) {
         if (failedFiles.contains(fileInfo.getFile().toString())) {
-          fileInfo.fail();
+          boolean failed = true;
+          fileInfo.finishJob(jobName, failed);
         } else {
           // call succeed for files that have succeeded or for which no action
           // was taken
-          fileInfo.succeed();
+          boolean failed = false;
+          fileInfo.finishJob(jobName, failed);
         }
       }
     }
     // report succeeded files to metrics
     incrFilesFixed(filesSucceeded);
+    incrFileFixFailures(filesFailed);
     numJobsRunning--;
   }
 
@@ -268,19 +340,28 @@ public class DistBlockFixer extends BlockFixer {
    * checks if jobs have completed and updates job and file index
    * returns a list of failed files for restarting
    */
-  private void checkJobs() throws IOException {
+  void checkJobs() throws IOException {
     Iterator<Job> jobIter = jobIndex.keySet().iterator();
     while(jobIter.hasNext()) {
       Job job = jobIter.next();
 
       try {
         if (job.isComplete()) {
+          long slotSeconds = job.getCounters().findCounter(
+            JobInProgress.Counter.SLOTS_MILLIS_MAPS).getValue() / 1000;
+          RaidNodeMetrics.getInstance().blockFixSlotSeconds.inc(slotSeconds);
           long filesSucceeded =
-            job.getCounters().findCounter(Counter.FILES_SUCCEEDED).getValue();
+            job.getCounters().findCounter(Counter.FILES_SUCCEEDED) != null ?
+            job.getCounters().findCounter(Counter.FILES_SUCCEEDED).getValue():
+            0;
           long filesFailed =
-            job.getCounters().findCounter(Counter.FILES_FAILED).getValue();
+            job.getCounters().findCounter(Counter.FILES_FAILED) != null ?
+            job.getCounters().findCounter(Counter.FILES_FAILED).getValue():
+            0;
           long filesNoAction =
-            job.getCounters().findCounter(Counter.FILES_NOACTION).getValue();
+            job.getCounters().findCounter(Counter.FILES_NOACTION) != null ?
+            job.getCounters().findCounter(Counter.FILES_NOACTION).getValue():
+            0;
           int files = jobIndex.get(job).size();
           if (job.isSuccessful() && 
               (filesSucceeded + filesFailed + filesNoAction == 
@@ -292,7 +373,8 @@ public class DistBlockFixer extends BlockFixer {
           }
           jobIter.remove();
         } else {
-          LOG.info("job " + job.getJobName() + " still running");
+          LOG.info("Job " + job.getID() + "(" + job.getJobName()
+            + " still running");
         }
       } catch (Exception e) {
         LOG.error(StringUtils.stringifyException(e));
@@ -346,28 +428,31 @@ public class DistBlockFixer extends BlockFixer {
    */
   private void purgeFileIndex() {
     Iterator<String> fileIter = fileIndex.keySet().iterator();
+    long now = System.currentTimeMillis();
     while(fileIter.hasNext()) {
       String file = fileIter.next();
-      if (fileIndex.get(file).isExpired()) {
+      if (fileIndex.get(file).isTooOld(now)) {
         fileIter.remove();
       }
     }
-    
   }
 
   /**
    * creates and submits a job, updates file index and job index
    */
-  private Job startJob(String jobName, List<Path> corruptFiles) 
-    throws IOException, InterruptedException, ClassNotFoundException {
+  private void startJob(String jobName, Map<String, Integer> corruptFilePriority,
+      int priority)
+      throws IOException, InterruptedException, ClassNotFoundException {
     Path inDir = new Path(WORK_DIR_PREFIX + "/in/" + jobName);
     Path outDir = new Path(WORK_DIR_PREFIX + "/out/" + jobName);
-    List<Path> filesInJob = createInputFile(jobName, inDir, corruptFiles);
+    List<String> filesInJob = createInputFile(
+      jobName, inDir, corruptFilePriority, priority);
+    if (filesInJob.isEmpty()) return;
 
     Configuration jobConf = new Configuration(getConf());
-    if (poolName != null) {
-      jobConf.set(MAPRED_POOL, poolName);
-    }
+    RaidUtils.parseAndSetOptions(
+      jobConf,
+      priority == 1 ? HIGH_PRI_SCHEDULER_OPTION : LOW_PRI_SCHEDULER_OPTION);
     Job job = new Job(jobConf, jobName);
     job.setJarByClass(getClass());
     job.setMapperClass(DistBlockFixerMapper.class);
@@ -380,36 +465,52 @@ public class DistBlockFixer extends BlockFixer {
     DistBlockFixerInputFormat.setInputPaths(job, inDir);
     SequenceFileOutputFormat.setOutputPath(job, outDir);
 
+    submitJob(job, filesInJob, priority);
+    List<CorruptFileInfo> fileInfos =
+      updateFileIndex(jobName, filesInJob, priority);
+    // The implementation of submitJob() need not update jobIndex.
+    // So check if the job exists in jobIndex before updating jobInfos.
+    if (jobIndex.containsKey(job)) {
+      jobIndex.put(job, fileInfos);
+    }
+    numJobsRunning++;
+  }
+
+  // Can be overridded by tests.
+  void submitJob(Job job, List<String> filesInJob, int priority)
+      throws IOException, InterruptedException, ClassNotFoundException {
     job.submit();
-    // submit the job before inserting it into the index
-    // this way, if submit fails, we won't have added anything to the index
-    insertJob(job, filesInJob);
-    return job;
+    LOG.info("Job " + job.getID() + "(" + job.getJobName() +
+      ") started");
+    jobIndex.put(job, null);
   }
 
   /**
    * inserts new job into file index and job index
    */
-  private void insertJob(Job job, List<Path> corruptFiles) {
-    List<CorruptFileInfo> fileInfos = new LinkedList<CorruptFileInfo>();
+  private List<CorruptFileInfo> updateFileIndex(
+      String jobName, List<String> corruptFiles, int priority) {
+    List<CorruptFileInfo> fileInfos = new ArrayList<CorruptFileInfo>();
 
-    for (Path file: corruptFiles) {
-      CorruptFileInfo fileInfo = new CorruptFileInfo(file, job);
+    for (String file: corruptFiles) {
+      CorruptFileInfo fileInfo = fileIndex.get(file);
+      if (fileInfo != null) {
+        fileInfo.addJob(jobName, priority);
+      } else {
+        fileInfo = new CorruptFileInfo(file, jobName, priority);
+        fileIndex.put(file, fileInfo);
+      }
       fileInfos.add(fileInfo);
-      fileIndex.put(file.toString(), fileInfo);
     }
-
-    jobIndex.put(job, fileInfos);
-    numJobsRunning++;
+    return fileInfos;
   }
-    
+ 
   /**
    * creates the input file (containing the names of the files to be fixed
    */
-  private List<Path> createInputFile(String jobName, Path inDir, 
-                                     List<Path> corruptFiles) 
-    throws IOException {
-
+  private List<String> createInputFile(String jobName, Path inDir,
+                         Map<String, Integer> corruptFilePriority, int priority)
+      throws IOException {
     Path file = new Path(inDir, jobName + IN_FILE_SUFFIX);
     FileSystem fs = file.getFileSystem(getConf());
     SequenceFile.Writer fileOut = SequenceFile.createWriter(fs, getConf(), file,
@@ -417,17 +518,20 @@ public class DistBlockFixer extends BlockFixer {
                                                             Text.class);
     long index = 0L;
 
-    List<Path> filesAdded = new LinkedList<Path>();
-
-    for (Path corruptFile: corruptFiles) {
-      if (pendingFiles >= maxPendingFiles) {
+    List<String> filesAdded = new ArrayList<String>();
+    int count = 0;
+    final long max = filesPerTask * BLOCKFIX_TASKS_PER_JOB;
+    for (Map.Entry<String, Integer> entry: corruptFilePriority.entrySet()) {
+      if (entry.getValue() != priority) {
+        continue;
+      }
+      if (count >= max) {
         break;
       }
-
-      String corruptFileName = corruptFile.toString();
+      String corruptFileName = entry.getKey();
       fileOut.append(new LongWritable(index++), new Text(corruptFileName));
-      filesAdded.add(corruptFile);
-      pendingFiles++;
+      filesAdded.add(corruptFileName);
+      count++;
 
       if (index % filesPerTask == 0) {
         fileOut.sync(); // create sync point to make sure we can split here
@@ -476,23 +580,38 @@ public class DistBlockFixer extends BlockFixer {
    * and filters out files that are currently being fixed or 
    * that were recently fixed
    */
-  private List<Path> getCorruptFiles() throws IOException {
-    DistributedFileSystem dfs = (DistributedFileSystem) 
-      (new Path("/")).getFileSystem(getConf());
+  private Map<String, Integer> getCorruptFiles() throws IOException {
 
-    String[] files = DFSUtil.getCorruptFiles(dfs);
-    List<Path> corruptFiles = new LinkedList<Path>();
-
-    for (String f: files) {
-      Path p = new Path(f);
-      // filter out files that are being fixed or that were recently fixed
-      if (!fileIndex.containsKey(p.toString())) {
-        corruptFiles.add(p);
+    Map<String, Integer> corruptFiles = new HashMap<String, Integer>();
+    BufferedReader reader = getCorruptFileReader();
+    String line = reader.readLine(); // remove the header line
+    while ((line = reader.readLine()) != null) {
+      Matcher m = LIST_CORRUPT_FILE_PATTERN.matcher(line);
+      if (!m.find()) {
+        continue;
       }
+      String fileName = m.group(1).trim();
+      Integer numCorrupt = corruptFiles.get(fileName);
+      numCorrupt = numCorrupt == null ? 0 : numCorrupt;
+      numCorrupt += 1;
+      corruptFiles.put(fileName, numCorrupt);
     }
-    RaidUtils.filterTrash(getConf(), corruptFiles);
-
+    RaidUtils.filterTrash(getConf(), corruptFiles.keySet().iterator());
     return corruptFiles;
+  }
+
+  private BufferedReader getCorruptFileReader() throws IOException {
+
+    ByteArrayOutputStream bout = new ByteArrayOutputStream();
+    PrintStream ps = new PrintStream(bout, true);
+    DFSck dfsck = new DFSck(getConf(), ps);
+    try {
+      dfsck.run(new String[]{"-list-corruptfileblocks", "-limit", "20000"});
+    } catch (Exception e) {
+      throw new IOException(e);
+    }
+    ByteArrayInputStream bin = new ByteArrayInputStream(bout.toByteArray());
+    return new BufferedReader(new InputStreamReader(bin));
   }
 
   /**
@@ -507,64 +626,69 @@ public class DistBlockFixer extends BlockFixer {
    */
   class CorruptFileInfo {
 
-    private Path file;
-    private Job job;
+    private String file;
+    private List<String> jobNames;  // Jobs fixing this file.
     private boolean done;
-    private long time;
+    private List<Integer> priorities;
+    private long insertTime;
 
-    public CorruptFileInfo(Path file, Job job) {
+    public CorruptFileInfo(String file, String jobName, int priority) {
       this.file = file;
-      this.job = job;
+      this.jobNames = new ArrayList<String>();
+      this.priorities = new ArrayList<Integer>();
       this.done = false;
-      this.time = 0;
+      this.insertTime = System.currentTimeMillis();
+      addJob(jobName, priority);
+    }
+
+    public boolean isTooOld(long now) {
+      return now - insertTime > maxFixTimeForFile;
     }
 
     public boolean isDone() {
       return done;
     }
-    
-    public boolean isExpired() {
-      return done && ((System.currentTimeMillis() - time) > historyInterval);
+
+    public void addJob(String jobName, int priority) {
+      this.jobNames.add(jobName);
+      this.priorities.add(priority);
     }
 
-    public Path getFile() {
+    public int getHighestPriority() {
+      int max = 0;
+      for (int p: priorities) {
+        if (p > max) max = p;
+      }
+      return max;
+    }
+
+    public String getFile() {
       return file;
     }
-    
+
     /**
-     * updates file index to record a failed attempt at fixing a file,
-     * immediately removes the entry from the file index 
-     * (instead of letting it expire)
-     * so that we can retry right away
+     * Updates state with the completion of a job. If all jobs for this file
+     * are done, the file index is updated.
      */
-    public void fail() {
-      // remove this file from the index
-      CorruptFileInfo removed = fileIndex.remove(file.toString());
-      if (removed == null) {
-        LOG.error("trying to remove file not in file index: " +
-                  file.toString());
-      } else {
-        LOG.info("fixing " + file.toString() + " failed");
+    public void finishJob(String jobName, boolean failed) {
+      int idx = jobNames.indexOf(jobName);
+      if (idx == -1) return;
+      jobNames.remove(idx);
+      priorities.remove(idx);
+      LOG.info("fixing " + file +
+        (failed ? " failed in " : " succeeded in ") +
+        jobName);
+      if (jobNames.isEmpty()) {
+        // All jobs dealing with this file are done,
+        // remove this file from the index
+        CorruptFileInfo removed = fileIndex.remove(file);
+        if (removed == null) {
+          LOG.error("trying to remove file not in file index: " + file);
+        }
+        done = true;
       }
-      pendingFiles--;
     }
-
-    /**
-     * marks a file as fixed successfully
-     * and sets time stamp for expiry after specified interval
-     */
-    public void succeed() {
-      // leave the file in the index,
-      // will be pruged later
-      job = null;
-      done = true;
-      time = System.currentTimeMillis();
-      LOG.info("fixing " + file.toString() + " succeeded");
-      pendingFiles--;
-    }
-
   }
-
 
   static class DistBlockFixerInputFormat
     extends SequenceFileInputFormat<LongWritable, Text> {
@@ -584,7 +708,7 @@ public class DistBlockFixer extends BlockFixer {
 
       Path[] inPaths = getInputPaths(job);
 
-      List<InputSplit> splits = new LinkedList<InputSplit>();
+      List<InputSplit> splits = new ArrayList<InputSplit>();
 
       long fileCounter = 0;
 
@@ -679,7 +803,6 @@ public class DistBlockFixer extends BlockFixer {
       LOG.info("fixing " + fileStr);
 
       Path file = new Path(fileStr);
-      boolean success = false;
 
       try {
         boolean fixed = helper.fixFile(file, context);
@@ -701,6 +824,42 @@ public class DistBlockFixer extends BlockFixer {
       
       context.progress();
     }
+  }
+
+  /**
+   * Update {@link lastStatus} so that it can be viewed from outside
+   */
+  private void updateStatus() {
+    int highPriorityFiles = 0;
+    int lowPriorityFiles = 0;
+    List<JobStatus> jobs = new ArrayList<JobStatus>();
+    List<String> highPriorityFileNames = new ArrayList<String>();
+    for (Map.Entry<String, CorruptFileInfo> e : fileIndex.entrySet()) {
+      String fileName = e.getKey();
+      CorruptFileInfo fileInfo = e.getValue();
+      if (fileInfo.getHighestPriority() > 0) {
+        highPriorityFileNames.add(fileName);
+        highPriorityFiles += 1;
+      } else {
+        lowPriorityFiles += 1;
+      }
+    }
+    for (Job job : jobIndex.keySet()) {
+      String url = job.getTrackingURL();
+      String name = job.getJobName();
+      JobID jobId = job.getID();
+      jobs.add(new BlockFixer.JobStatus(jobId, name, url));
+    }
+    lastStatus = new BlockFixer.Status(highPriorityFiles, lowPriorityFiles,
+        jobs, highPriorityFileNames);
+    RaidNodeMetrics.getInstance().corruptFilesHighPri.set(highPriorityFiles);
+    RaidNodeMetrics.getInstance().corruptFilesLowPri.set(lowPriorityFiles);
+    LOG.info("Update status done." + lastStatus.toString());
+  }
+
+  @Override
+  public BlockFixer.Status getStatus() {
+    return lastStatus;
   }
 
 }

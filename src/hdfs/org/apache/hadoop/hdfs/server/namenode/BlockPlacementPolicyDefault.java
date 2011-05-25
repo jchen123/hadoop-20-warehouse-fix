@@ -327,12 +327,12 @@ public class BlockPlacementPolicyDefault extends BlockPlacementPolicy {
     
   /* Randomly choose <i>numOfReplicas</i> targets from <i>nodes</i>.
    */
-  private void chooseRandom(int numOfReplicas,
-                            String nodes,
-                            HashMap<Node, Node> excludedNodes,
-                            long blocksize,
-                            int maxNodesPerRack,
-                            List<DatanodeDescriptor> results)
+  void chooseRandom(int numOfReplicas,
+                    String nodes,
+                    HashMap<Node, Node> excludedNodes,
+                    long blocksize,
+                    int maxNodesPerRack,
+                    List<DatanodeDescriptor> results)
     throws NotEnoughReplicasException {
       
     int numOfAvailableNodes =

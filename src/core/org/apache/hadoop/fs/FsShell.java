@@ -86,7 +86,11 @@ public class FsShell extends Configured implements Tool {
     }
   }
 
-  
+  public enum LsOption {
+    Recursive,
+    WithBlockSize
+  };
+
   /**
    * Copies from stdin to the indicated file.
    */
@@ -566,11 +570,11 @@ public class FsShell extends Configured implements Tool {
   /**
    * Get a listing of all files in that match the file pattern <i>srcf</i>.
    * @param srcf a file pattern specifying source files
-   * @param recursive if need to list files in subdirs
+   * @param flags LS options.
    * @throws IOException  
    * @see org.apache.hadoop.fs.FileSystem#globStatus(Path)
    */
-  private int ls(String srcf, boolean recursive) throws IOException {
+  private int ls(String srcf, EnumSet<LsOption> flags) throws IOException {
     Path srcPath = new Path(srcf);
     FileSystem srcFs = srcPath.getFileSystem(this.getConf());
     FileStatus[] srcs = srcFs.globStatus(srcPath);
@@ -582,7 +586,7 @@ public class FsShell extends Configured implements Tool {
     boolean printHeader = (srcs.length == 1) ? true: false;
     int numOfErrors = 0;
     for(int i=0; i<srcs.length; i++) {
-      numOfErrors += ls(srcs[i], srcFs, recursive, printHeader);
+      numOfErrors += ls(srcs[i], srcFs, flags, printHeader);
     }
     return numOfErrors == 0 ? 0 : -1;
   }
@@ -590,8 +594,10 @@ public class FsShell extends Configured implements Tool {
   /* list all files under the directory <i>src</i>
    * ideally we should provide "-l" option, that lists like "ls -l".
    */
-  private int ls(FileStatus src, FileSystem srcFs, boolean recursive,
+  private int ls(FileStatus src, FileSystem srcFs, EnumSet<LsOption> flags,
       boolean printHeader) throws IOException {
+    final boolean recursive = flags.contains(LsOption.Recursive);
+    final boolean withBlockSize = flags.contains(LsOption.WithBlockSize);
     final String cmd = recursive? "lsr": "ls";
     final FileStatus[] items = shellListStatus(cmd, srcFs, src);
     if (items == null) {
@@ -633,10 +639,12 @@ public class FsShell extends Configured implements Tool {
         if (maxGroup > 0)
           System.out.printf("%-"+ maxGroup + "s ", stat.getGroup());
         System.out.printf("%"+ maxLen + "d ", stat.getLen());
+        if (withBlockSize)
+          System.out.printf("%"+ maxLen + "d ", stat.getBlockSize());
         System.out.print(mdate + " ");
         System.out.println(cur.toUri().getPath());
         if (recursive && stat.isDir()) {
-          numOfErrors += ls(stat,srcFs, recursive, printHeader);
+          numOfErrors += ls(stat,srcFs, flags, printHeader);
         }
       }
       return numOfErrors;
@@ -1263,7 +1271,7 @@ public class FsShell extends Configured implements Tool {
     String summary = "hadoop fs is the command to execute fs commands. " +
       "The full syntax is: \n\n" +
       "hadoop fs [-fs <local | file system URI>] [-conf <configuration file>]\n\t" +
-      "[-D <property=value>] [-ls <path>] [-lsr <path>] [-du <path>]\n\t" + 
+      "[-D <property=value>] [-ls <path>] [-lsr <path>] [-lsrx <path>] [-du <path>]\n\t" + 
       "[-dus <path>] [-mv <src> <dst>] [-cp <src> <dst>] [-rm [-skipTrash] <src>]\n\t" + 
       "[-rmr [-skipTrash] <src>] [-put <localsrc> ... <dst>] [-copyFromLocal <localsrc> ... <dst>]\n\t" +
       "[-moveFromLocal <localsrc> ... <dst>] [" + 
@@ -1308,6 +1316,10 @@ public class FsShell extends Configured implements Tool {
       "\t\tfile pattern.  Behaves very similarly to hadoop fs -ls,\n" + 
       "\t\texcept that the data is shown for all the entries in the\n" +
       "\t\tsubtree.\n";
+
+    String lsrx = "-lsrx <path>: \tRecursively list the contents that match the specified\n" +
+      "\t\tfile pattern.  Behaves very similarly to hadoop fs -lsr,\n" + 
+      "\t\texcept that block size of files is also shown.\n";
 
     String du = "-du <path>: \tShow the amount of space, in bytes, used by the files that \n" +
       "\t\tmatch the specified file pattern.  Equivalent to the unix\n" + 
@@ -1435,6 +1447,8 @@ public class FsShell extends Configured implements Tool {
       System.out.println(ls);
     } else if ("lsr".equals(cmd)) {
       System.out.println(lsr);
+    } else if ("lsrx".equals(cmd)) {
+      System.out.println(lsrx);
     } else if ("du".equals(cmd)) {
       System.out.println(du);
     } else if ("dus".equals(cmd)) {
@@ -1494,6 +1508,7 @@ public class FsShell extends Configured implements Tool {
       System.out.println(fs);
       System.out.println(ls);
       System.out.println(lsr);
+      System.out.println(lsrx);
       System.out.println(du);
       System.out.println(dus);
       System.out.println(mv);
@@ -1564,9 +1579,12 @@ public class FsShell extends Configured implements Tool {
         } else if (Count.matches(cmd)) {
           new Count(argv, i, getConf()).runAll();
         } else if ("-ls".equals(cmd)) {
-          exitCode = ls(argv[i], false);
+          exitCode = ls(argv[i], EnumSet.noneOf(LsOption.class));
         } else if ("-lsr".equals(cmd)) {
-          exitCode = ls(argv[i], true);
+          exitCode = ls(argv[i], EnumSet.of(LsOption.Recursive));
+        } else if ("-lsrx".equals(cmd)) {
+          exitCode = ls(argv[i],
+                        EnumSet.of(LsOption.Recursive, LsOption.WithBlockSize));
         } else if ("-touchz".equals(cmd)) {
           touchz(argv[i]);
         } else if ("-text".equals(cmd)) {
@@ -1618,7 +1636,7 @@ public class FsShell extends Configured implements Tool {
     } else if ("-D".equals(cmd)) {
       System.err.println("Usage: java FsShell" + 
                          " [-D <[property=value>]");
-    } else if ("-ls".equals(cmd) || "-lsr".equals(cmd) ||
+    } else if ("-ls".equals(cmd) || "-lsr".equals(cmd) || "-lsrx".equals(cmd) ||
                "-du".equals(cmd) || "-dus".equals(cmd) ||
                "-touchz".equals(cmd) || "-mkdir".equals(cmd) ||
                "-text".equals(cmd)) {
@@ -1660,6 +1678,7 @@ public class FsShell extends Configured implements Tool {
       System.err.println("Usage: java FsShell");
       System.err.println("           [-ls <path>]");
       System.err.println("           [-lsr <path>]");
+      System.err.println("           [-lsrx <path>]");
       System.err.println("           [-du <path>]");
       System.err.println("           [-dus <path>]");
       System.err.println("           [" + Count.USAGE + "]");
@@ -1783,14 +1802,21 @@ public class FsShell extends Configured implements Tool {
         if (i < argv.length) {
           exitCode = doall(cmd, argv, i);
         } else {
-          exitCode = ls(Path.CUR_DIR, false);
+          exitCode = ls(Path.CUR_DIR, EnumSet.noneOf(LsOption.class));
         } 
       } else if ("-lsr".equals(cmd)) {
         if (i < argv.length) {
           exitCode = doall(cmd, argv, i);
         } else {
-          exitCode = ls(Path.CUR_DIR, true);
+          exitCode = ls(Path.CUR_DIR, EnumSet.of(LsOption.Recursive));
         } 
+      } else if ("-lsrx".equals(cmd)) {
+        if (i < argv.length) {
+          exitCode = doall(cmd, argv, i);
+        } else {
+          exitCode = ls(Path.CUR_DIR,
+                        EnumSet.of(LsOption.Recursive, LsOption.WithBlockSize));
+        }
       } else if ("-mv".equals(cmd)) {
         exitCode = rename(argv, getConf());
       } else if ("-cp".equals(cmd)) {

@@ -424,10 +424,12 @@ public class TestTaskTrackerMemoryManager extends TestCase {
     long reservedPhysicalMemory = totalPhysicalMemory / (1024 * 1024) + 1;
     fConf.setLong(TaskMemoryManagerThread.TT_RESERVED_PHYSCIALMEMORY_MB,
                   reservedPhysicalMemory);
+    fConf.setLong(TaskMemoryManagerThread.TASK_MAX_PHYSICAL_MEMORY_MB_KEY,
+                  3 * 1024);
     long maxRssMemoryAllowedForAllTasks = totalPhysicalMemory -
 				                                  reservedPhysicalMemory * 1024 * 1024L;
 	  Pattern physicalMemoryOverLimitPattern = Pattern.compile(
-	      "Killing one of the memory-consuming tasks - .*"
+	      "Killing the top memory-consuming tasks - .*"
 	        + ", as the cumulative RSS memory usage of all the tasks on "
 	        + "the TaskTracker exceeds physical memory limit "
 	        + maxRssMemoryAllowedForAllTasks + ".");
@@ -476,7 +478,7 @@ public class TestTaskTrackerMemoryManager extends TestCase {
     // Test succeeded, kill the job.
     job.killJob();
   }
-  
+
   /**
    * Test to verify the check for whether a process tree is over limit or not.
    * @throws IOException if there was a problem setting up the

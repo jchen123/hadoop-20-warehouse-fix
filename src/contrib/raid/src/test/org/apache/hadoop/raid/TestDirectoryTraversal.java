@@ -19,204 +19,159 @@ package org.apache.hadoop.raid;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Set;
 
 import junit.framework.TestCase;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.hadoop.mapred.Reporter;
 
-import org.apache.hadoop.raid.protocol.PolicyInfo;
-
+/**
+ * Verifies {@link DirectoryTraversal} retrieves elements under directory tree 
+ */
 public class TestDirectoryTraversal extends TestCase {
-  final static Log LOG = LogFactory.getLog(
-                            "org.apache.hadoop.raid.TestDirectoryTraversal");
+  final static Log LOG = LogFactory.getLog(TestDirectoryTraversal.class);
   final static String TEST_DIR = new File(System.getProperty("test.build.data",
       "build/contrib/raid/test/data")).getAbsolutePath();
+  final static int NUM_TESTS = 100;
+  final Configuration conf = new Configuration();
+  Set<String> dirsCreated = new HashSet<String>();
+  Set<String> filesCreated = new HashSet<String>();
+  Random rand = new Random();
+  int dirAndFileNo = 0;
 
-  MiniDFSCluster dfs = null;
-  FileSystem fs = null;
-  Configuration conf = null;
+  public void testLocalFileSystem() throws Exception {
+    LOG.info("Start testing local filesystem");
+    Path root = new Path(TEST_DIR + Path.SEPARATOR + "dt");
+    FileSystem fs = root.getFileSystem(conf);
+    verifyDirectoryRetrival(root, fs);
+    verifyFileRetrival(root, fs);
+  }
 
-  /**
-   * Test basic enumeration.
-   */
-  public void testEnumeration() throws IOException {
-    mySetup();
-
+  public void testDistributedFileSystem() throws Exception {
+    LOG.info("Start testing distributed filesystem");
+    MiniDFSCluster dfs = null;
     try {
-      Path topDir = new Path(TEST_DIR + "/testenumeration");
-
-      createTestTree(topDir);
-
-      LOG.info("Enumerating files");
-      List<FileStatus> startPaths = new LinkedList<FileStatus>();
-      startPaths.add(fs.getFileStatus(topDir));
-      DirectoryTraversal dt = new DirectoryTraversal(fs, startPaths, 2);
-
-      List<FileStatus> selected = new LinkedList<FileStatus>();
-      while (true) {
-        FileStatus f = dt.getNextFile();
-        if (f == null) break;
-        assertEquals(false, f.isDir());
-        LOG.info(f.getPath());
-        selected.add(f);
-      }
-      assertEquals(5, selected.size());
-
-      LOG.info("Enumerating directories");
-      startPaths.clear();
-      startPaths.add(fs.getFileStatus(topDir));
-      dt = new DirectoryTraversal(fs, startPaths);
-      selected.clear();
-      while (true) {
-        FileStatus dir = dt.getNextDirectory();
-        if (dir == null) break;
-        assertEquals(true, dir.isDir());
-        LOG.info(dir.getPath());
-        selected.add(dir);
-      }
-      assertEquals(4, selected.size());
+      dfs = new MiniDFSCluster(conf, 6, true, null);
+      dfs.waitActive();
+      FileSystem fs = dfs.getFileSystem();
+      Path root = new Path(TEST_DIR + Path.SEPARATOR + "dt");
+      verifyDirectoryRetrival(root, fs);
+      verifyFileRetrival(root, fs);
     } finally {
-      myTearDown();
+      if (dfs != null) {
+        dfs.shutdown();
+      }
     }
   }
 
-  public void testSuspension() throws IOException {
-    LOG.info("Starting testSuspension");
-    mySetup();
-
-    try {
-      Path topDir = new Path(TEST_DIR + "/testenumeration");
-
-      createTestTree(topDir);
-
-      String top = topDir.toString();
-      List<FileStatus> startPaths = new LinkedList<FileStatus>();
-      startPaths.add(fs.getFileStatus(new Path(top + "/a")));
-      startPaths.add(fs.getFileStatus(new Path(top + "/b")));
-      DirectoryTraversal dt = new DirectoryTraversal(fs, startPaths);
-
-      int limit = 2;
-      short targetRepl = 1;
-      Path raid = new Path("/raid");
-      DirectoryTraversal.FileFilter filter =
-        new RaidFilter.TimeBasedFilter(conf,
-          RaidNode.xorDestinationPath(conf), 1, System.currentTimeMillis(), 0);
-      List<FileStatus> selected = dt.getFilteredFiles(filter, limit);
-      for (FileStatus f: selected) {
-        LOG.info(f.getPath());
+  public void verifyDirectoryRetrival(Path root, FileSystem fs) throws Exception {
+    for (int i = 0; i < NUM_TESTS; ++i) {
+      fs.delete(root, true);
+      fs.mkdirs(root);
+      fs.deleteOnExit(root);
+      try {
+        dirsCreated.clear();
+        filesCreated.clear();
+        createDirectoryTree(root, 5, 5, 0.3, 0.3, fs);
+        LOG.info("Directories created:" + dirsCreated.size());
+        DirectoryTraversal dt =
+            DirectoryTraversal.directoryRetriever(
+                Arrays.asList(root), fs, 5, true);
+        FileStatus dir;
+        int dirCount = 0;
+        while ((dir = dt.next()) != DirectoryTraversal.FINISH_TOKEN) {
+          LOG.info("Get " + dir.getPath().toString().replace(TEST_DIR, ""));
+          dirCount += 1;
+          String name = getSimpleName(dir);
+          assertTrue(dirsCreated.remove(name));
+        }
+        assertEquals(0, dirsCreated.size());
+      } finally {
+        fs.delete(root, true);
       }
-      assertEquals(limit, selected.size());
-
-      selected = dt.getFilteredFiles(filter, limit);
-      for (FileStatus f: selected) {
-        LOG.info(f.getPath());
-      }
-      assertEquals(limit, selected.size());
-    } finally {
-      myTearDown();
     }
   }
 
-  public void testFileFilter() throws IOException {
-    mySetup();
-
-    try {
-      Path topDir = new Path(TEST_DIR + "/testFileFilter");
-      int targetRepl = 1;
-      createTestTree(topDir);
-      Path file = new Path(topDir.toString() + "/a/f1");
-      FileStatus stat = fs.getFileStatus(file);
-      PolicyInfo info = new PolicyInfo("testFileFilter", conf);
-      info.setSrcPath(topDir.toString());
-      info.setErasureCode("rs");
-      info.setDescription("test policy");
-      info.setProperty("targetReplication", "1");
-      info.setProperty("metaReplication", "1");
-
-      DirectoryTraversal.FileFilter timeBasedXORFilter =
-        new RaidFilter.TimeBasedFilter(conf,
-          RaidNode.xorDestinationPath(conf), targetRepl,
-            System.currentTimeMillis(), 0);
-      DirectoryTraversal.FileFilter timeBasedRSFilter =
-        new RaidFilter.TimeBasedFilter(conf,
-          RaidNode.rsDestinationPath(conf), targetRepl,
-            System.currentTimeMillis(), 0);
-      DirectoryTraversal.FileFilter preferenceForRSFilter =
-        new RaidFilter.PreferenceFilter(
-          conf, RaidNode.rsDestinationPath(conf),
-          RaidNode.xorDestinationPath(conf), 1, System.currentTimeMillis(), 0);
-
-      assertTrue(timeBasedXORFilter.check(stat));
-      assertTrue(timeBasedRSFilter.check(stat));
-      assertTrue(preferenceForRSFilter.check(stat));
-
-      RaidNode.doRaid(
-        conf, info, stat, new RaidNode.Statistics(), Reporter.NULL);
-
-      assertTrue(timeBasedXORFilter.check(stat));
-      assertFalse(timeBasedRSFilter.check(stat));
-      assertFalse(preferenceForRSFilter.check(stat));
-    } finally {
-      myTearDown();
+  public void verifyFileRetrival(Path root, FileSystem fs) throws Exception {
+    for (int i = 0; i < NUM_TESTS; ++i) {
+      fs.delete(root, true);
+      fs.mkdirs(root);
+      fs.deleteOnExit(root);
+      try {
+        dirsCreated.clear();
+        filesCreated.clear();
+        createDirectoryTree(root, 5, 5, 0.3, 0.3, fs);
+        LOG.info("Files created:" + filesCreated.size());
+        DirectoryTraversal dt =
+          DirectoryTraversal.fileRetriever(Arrays.asList(root), fs, 5, true);
+        FileStatus file;
+        int dirCount = 0;
+        while ((file = dt.next()) != DirectoryTraversal.FINISH_TOKEN) {
+          LOG.info("Get " + file.getPath().toString().replace(TEST_DIR, ""));
+          dirCount += 1;
+          String name = getSimpleName(file);
+          assertTrue(filesCreated.remove(name));
+        }
+        assertEquals(0, filesCreated.size());
+      } finally {
+        fs.delete(root, true);
+      }
     }
   }
 
-  /**
-   * Creates a test directory tree.
-   *            top
-   *           / | \
-   *          /  |  f5
-   *         a   b___
-   *        / \  |\  \
-   *       f1 f2 f3f4 c
-   */
-  private void createTestTree(Path topDir) throws IOException {
-    String top = topDir.toString();
-    fs.delete(topDir, true);
-
-    fs.mkdirs(topDir);
-    fs.create(new Path(top + "/f5")).close();
-
-    fs.mkdirs(new Path(top + "/a"));
-    createTestFile(new Path(top + "/a/f1"));
-    createTestFile(new Path(top + "/a/f2"));
-
-    fs.mkdirs(new Path(top + "/b"));
-    fs.mkdirs(new Path(top + "/b/c"));
-    createTestFile(new Path(top + "/b/f3"));
-    createTestFile(new Path(top + "/b/f4"));
+  private static String getSimpleName(FileStatus dir) {
+    String s = dir.getPath().toString();
+    int sep = s.lastIndexOf(Path.SEPARATOR);
+    return s.substring(sep + 1);
   }
 
-  private void createTestFile(Path file) throws IOException {
-    long blockSize = 8192;
-    byte[] bytes = new byte[(int)blockSize];
-    FSDataOutputStream stm = fs.create(file, false, 4096, (short)1, blockSize);
-    stm.write(bytes);
-    stm.write(bytes);
-    stm.write(bytes);
-    stm.close();
-    FileStatus stat = fs.getFileStatus(file);
-    assertEquals(blockSize, stat.getBlockSize());
+  private void createDirectoryTree(Path root, int maxLevel, int maxSubElements,
+      double dirProbability, double fileProbability, FileSystem fs)
+      throws IOException {
+    if (maxLevel == 0) {
+      return;
+    }
+    for (int i = 0; i < maxSubElements; ++i) {
+      if (rand.nextDouble() > dirProbability + fileProbability) {
+        continue;
+      }
+      String name = ++dirAndFileNo + "";
+      if (rand.nextDouble() < dirProbability) {
+        name = "d" + name;
+        dirsCreated.add(name);
+        Path dir = new Path(root + Path.SEPARATOR + name);
+        fs.mkdirs(dir);
+        LOG.info("Created directory " + dir.toString().replace(TEST_DIR, ""));
+      } else {
+        name = "f" + name;
+        filesCreated.add(name);
+        Path file = new Path(root + Path.SEPARATOR + name);
+        createFile(fs, file);
+        LOG.info("Created file " + file.toString().replace(TEST_DIR, ""));
+      }
+    }
+    FileStatus[] dirs = fs.listStatus(root);
+    for (int i = 0; i < dirs.length; ++i) {
+      if (dirs[i].isDir()) {
+        createDirectoryTree(dirs[i].getPath(), maxLevel - 1, maxSubElements,
+            dirProbability, fileProbability, fs);
+      }
+    }
   }
 
-  private void mySetup() throws IOException {
-    conf = new Configuration();
-    dfs = new MiniDFSCluster(conf, 6, true, null);
-    dfs.waitActive();
-    fs = dfs.getFileSystem();
+  private static void createFile(FileSystem fs, Path name) throws IOException {
+    FSDataOutputStream out = fs.create(name);
+    out.close();
   }
 
-  private void myTearDown() {
-    if (dfs != null) { dfs.shutdown(); }
-  }
 }

@@ -1,19 +1,15 @@
 /**
  * \file        lzma/delta.h
  * \brief       Delta filter
+ */
+
+/*
+ * Author: Lasse Collin
  *
- * \author      Copyright (C) 1999-2006 Igor Pavlov
- * \author      Copyright (C) 2007 Lasse Collin
+ * This file has been put into the public domain.
+ * You can do whatever you want with this file.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * See ../lzma.h for information about liblzma as a whole.
  */
 
 #ifndef LZMA_H_INTERNAL
@@ -60,19 +56,21 @@ typedef struct {
 	 *  - 16-bit stereo audio: distance = 4 bytes
 	 *  - 24-bit RGB image data: distance = 3 bytes
 	 */
-	uint32_t distance;
-#	define LZMA_DELTA_DISTANCE_MIN 1
-#	define LZMA_DELTA_DISTANCE_MAX 256
+	uint32_t dist;
+#	define LZMA_DELTA_DIST_MIN 1
+#	define LZMA_DELTA_DIST_MAX 256
 
-	/**
-	 * \brief       Reserved space for possible future extensions
-	 *
-	 * You should not touch these, because the names of these variables
-	 * may change. These are and will never be used when type is
-	 * LZMA_DELTA_TYPE_BYTE, so it is safe to leave these uninitialized.
+	/*
+	 * Reserved space to allow possible future extensions without
+	 * breaking the ABI. You should not touch these, because the names
+	 * of these variables may change. These are and will never be used
+	 * when type is LZMA_DELTA_TYPE_BYTE, so it is safe to leave these
+	 * uninitialized.
 	 */
 	uint32_t reserved_int1;
 	uint32_t reserved_int2;
+	uint32_t reserved_int3;
+	uint32_t reserved_int4;
 	void *reserved_ptr1;
 	void *reserved_ptr2;
 

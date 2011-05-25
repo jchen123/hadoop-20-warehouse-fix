@@ -26,8 +26,8 @@ import org.apache.hadoop.hdfs.protocol.Block;
  * Blocks have only one replicas has the highest
  */
 class UnderReplicatedBlocks implements Iterable<Block> {
-  static final int LEVEL = 3;
-  static public final int QUEUE_WITH_CORRUPT_BLOCKS = 2;
+  static final int LEVEL = 4;
+  static public final int QUEUE_WITH_CORRUPT_BLOCKS = LEVEL-1;
   private List<TreeSet<Block>> priorityQueues = new ArrayList<TreeSet<Block>>();
       
   /* constructor */
@@ -46,13 +46,23 @@ class UnderReplicatedBlocks implements Iterable<Block> {
     }
   }
 
-  /* Return the total number of under replication blocks */
-  synchronized int size() {
+  /* Return the number of under replication blocks excluding corrupt blocks */
+  synchronized int getNonCorruptUnderReplicatedBlocksCount() {
     int size = 0;
-    for (int i=0; i<LEVEL; i++) {
+    for (int i=0; i<QUEUE_WITH_CORRUPT_BLOCKS; i++) {
       size += priorityQueues.get(i).size();
     }
     return size;
+  }
+
+  /** Return the number of corrupt blocks */
+  synchronized int getCorruptBlocksCount() {
+    return priorityQueues.get(QUEUE_WITH_CORRUPT_BLOCKS).size();
+  }
+  
+  /* Return the total number of under replication blocks */
+  synchronized int size() {
+    return getCorruptBlocksCount() + getNonCorruptUnderReplicatedBlocksCount();
   }
         
   /* Check if a block is in the neededReplication queue */

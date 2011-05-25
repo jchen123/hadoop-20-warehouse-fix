@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -21,6 +22,7 @@ import org.apache.zookeeper.data.Stat;
 public class AvatarZooKeeperClient {
   private String connection;
   private int timeout;
+  private int connectTimeout;
   private boolean watch;
   // Prefix under which the data for this client will be stored
   private String prefix;
@@ -29,44 +31,60 @@ public class AvatarZooKeeperClient {
 
   // Making it large enough to be sure that the cluster is down
   // these retries go one after another so they do not take long
-  public static final int ZK_CONNECTION_RETRIES = 100;
+  public static final int ZK_CONNECTION_RETRIES = 10;
+  public static final int ZK_CONNECT_TIMEOUT_DEFAULT = 10000; // 10 seconds
   
   public AvatarZooKeeperClient(Configuration conf, Watcher watcher) {
     this.connection = conf.get("fs.ha.zookeeper.quorum");
     this.timeout = conf.getInt("fs.ha.zookeeper.timeout", 3000);
+    this.connectTimeout = conf.getInt("fs.ha.zookeeper.connect.timeout",
+        ZK_CONNECT_TIMEOUT_DEFAULT);
     this.watch = conf.getBoolean("fs.ha.zookeeper.watch", false);
     this.prefix = conf.get("fs.ha.zookeeper.prefix", "/hdfs");
+    this.watcher = new ProxyWatcher(watcher);
     if (watcher == null) {
       // If there was no watcher regardless of the watch policy in the conf
       // set it to false. Since there is no watcher being set
       watch = false;
     }
-    if (watch) {
-      this.watcher = watcher;
-    } else {
-      this.watcher = (new Watcher() {
+  }
 
-        @Override
-        public void process(WatchedEvent event) {
-          // This is a stub for ZK compatibility
-          // if it is not there ZK will keep writing errors to the log
+  private static class ProxyWatcher implements Watcher {
+    private Watcher impl;
+    ProxyWatcher(Watcher impl) {
+      this.impl = impl;
+    }
+
+    public void process(WatchedEvent event) {
+      if (event.getType() == Event.EventType.None
+              && event.getState() == Event.KeeperState.SyncConnected) {
+        // The ZooKeeper client is connected
+        synchronized (this) {
+          this.notifyAll();
         }
-      });
+      }
     }
   }
   
-  public void clearPrimary(String address) throws IOException {
+  public synchronized void clearPrimary(String address) throws IOException {
     String node = getRegistrationNode(address);
-    zkCreateRecursively(node, null);
+    zkCreateRecursively(node, null, true);
   }
   
-  public void registerPrimary(String address, String realAddress) 
+  public synchronized void registerPrimary(String address, String realAddress, 
+      boolean overwrite) 
     throws UnsupportedEncodingException, IOException {
     String node = getRegistrationNode(address);
-    zkCreateRecursively(node, realAddress.getBytes("UTF-8"));
+    zkCreateRecursively(node, realAddress.getBytes("UTF-8"), overwrite);
   }
   
-  private void zkCreateRecursively(String zNode, byte[] data) throws IOException {
+  public synchronized void registerPrimary(String address, String realAddress)
+      throws UnsupportedEncodingException, IOException {
+    registerPrimary(address, realAddress, true);
+  }
+
+  private void zkCreateRecursively(String zNode, byte[] data,
+      boolean overwrite) throws IOException {
     initZK();
     System.out.println("create " + zNode);
     String[] parts = zNode.split("/");
@@ -92,6 +110,9 @@ public class AvatarZooKeeperClient {
               // -1 indicates that we should update zNode regardless of its
               // version
               // since we are not utilizing versions in zNode - this is the best
+              if (i == parts.length - 1 && !overwrite) {
+                throw new FileAlreadyExistsException("ZNode " + path + " already exists.");
+              }
               zk.setData(path, payLoad, -1);
             } else {
               zk.create(path, payLoad, acls, CreateMode.PERSISTENT);
@@ -136,8 +157,20 @@ public class AvatarZooKeeperClient {
   }
 
   private void initZK() throws IOException {
-    if (zk == null)
-      zk = new ZooKeeper(connection, timeout, watcher);
+    synchronized (watcher) {
+      if (zk == null) {
+        zk = new ZooKeeper(connection, timeout, watcher);
+      }
+      if (zk.getState() != ZooKeeper.States.CONNECTED) {
+        try {
+          watcher.wait(this.connectTimeout);
+        } catch (InterruptedException iex) {
+        }
+      }
+      if (zk.getState() != ZooKeeper.States.CONNECTED) {
+        throw new IOException("Timed out trying to connect to ZooKeeper");
+      }
+    }
   }
 
   private void stopZK() throws InterruptedException {
@@ -170,9 +203,6 @@ public class AvatarZooKeeperClient {
       initZK();
       try {
         data = zk.getData(node, watch, stat);
-        if (!watch) {
-          stopZK();
-        }
         if (data == null && retry) {
           // Failover is in progress
           // reset the failures
@@ -195,19 +225,25 @@ public class AvatarZooKeeperClient {
           continue;
         }
         throw kex;
+      } finally {
       }
     }
     return data;
   }
-
-  public String getPrimaryAvatarAddress(URI address, Stat stat, boolean retry) 
+  
+  public String getPrimaryAvatarAddress(String address, Stat stat, boolean retry)
     throws IOException, KeeperException, InterruptedException {
-    String node = getRegistrationNode(address.getAuthority());
+    String node = getRegistrationNode(address);
     byte[] data = getNodeData(node, stat, retry);
     if (data == null) {
       return null;
     }
     return new String(data, "UTF-8");
+  }
+
+  public String getPrimaryAvatarAddress(URI address, Stat stat, boolean retry) 
+    throws IOException, KeeperException, InterruptedException {
+    return getPrimaryAvatarAddress(address.getAuthority(), stat, retry);
   }
 
   /**
@@ -232,9 +268,6 @@ public class AvatarZooKeeperClient {
         res = zk.exists(node, watch);
         // Since stats can be null we have to control the execution with a flag
         gotStats = true;
-        if (!watch) {
-          stopZK();
-        }
       } catch (KeeperException kex) {
         if (KeeperException.Code.CONNECTIONLOSS == kex.code()
             && failures < ZK_CONNECTION_RETRIES) {
@@ -242,6 +275,7 @@ public class AvatarZooKeeperClient {
           continue;
         }
         throw kex;
+      } finally {
       }
     }
     return res;
@@ -258,8 +292,9 @@ public class AvatarZooKeeperClient {
    * /prefix/dfs.data.xxx.com/9000 in ZooKeeper
    */
   private String getRegistrationNode(String clusterAddress) {
-    return prefix + "/" + clusterAddress.replaceAll("[:]", "/");
+    return prefix + "/" + clusterAddress.replaceAll("[:]", "/").toLowerCase();
   }
+
   public synchronized void shutdown() throws InterruptedException {
     stopZK();
   }

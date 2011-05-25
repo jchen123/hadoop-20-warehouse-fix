@@ -41,6 +41,7 @@ import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.server.namenode.BlockPlacementPolicyRaid.CachedFullPathNames;
 import org.apache.hadoop.hdfs.server.namenode.BlockPlacementPolicyRaid.CachedLocatedBlocks;
+import org.apache.hadoop.hdfs.server.namenode.BlockPlacementPolicyRaid.FileType;
 import org.apache.hadoop.raid.RaidNode;
 import org.junit.Test;
 
@@ -87,99 +88,6 @@ public class TestBlockPlacementPolicyRaid {
   }
 
   /**
-   * Test that the har parity files will be placed at the good locations when we
-   * create them.
-   */
-  @Test
-  public void testChooseTargetForHarRaidFile() throws IOException {
-    setupCluster();
-    try {
-      String[] racks = {"/rack2", "/rack2", "/rack2",
-                        "/rack2", "/rack2", "/rack2"};
-      String[] hosts =
-        {"host2.rack2.com", "host3.rack2.com", "host4.rack2.com",
-         "host5.rack2.com", "host6.rack2.com", "host7.rack2.com"};
-      cluster.startDataNodes(conf, 6, true, null, racks, hosts, null);
-      String harParity = raidrsHarTempPrefix + "/dir/file";
-      int numBlocks = 11;
-      DFSTestUtil.createFile(fs, new Path(harParity), numBlocks, (short)1, 0L);
-      DFSTestUtil.waitReplication(fs, new Path(harParity), (short)1);
-      FileStatus stat = fs.getFileStatus(new Path(harParity));
-      BlockLocation[] loc = fs.getFileBlockLocations(stat, 0, stat.getLen());
-      int rsParityLength = RaidNode.rsParityLength(conf);
-      for (int i = 0; i < numBlocks - rsParityLength; i++) {
-        Set<String> locations = new HashSet<String>();
-        for (int j = 0; j < rsParityLength; j++) {
-          for (int k = 0; k < loc[i + j].getNames().length; k++) {
-            // verify that every adjacent 4 blocks are on differnt nodes
-            String name = loc[i + j].getNames()[k];
-            LOG.info("Har Raid block location: " + name);
-            Assert.assertTrue(locations.add(name));
-          }
-        }
-      }
-    } finally {
-      if (cluster != null) {
-        cluster.shutdown();
-      }
-    }
-  }
-
-  /**
-   * Test that the parity files will be placed at the good locations when we
-   * create them.
-   */
-  @Test
-  public void testChooseTargetForRaidFile() throws IOException {
-    setupCluster();
-    try {
-      String src = "/dir/file";
-      String parity = raidrsTempPrefix + src;
-      DFSTestUtil.createFile(fs, new Path(src), 4, (short)1, 0L);
-      DFSTestUtil.waitReplication(fs, new Path(src), (short)1);
-      refreshPolicy();
-      setBlockPlacementPolicy(namesystem, policy);
-      // start 3 more datanodes
-      String[] racks = {"/rack2", "/rack2", "/rack2",
-                        "/rack2", "/rack2", "/rack2"};
-      String[] hosts =
-        {"host2.rack2.com", "host3.rack2.com", "host4.rack2.com",
-         "host5.rack2.com", "host6.rack2.com", "host7.rack2.com"};
-      cluster.startDataNodes(conf, 6, true, null, racks, hosts, null);
-      int numBlocks = 6;
-      DFSTestUtil.createFile(fs, new Path(parity), numBlocks, (short)2, 0L);
-      FileStatus srcStat = fs.getFileStatus(new Path(src));
-      BlockLocation[] srcLoc =
-        fs.getFileBlockLocations(srcStat, 0, srcStat.getLen());
-      FileStatus parityStat = fs.getFileStatus(new Path(parity));
-      BlockLocation[] parityLoc =
-          fs.getFileBlockLocations(parityStat, 0, parityStat.getLen());
-      int stripeLen = RaidNode.getStripeLength(conf);
-      for (int i = 0; i < numBlocks / stripeLen; i++) {
-        Set<String> locations = new HashSet<String>();
-        for (int j = 0; j < srcLoc.length; j++) {
-          String [] names = srcLoc[j].getNames();
-          for (int k = 0; k < names.length; k++) {
-            LOG.info("Source block location: " + names[k]);
-            locations.add(names[k]);
-          }
-        }
-        for (int j = 0 ; j < stripeLen; j++) {
-          String[] names = parityLoc[j + i * stripeLen].getNames();
-          for (int k = 0; k < names.length; k++) {
-            LOG.info("Parity block location: " + names[k]);
-            Assert.assertTrue(locations.add(names[k]));
-          }
-        }
-      }
-    } finally {
-      if (cluster != null) {
-        cluster.shutdown();
-      }
-    }
-  }
-
-  /**
    * Test BlockPlacementPolicyRaid.CachedLocatedBlocks and
    * BlockPlacementPolicyRaid.CachedFullPathNames
    * Verify that the results obtained from cache is the same as
@@ -190,7 +98,7 @@ public class TestBlockPlacementPolicyRaid {
     setupCluster();
     try {
       // test blocks cache
-      CachedLocatedBlocks cachedBlocks = new CachedLocatedBlocks();
+      CachedLocatedBlocks cachedBlocks = new CachedLocatedBlocks(conf);
       String file1 = "/dir/file1";
       String file2 = "/dir/file2";
       DFSTestUtil.createFile(fs, new Path(file1), 3, (short)1, 0L);
@@ -207,7 +115,7 @@ public class TestBlockPlacementPolicyRaid {
       verifyCachedBlocksResult(cachedBlocks, namesystem, file1);
 
       // test full path cache
-      CachedFullPathNames cachedFullPathNames = new CachedFullPathNames();
+      CachedFullPathNames cachedFullPathNames = new CachedFullPathNames(conf);
       FSInodeInfo inode1 = null;
       FSInodeInfo inode2 = null;
       namesystem.dir.readLock();
@@ -470,7 +378,8 @@ public class TestBlockPlacementPolicyRaid {
       FSNamesystem namesystem, BlockPlacementPolicyRaid policy,
       Block block) throws IOException {
     INodeFile inode = namesystem.blocksMap.getINode(block);
-    return policy.getCompanionBlocks(inode.getFullPathName(), block);
+    FileType type = policy.getFileType(inode.getFullPathName());
+    return policy.getCompanionBlocks(inode.getFullPathName(), type, block);
   }
 
   private List<LocatedBlock> getBlocks(FSNamesystem namesystem, String file) 

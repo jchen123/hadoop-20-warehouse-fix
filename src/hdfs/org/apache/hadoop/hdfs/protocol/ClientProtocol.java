@@ -26,7 +26,6 @@ import org.apache.hadoop.hdfs.server.common.UpgradeStatusReport;
 import org.apache.hadoop.fs.permission.*;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.CorruptFileBlocks;
 
 /**********************************************************************
  * ClientProtocol is used by user code via 
@@ -42,6 +41,7 @@ public interface ClientProtocol extends VersionedProtocol {
   public static final long BULK_BLOCK_LOCATIONS_VERSION = 44L;
   public static final long CONCAT_VERSION = 52L;
   public static final long LIST_CORRUPT_FILEBLOCKS_VERSION = 53L;
+  public static final long SAVENAMESPACE_FORCE = 54L;
 
   /**
    * Compared to the previous version the following changes have been introduced:
@@ -49,9 +49,10 @@ public interface ClientProtocol extends VersionedProtocol {
    * The log of historical changes can be retrieved from the svn).
    * 52: concat()
    * 53: Replace getCorruptFiles() with listCorruptFileBlocks()
+   * 54: Add saveNamespace(boolean force)
    */
 
-  public static final long versionID = LIST_CORRUPT_FILEBLOCKS_VERSION;
+  public static final long versionID = SAVENAMESPACE_FORCE;
   
   ///////////////////////////////////////
   // File contents
@@ -453,6 +454,17 @@ public interface ClientProtocol extends VersionedProtocol {
    * @throws IOException if image creation failed.
    */
   public void saveNamespace() throws IOException;
+  
+  /**
+   * Save namespace image.
+   * 
+   * @param force not require safe mode if true
+   * @param uncompressed save namespace uncompressed if true
+   * @throws AccessControlException if the superuser privilege is violated.
+   * @throws IOException if image creation failed.
+   */
+  public void saveNamespace(boolean force, boolean uncompressed)
+  throws IOException;
 
   /**
    * Tells the namenode to reread the hosts and exclude files. 
@@ -568,4 +580,11 @@ public interface ClientProtocol extends VersionedProtocol {
    *              by this call.
    */
   public void setTimes(String src, long mtime, long atime) throws IOException;
+
+  /**
+   * Get the datanode's data transfer protocol version
+   * @return the datanode's data transfer protocol version
+   * @throws IOException
+   */
+  public int getDataTransferProtocolVersion() throws IOException;
 }

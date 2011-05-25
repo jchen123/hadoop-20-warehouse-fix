@@ -18,37 +18,28 @@
 package org.apache.hadoop.raid;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.GregorianCalendar;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Properties;
 import java.util.Random;
 import java.util.zip.CRC32;
 
 import junit.framework.TestCase;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
-import org.apache.hadoop.util.StringUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.mapred.MiniMRCluster;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.raid.protocol.PolicyInfo;
 import org.apache.hadoop.raid.protocol.PolicyList;
-import org.apache.hadoop.raid.protocol.PolicyInfo.ErasureCodeType;
+import org.apache.hadoop.util.StringUtils;
 
 /**
   * Test the generation of parity blocks for files with different block
@@ -83,11 +74,9 @@ public class TestRaidNode extends TestCase {
     conf.set(RaidNode.RAID_LOCATION_KEY, "/destraid");
     conf.setBoolean("raid.config.reload", true);
     conf.setLong("raid.config.reload.interval", RELOAD_INTERVAL);
-    conf.setLong(RaidNode.REPLICATION_CHECK_INTERVAL_KEY, 100L);
-    conf.setLong(RaidNode.REPLICATION_CHECK_TIMEOUT_KEY, 2 * 60 * 1000L);
 
-    // scan all policies once every 5 second
-    conf.setLong("raid.policy.rescan.interval", 5000);
+    // scan all policies once every 100 second
+    conf.setLong("raid.policy.rescan.interval", 100 * 1000L);
 
     // make all deletions not go through Trash
     conf.set("fs.shell.delete.classname", "org.apache.hadoop.hdfs.DFSClient");
@@ -121,7 +110,7 @@ public class TestRaidNode extends TestCase {
     conf.set("mapred.job.tracker", jobTrackerName);
   }
 
-  class ConfigBuilder {
+  static class ConfigBuilder {
     private List<String> policies;
 
     public ConfigBuilder() {
@@ -636,37 +625,11 @@ public class TestRaidNode extends TestCase {
     }
   }
 
-  /*
-   * Test validates that wait and set replication does the right thing
-   */
-  public void testWaitAndSetReplication() throws Exception {
-    createClusters(false);
-    try {
-      final int NUM_FILES = 5;
-      Path[] path = new Path[NUM_FILES];
-      for (int i = 0; i < NUM_FILES; i++) {
-        path[i] = new Path("/test/file" + i);
-        createOldFile(fileSys, path[i],  3, 10, 1024L);
-      }
-      for (int i = 0; i < NUM_FILES; i++) {
-        fileSys.setReplication(path[i], (short)4);
-      }
-      LOG.info("Wait the replication to stablize and set replication to 2");
-      RaidNode.waitAndSetReplication(conf, Arrays.asList(path), 2);
-      for (int i = 0; i < NUM_FILES; i++) {
-        assertEquals(2, fileSys.getFileStatus(path[i]).getReplication());
-      }
-    } finally {
-      stopClusters();
-    }
-  }
-
   public void testSuspendTraversal() throws Exception {
     LOG.info("Test testSuspendTraversal started.");
     long targetReplication = 2;
     long metaReplication   = 2;
     long stripeLength      = 3;
-    short srcReplication = 1;
 
     createClusters(false);
     ConfigBuilder cb = new ConfigBuilder();
@@ -675,13 +638,22 @@ public class TestRaidNode extends TestCase {
 
     RaidNode cnode = null;
     try {
-      createTestFiles("/user/dhruba/raidtest/", "/destraid/user/dhruba/raidtest");
+      fileSys.delete(new Path("/user/dhruba/raidtest"), true);
+      fileSys.delete(new Path("/destraid/user/dhruba/raidtest"), true);
+      for(int i = 0; i < 12; i++){
+        Path file = new Path("/user/dhruba/raidtest/dir" + i + "/file" + i);
+        createOldFile(fileSys, file, 1, 7, 1024L);
+      }
+
       LOG.info("Test testSuspendTraversal created test files");
 
       Configuration localConf = new Configuration(conf);
       localConf.set(RaidNode.RAID_LOCATION_KEY, "/destraid");
+      localConf.setInt("raid.distraid.max.jobs", 3);
       localConf.setInt("raid.distraid.max.files", 3);
-      final int numJobsExpected = 4; // 10 test files: 4 jobs with 3 files each.
+      localConf.setInt("raid.directorytraversal.threads", 1);
+      // 12 test files: 3 jobs with 4 files each. Each job gets 1 file more than limit.
+      final int numJobsExpected = 3;
       cnode = RaidNode.createRaidNode(null, localConf);
 
       long start = System.currentTimeMillis();
@@ -693,10 +665,12 @@ public class TestRaidNode extends TestCase {
       start = System.currentTimeMillis();
       while (dcnode.jobMonitor.jobsSucceeded() < numJobsExpected &&
              System.currentTimeMillis() - start < MAX_WAITTIME) {
+        LOG.info("Waiting for num jobs succeeded " + dcnode.jobMonitor.jobsSucceeded() + 
+         " to reach " + numJobsExpected);
         Thread.sleep(1000);
       }
-      this.assertEquals(dcnode.jobMonitor.jobsMonitored(), numJobsExpected);
-      this.assertEquals(dcnode.jobMonitor.jobsSucceeded(), numJobsExpected);
+      assertEquals(numJobsExpected, dcnode.jobMonitor.jobsMonitored());
+      assertEquals(numJobsExpected, dcnode.jobMonitor.jobsSucceeded());
 
       LOG.info("Test testSuspendTraversal successful.");
 

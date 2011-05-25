@@ -104,5 +104,8 @@ public class DistRaidNode extends RaidNode {
     return jobMonitor.runningJobsCount(policyName);
   }
 
-
+  @Override
+  public String raidJobsHtmlTable(boolean running) {
+    return jobMonitor.toHtml(running);
+  }
 }

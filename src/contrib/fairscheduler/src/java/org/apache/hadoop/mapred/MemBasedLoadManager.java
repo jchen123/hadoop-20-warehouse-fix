@@ -76,7 +76,7 @@ public class MemBasedLoadManager extends CapBasedLoadManager {
   @Override
   public boolean canAssignReduce(TaskTrackerStatus tracker,
       int totalRunnableReduces, int totalReduceSlots) {
-    return super.canAssignMap(tracker, totalRunnableReduces, totalReduceSlots)
+    return super.canAssignReduce(tracker, totalRunnableReduces, totalReduceSlots)
            && canAssign(tracker);
   }
 

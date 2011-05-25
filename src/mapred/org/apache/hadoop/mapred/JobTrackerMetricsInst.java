@@ -791,6 +791,9 @@ class JobTrackerMetricsInst extends JobTrackerInstrumentation implements Updater
 
   private synchronized void collectJobCounters(JobID id) {
     JobInProgress job = tracker.jobs.get(id);
+    if (job == null) {
+      return;
+    }
     Counters jobCounter = job.getCounters();
     for (JobInProgress.Counter key : JobInProgress.Counter.values()) {
       countersToMetrics.findCounter(key).

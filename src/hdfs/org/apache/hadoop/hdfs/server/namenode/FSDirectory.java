@@ -104,6 +104,10 @@ class FSDirectory implements FSConstants, Closeable {
   /** Access an existing dfs name directory. */
   FSDirectory(FSNamesystem ns, Configuration conf) throws IOException {
     this(new FSImage(conf), ns, conf);
+    if (conf.getBoolean("dfs.name.dir.restore", false)) {
+      NameNode.LOG.info("set FSImage.restoreFailedStorage");
+      fsImage.setRestoreFailedStorage(true);
+    }
   }
 
   FSDirectory(FSImage fsImage, FSNamesystem ns, Configuration conf) {
@@ -346,8 +350,7 @@ class FSDirectory implements FSConstants, Closeable {
           fileNode.getPreferredBlockSize()*fileNode.getReplication(), true);
       
       // associate the new list of blocks with this file
-      namesystem.blocksMap.addINode(block, fileNode);
-      BlockInfo blockInfo = namesystem.blocksMap.getStoredBlock(block);
+      BlockInfo blockInfo = namesystem.blocksMap.addINode(block, fileNode);
       fileNode.addBlock(blockInfo);
 
       NameNode.stateChangeLog.debug("DIR* FSDirectory.addFile: "
@@ -617,6 +620,24 @@ class FSDirectory implements FSConstants, Closeable {
                               filename);
       }
       return ((INodeFile)fileNode).getPreferredBlockSize();
+    } finally {
+      readUnlock();
+    }
+  }
+  
+  /**
+   * This is a method required in addition
+   * to getFileInode
+   * It returns the INode regardless of its type
+   * getFileInode only returns the inode if it is
+   * of a file type
+   */  
+  INode getInode(String src) {
+    src = normalizePath(src);
+    readLock();
+    try {
+      INode inode = rootDir.getNode(src);
+      return inode;
     } finally {
       readUnlock();
     }
@@ -1775,7 +1796,7 @@ class FSDirectory implements FSConstants, Closeable {
      LocatedBlocks loc = null;
      if (node instanceof INodeFile) {
        loc = namesystem.getBlockLocationsInternal(
-           (INodeFile)node, 0L, Integer.MAX_VALUE, Integer.MAX_VALUE);
+           (INodeFile)node, 0L, Long.MAX_VALUE, Integer.MAX_VALUE);
      }
      if (loc==null) {
        loc = EMPTY_BLOCK_LOCS;

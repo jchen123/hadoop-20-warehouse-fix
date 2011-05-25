@@ -477,39 +477,27 @@ public class DatanodeDescriptor extends DatanodeInfo {
     }
   }
   
-  class DecommissioningStatus {
+  static class DecommissioningStatus {
     int underReplicatedBlocks;
     int decommissionOnlyReplicas;
     int underReplicatedInOpenFiles;
     long startTime;
 
     synchronized void set(int underRep, int onlyRep, int underConstruction) {
-      if (isDecommissionInProgress() == false) {
-        return;
-      }
       underReplicatedBlocks = underRep;
       decommissionOnlyReplicas = onlyRep;
       underReplicatedInOpenFiles = underConstruction;
     }
 
     synchronized int getUnderReplicatedBlocks() {
-      if (isDecommissionInProgress() == false) {
-        return 0;
-      }
       return underReplicatedBlocks;
     }
 
     synchronized int getDecommissionOnlyReplicas() {
-      if (isDecommissionInProgress() == false) {
-        return 0;
-      }
       return decommissionOnlyReplicas;
     }
 
     synchronized int getUnderReplicatedInOpenFiles() {
-      if (isDecommissionInProgress() == false) {
-        return 0;
-      }
       return underReplicatedInOpenFiles;
     }
 
@@ -518,9 +506,6 @@ public class DatanodeDescriptor extends DatanodeInfo {
     }
 
     synchronized long getStartTime() {
-      if (isDecommissionInProgress() == false) {
-        return 0;
-      }
       return startTime;
     }
   } // End of class DecommissioningStatus

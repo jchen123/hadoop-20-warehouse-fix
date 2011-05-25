@@ -411,6 +411,7 @@ public class DistributedCache {
           Path fullUniqueParentDir = new Path(lcacheStatus.localizedBaseDir,
               lcacheStatus.uniqueParentDir);
           try {
+            LOG.info ("Deleting local cached path: " + fullUniqueParentDir.toString());
             deleteLocalPath(asyncDiskService, fs, fullUniqueParentDir);
             // decrement the size of the cache from baseDirSize
             deleteCacheInfoUpdate(lcacheStatus);

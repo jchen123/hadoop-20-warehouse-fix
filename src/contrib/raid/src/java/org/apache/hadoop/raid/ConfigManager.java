@@ -213,7 +213,7 @@ class ConfigManager {
         LOG.error("Failed to set setXIncludeAware(true) for raid parser "
                 + docBuilderFactory + ":" + e, e);
     }
-    LOG.error("Reloading config file " + file);
+    LOG.info("Reloading config file " + file);
 
     DocumentBuilder builder = docBuilderFactory.newDocumentBuilder();
     Document doc = builder.parse(file);

@@ -224,6 +224,8 @@ public class LzmaDecompressor implements Decompressor {
     uncompressedDirectBuf.limit(directBufferSize);
     uncompressedDirectBuf.position(directBufferSize);
     userBufOff = userBufLen = 0;
+    end();
+    stream = init();
   }
 
   public synchronized void end() {

@@ -58,6 +58,7 @@ public class SecondaryNameNode implements Runnable {
 
   private String fsName;
   private CheckpointStorage checkpointImage;
+  private FSNamesystem namesystem;
 
   private NamenodeProtocol namenode;
   private Configuration conf;
@@ -71,6 +72,8 @@ public class SecondaryNameNode implements Runnable {
   private Collection<File> checkpointEditsDirs;
   private long checkpointPeriod;	// in seconds
   private long checkpointSize;    // size (in MB) of current Edit Log
+  
+  private boolean forceLoad;
 
   /**
    * Utility class to facilitate junit test error simulation.
@@ -142,6 +145,7 @@ public class SecondaryNameNode implements Runnable {
                                   "/tmp/hadoop/dfs/namesecondary");    
     checkpointImage = new CheckpointStorage(conf);
     checkpointImage.recoverCreate(checkpointDirs, checkpointEditsDirs);
+    this.forceLoad = conf.getBoolean("dfs.secondary.forceLoad.image", false);
 
     // Initialize other scheduling parameters from the configuration
     checkpointPeriod = conf.getLong("fs.checkpoint.period", 3600);
@@ -253,7 +257,7 @@ public class SecondaryNameNode implements Runnable {
     boolean downloadImage = true;
     String fileid;
     File[] srcNames;
-    if (sig.imageDigest.equals(checkpointImage.imageDigest)) {
+    if (!forceLoad && sig.imageDigest.equals(checkpointImage.imageDigest)) {
       downloadImage = false;
       LOG.info("Image has not changed. Will not download image.");
     } else {
@@ -314,7 +318,7 @@ public class SecondaryNameNode implements Runnable {
     startCheckpoint();
 
     // Tell the namenode to start logging transactions in a new edit file
-    // Retuns a token that would be used to upload the merged image.
+    // Returns a token that would be used to upload the merged image.
     CheckpointSignature sig = (CheckpointSignature)namenode.rollEditLog();
 
     // error simulation code for junit test
@@ -357,8 +361,9 @@ public class SecondaryNameNode implements Runnable {
    * current storage directory.
    */
   private void doMerge(CheckpointSignature sig, boolean loadImage) throws IOException {
-    FSNamesystem namesystem = 
-            new FSNamesystem(checkpointImage, conf);
+    if (loadImage) {  // create an empty namespace if new image
+      namesystem = new FSNamesystem(checkpointImage, conf);
+    }
     assert namesystem.dir.fsImage == checkpointImage;
     checkpointImage.doMerge(sig, loadImage);
   }

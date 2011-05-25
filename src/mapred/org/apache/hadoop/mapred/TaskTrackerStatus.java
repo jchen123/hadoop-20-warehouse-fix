@@ -55,6 +55,8 @@ public class TaskTrackerStatus implements Writable {
   private int maxMapTasks;
   private int maxReduceTasks;
   private TaskTrackerHealthStatus healthStatus;
+  private int mapsKilled = 0;
+  private int reducesKilled = 0;
    
   /**
    * Class representing a collection of resources on this tasktracker.
@@ -497,16 +499,34 @@ public class TaskTrackerStatus implements Writable {
     return getMaxReduceSlots() - countOccupiedReduceSlots();
   }
   
-
-  /**
-   */
   public long getLastSeen() {
     return lastSeen;
   }
-  /**
-   */
+
   public void setLastSeen(long lastSeen) {
     this.lastSeen = lastSeen;
+  }
+
+  public void setMapsKilled(int mapsKilled) {
+    this.mapsKilled = mapsKilled;
+  }
+
+  /**
+   * Number of map tasks that will be killed when the heartbeat transmitted
+   */
+  public int getMapsKilled() {
+    return mapsKilled;
+  }
+
+  public void setReducesKilled(int reducesKilled) {
+    this.reducesKilled = reducesKilled;
+  }
+
+  /**
+   * Number of map tasks that will be killed when the heartbeat transmitted
+   */
+  public int getReducesKilled() {
+    return reducesKilled;
   }
 
   /**

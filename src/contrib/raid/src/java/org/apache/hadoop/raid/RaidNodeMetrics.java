@@ -17,6 +17,10 @@
  */
 package org.apache.hadoop.raid;
 
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.metrics.MetricsContext;
@@ -24,8 +28,8 @@ import org.apache.hadoop.metrics.MetricsRecord;
 import org.apache.hadoop.metrics.MetricsUtil;
 import org.apache.hadoop.metrics.Updater;
 import org.apache.hadoop.metrics.util.MetricsBase;
-import org.apache.hadoop.metrics.util.MetricsRegistry;
 import org.apache.hadoop.metrics.util.MetricsLongValue;
+import org.apache.hadoop.metrics.util.MetricsRegistry;
 import org.apache.hadoop.metrics.util.MetricsTimeVaryingLong;
 
 public class RaidNodeMetrics implements Updater {
@@ -40,18 +44,28 @@ public class RaidNodeMetrics implements Updater {
   public static final String filesRaidedMetric = "files_raided";
   // Number of files fixed by block fixer.
   public static final String filesFixedMetric = "files_fixed";
+  // Number of failures encountered by block fixer.
+  public static final String fileFixFailuresMetric = "file_fix_failures";
+  // Number of files that need to be fixed by block fixer.
+  public static final String numFilesToFixMetric = "files_to_fix";
   // Number of failures encountered during raiding.
   public static final String raidFailuresMetric = "raid_failures";
   // Number of purged files/directories.
   public static final String entriesPurgedMetric = "entries_purged";
-  // Number of files not raided because they are too small.
-  public static final String numTooSmallMetric = "num_too_small";
-  // Size of files not raided because they are too small.
-  public static final String sizeTooSmallMetric = "size_too_small";
-  // Number of files not raided because they are too new.
-  public static final String numTooNewMetric = "num_too_new";
-  // Size of files not raided because they are too new.
-  public static final String sizeTooNewMetric = "size_too_new";
+  // Slot-seconds used by RAID jobs
+  public static final String raidSlotSecondsMetric = "raid_slot_seconds";
+  // Slot-seconds used by Block-fix jobs.
+  public static final String blockFixSlotSecondsMetric = "blockfix_slot_seconds";
+  // Number of block moved because of violation of the stripe block placement
+  public static final String blockMoveMetric = "block_move";
+  // Number of scheduled block move
+  public static final String blockMoveScheduledMetric = "block_move_scheduled";
+  // Number of skipped block move
+  public static final String blockMoveSkippedMetric = "block_move_skipped";
+  // Number of RS blocks which are misplaced
+  public static final String misplacedRsMetricsHeader = "misplaced_rs";
+  // Number of XOR blocks which are misplaced
+  public static final String misplacedXorMetricsHeader = "misplaced_xor";
 
   MetricsContext context;
   private MetricsRecord metricsRecord;
@@ -62,16 +76,41 @@ public class RaidNodeMetrics implements Updater {
     new MetricsTimeVaryingLong(raidFailuresMetric, registry);
   MetricsTimeVaryingLong filesFixed =
     new MetricsTimeVaryingLong(filesFixedMetric, registry);
+  MetricsTimeVaryingLong fileFixFailures =
+    new MetricsTimeVaryingLong(fileFixFailuresMetric, registry);
+  MetricsLongValue numFilesToFix =
+    new MetricsLongValue(numFilesToFixMetric, registry);
   MetricsTimeVaryingLong entriesPurged =
     new MetricsTimeVaryingLong(entriesPurgedMetric, registry);
-  MetricsLongValue numTooSmall =
-    new MetricsLongValue(numTooSmallMetric, registry);
-  MetricsLongValue sizeTooSmall =
-    new MetricsLongValue(sizeTooSmallMetric, registry);
-  MetricsLongValue numTooNew =
-    new MetricsLongValue(numTooNewMetric, registry);
-  MetricsLongValue sizeTooNew =
-    new MetricsLongValue(sizeTooNewMetric, registry);
+  MetricsTimeVaryingLong raidSlotSeconds =
+    new MetricsTimeVaryingLong(raidSlotSecondsMetric, registry);
+  MetricsTimeVaryingLong blockFixSlotSeconds =
+    new MetricsTimeVaryingLong(blockFixSlotSecondsMetric, registry);
+  MetricsTimeVaryingLong blockMove =
+    new MetricsTimeVaryingLong(blockMoveMetric, registry);
+  MetricsTimeVaryingLong blockMoveScheduled =
+    new MetricsTimeVaryingLong(blockMoveScheduledMetric, registry);
+  MetricsTimeVaryingLong blockMoveSkipped =
+    new MetricsTimeVaryingLong(blockMoveSkippedMetric, registry);
+  MetricsLongValue misplacedRs[];
+  MetricsLongValue misplacedXor[];
+
+  Map<ErasureCodeType, Map<RaidState, MetricsLongValue>> sourceFiles;
+  Map<ErasureCodeType, Map<RaidState, MetricsLongValue>> sourceBlocks;
+  Map<ErasureCodeType, Map<RaidState, MetricsLongValue>> sourceBytes;
+  Map<ErasureCodeType, Map<RaidState, MetricsLongValue>> sourceLogical;
+  Map<ErasureCodeType, MetricsLongValue> parityFiles;
+  Map<ErasureCodeType, MetricsLongValue> parityBlocks;
+  Map<ErasureCodeType, MetricsLongValue> parityBytes;
+  Map<ErasureCodeType, MetricsLongValue> parityLogical;
+  MetricsLongValue effectiveReplicationTimes1000 =
+      new MetricsLongValue("effective_replication_1000", registry);
+  MetricsLongValue saving = new MetricsLongValue("saving", registry);
+
+  MetricsLongValue corruptFilesHighPri =
+      new MetricsLongValue("corrupt_files_high_pri", registry);
+  MetricsLongValue corruptFilesLowPri =
+      new MetricsLongValue("corrupt_files_low_pri", registry);
 
   public static RaidNodeMetrics getInstance() {
     return instance;
@@ -82,6 +121,88 @@ public class RaidNodeMetrics implements Updater {
     context = MetricsUtil.getContext("raidnode");
     metricsRecord = MetricsUtil.createRecord(context, "raidnode");
     context.registerUpdater(this);
+    initPlacementMetrics();
+    initSourceMetrics();
+    initParityMetrics();
+  }
+
+  private void initPlacementMetrics() {
+    final int MAX_MONITORED_MISPLACED_BLOCKS = 5;
+    misplacedRs = new MetricsLongValue[MAX_MONITORED_MISPLACED_BLOCKS];
+    misplacedXor = new MetricsLongValue[MAX_MONITORED_MISPLACED_BLOCKS];
+    for (int i = 0; i < misplacedRs.length; ++i) {
+      misplacedRs[i] = new MetricsLongValue(misplacedRsMetricsHeader + "_" + i, registry);
+    }
+    for (int i = 0; i < misplacedXor.length; ++i) {
+      misplacedXor[i] = new MetricsLongValue(misplacedXorMetricsHeader + "_" + i, registry);
+    }
+  }
+
+  private void initSourceMetrics() {
+    sourceFiles = createSourceMap();
+    sourceBlocks = createSourceMap();
+    sourceBytes = createSourceMap();
+    sourceLogical = createSourceMap();
+    for (ErasureCodeType code : ErasureCodeType.values()) {
+      for (RaidState state : RaidState.values()) {
+        String head = (code + "_" + state + "_").toLowerCase();
+        createSourceMetrics(sourceFiles, code, state, head + "files");
+        createSourceMetrics(sourceBlocks, code, state, head + "blocks");
+        createSourceMetrics(sourceBytes, code, state, head + "bytes");
+        createSourceMetrics(sourceLogical, code, state, head + "logical");
+      }
+    }
+  }
+
+  private void createSourceMetrics(
+      Map<ErasureCodeType, Map<RaidState, MetricsLongValue>> m,
+      ErasureCodeType code, RaidState state, String name) {
+    Map<RaidState, MetricsLongValue> innerMap = m.get(code);
+    innerMap.put(state, new MetricsLongValue(name, registry));
+  }
+
+  private Map<ErasureCodeType, Map<RaidState, MetricsLongValue>> createSourceMap() {
+    Map<ErasureCodeType, Map<RaidState, MetricsLongValue>> result =
+        new HashMap<ErasureCodeType, Map<RaidState, MetricsLongValue>>();
+    for (ErasureCodeType code : ErasureCodeType.values()) {
+      Map<RaidState, MetricsLongValue> m =
+          new HashMap<RaidState, MetricsLongValue>();
+      for (RaidState state : RaidState.values()) {
+        m.put(state, null);
+      }
+      m = new EnumMap<RaidState, MetricsLongValue>(m);
+      result.put(code, m);
+    }
+    return new EnumMap<ErasureCodeType, Map<RaidState, MetricsLongValue>>(result);
+  }
+
+  private void initParityMetrics() {
+    parityFiles = createParityMap();
+    parityBlocks = createParityMap();
+    parityBytes = createParityMap();
+    parityLogical = createParityMap();
+    for (ErasureCodeType code : ErasureCodeType.values()) {
+      String head = (code + "_parity_").toLowerCase();
+      createParityMetrics(parityFiles, code, head + "files");
+      createParityMetrics(parityBlocks, code, head + "blocks");
+      createParityMetrics(parityBytes, code, head + "bytes");
+      createParityMetrics(parityLogical, code, head + "logical");
+    }
+  }
+
+  private void createParityMetrics(
+      Map<ErasureCodeType, MetricsLongValue> m,
+      ErasureCodeType code, String name) {
+    m.put(code, new MetricsLongValue(name, registry));
+  }
+
+  private Map<ErasureCodeType, MetricsLongValue> createParityMap() {
+    Map<ErasureCodeType, MetricsLongValue> m =
+        new HashMap<ErasureCodeType, MetricsLongValue>();
+    for (ErasureCodeType code : ErasureCodeType.values()) {
+      m.put(code, null);
+    }
+    return new EnumMap<ErasureCodeType, MetricsLongValue>(m);
   }
 
   @Override

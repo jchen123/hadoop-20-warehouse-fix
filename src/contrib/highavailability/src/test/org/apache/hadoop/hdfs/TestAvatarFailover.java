@@ -163,6 +163,7 @@ public class TestAvatarFailover {
 
   @After
   public void shutDown() throws Exception {
+    dafs.close();
     cluster.shutDown();
   }
 

@@ -47,7 +47,7 @@ static jfieldID LzmaCompressor_directBufferSize;
 static jfieldID LzmaCompressor_finish;
 static jfieldID LzmaCompressor_finished;
 
-static int (*dlsym_lzma_easy_encoder)(lzma_stream *strm, lzma_easy_level level);
+static int (*dlsym_lzma_easy_encoder)(lzma_stream *strm, uint32_t level, lzma_check check);
 static int (*dlsym_lzma_code)(lzma_stream *strm, lzma_action action);
 static int (*dlsym_lzma_end)(lzma_stream *strm);
 static int (*dlsym_lzma_auto_decoder)(lzma_stream *strm, uint64_t memlimit, uint32_t flags);
@@ -108,7 +108,7 @@ Java_org_apache_hadoop_io_compress_lzma_LzmaCompressor_init(
   lzma_stream tmp = (lzma_stream)LZMA_STREAM_INIT;
 	*stream = tmp;
 
-  lzma_ret ret = (*dlsym_lzma_easy_encoder)(stream, level);
+  lzma_ret ret = (*dlsym_lzma_easy_encoder)(stream, level, LZMA_CHECK_CRC32);
 
   if (ret != LZMA_OK) {
 	  // Contingency - Report error by throwing appropriate exceptions

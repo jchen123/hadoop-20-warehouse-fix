@@ -104,6 +104,16 @@ public class JobInProgress {
   int rushReduceReduces = 5;
   int rushReduceMaps = 5;
 
+  // Speculate when the percentage of the unfinished maps is lower than this
+  public static final String SPECULATIVE_MAP_UNFINISHED_THRESHOLD_KEY =
+      "mapred.map.tasks.speculation.unfinished.threshold";
+  private float speculativeMapUnfininshedThreshold = 0.001F;
+
+  // Speculate when the percentage of the unfinished reduces is lower than this
+  public static final String SPECULATIVE_REDUCE_UNFINISHED_THRESHOLD_KEY =
+      "mapred.reduce.tasks.speculation.unfinished.threshold";
+  private float speculativeReduceUnfininshedThreshold = 0.001F;
+
   // runningMapTasks include speculative tasks, so we need to capture
   // speculative tasks separately
   int speculativeMapTasks = 0;
@@ -258,6 +268,8 @@ public class JobInProgress {
     "mapreduce.job.speculative.slownodethreshold";
   public static final String SPECULATIVE_REFRESH_TIMEOUT =
     "mapreduce.job.speculative.refresh.timeout";
+  public static final String SPECULATIVE_STDDEVMEANRATIO_MAX = 
+    "mapreduce.job.speculative.stddevmeanratio.max";
 
   //thresholds for speculative execution
   float slowTaskThreshold;
@@ -319,6 +331,7 @@ public class JobInProgress {
 
   private long lastSpeculativeMapRefresh, lastSpeculativeReduceRefresh;
   private long speculativeRefreshTimeout;
+  private float speculativeStddevMeanRatioMax;
   private List<TaskInProgress> candidateSpeculativeMaps, candidateSpeculativeReduces;
 
   /**
@@ -363,6 +376,15 @@ public class JobInProgress {
         JobInProgress.SPECULATIVE_SLOWNODE_THRESHOLD,1.0f);
     this.speculativeRefreshTimeout = conf.getLong(
         JobInProgress.SPECULATIVE_REFRESH_TIMEOUT, 5000L);
+    this.speculativeStddevMeanRatioMax = conf.getFloat(
+        JobInProgress.SPECULATIVE_STDDEVMEANRATIO_MAX, 0.33f);
+    this.speculativeMapUnfininshedThreshold = conf.getFloat(
+        SPECULATIVE_MAP_UNFINISHED_THRESHOLD_KEY,
+        speculativeMapUnfininshedThreshold);
+    this.speculativeReduceUnfininshedThreshold = conf.getFloat(
+        SPECULATIVE_REDUCE_UNFINISHED_THRESHOLD_KEY,
+        speculativeReduceUnfininshedThreshold);
+
     hasSpeculativeMaps = conf.getMapSpeculativeExecution();
     hasSpeculativeReduces = conf.getReduceSpeculativeExecution();
     LOG.info(jobId + ": hasSpeculativeMaps = " + hasSpeculativeMaps +
@@ -458,6 +480,16 @@ public class JobInProgress {
         conf.getFloat(SPECULATIVE_SLOWTASK_THRESHOLD,1.0f));
     this.speculativeCap = conf.getFloat(SPECULATIVECAP,0.1f);
     this.slowNodeThreshold = conf.getFloat(SPECULATIVE_SLOWNODE_THRESHOLD,1.0f);
+    this.speculativeRefreshTimeout = conf.getLong(
+        JobInProgress.SPECULATIVE_REFRESH_TIMEOUT, 5000L);
+    this.speculativeStddevMeanRatioMax = conf.getFloat(
+        JobInProgress.SPECULATIVE_STDDEVMEANRATIO_MAX, 0.33f);
+    this.speculativeMapUnfininshedThreshold = conf.getFloat(
+        SPECULATIVE_MAP_UNFINISHED_THRESHOLD_KEY,
+        speculativeMapUnfininshedThreshold);
+    this.speculativeReduceUnfininshedThreshold = conf.getFloat(
+        SPECULATIVE_REDUCE_UNFINISHED_THRESHOLD_KEY,
+        speculativeReduceUnfininshedThreshold);
   }
 
   public static void copyJobFileLocally(Path jobDir, JobID jobid,
@@ -1304,6 +1336,21 @@ public class JobInProgress {
     return result;
   }
 
+  public synchronized int neededSpeculativeMaps() {
+    if (!hasSpeculativeMaps) 
+      return 0;
+    return (candidateSpeculativeMaps != null) ?
+      candidateSpeculativeMaps.size() : 0;
+  }
+
+
+  public synchronized int neededSpeculativeReduces() {
+    if (!hasSpeculativeReduces) 
+      return 0;
+    return (candidateSpeculativeReduces != null) ?
+      candidateSpeculativeReduces.size() : 0;
+  }
+
   /*
    * Return task cleanup attempt if any, to run on a given tracker
    */
@@ -2104,6 +2151,29 @@ public class JobInProgress {
     return hasSpeculativeReduces;
   }
 
+  public boolean shouldSpeculateAllRemainingMaps() {
+    if (speculativeMapUnfininshedThreshold == 0) {
+      return false;
+    }
+    int unfinished = desiredMaps() - finishedMaps();
+    if (unfinished < desiredMaps() * speculativeMapUnfininshedThreshold ||
+        unfinished == 1) {
+      return true;
+    }
+    return false;
+  }
+
+  public boolean shouldSpeculateAllRemainingReduces() {
+    if (speculativeReduceUnfininshedThreshold == 0) {
+      return false;
+    }
+    int unfinished = desiredReduces() - finishedReduces();
+    if (unfinished < desiredReduces() * speculativeReduceUnfininshedThreshold ||
+        unfinished == 1) {
+      return true;
+    }
+    return false;
+  }
 
   /**
    * Given a candidate set of tasks, find and order the ones that
@@ -2133,7 +2203,7 @@ public class JobInProgress {
   protected synchronized TaskInProgress findSpeculativeTask(
       List<TaskInProgress> candidates, String taskTrackerName,
       String taskTrackerHost, TaskType taskType) {
-    if (candidates.isEmpty()) {
+    if ((candidates == null) || candidates.isEmpty()) {
       return null;
     }
 
@@ -2163,15 +2233,11 @@ public class JobInProgress {
 
       LOG.info("Chose task " + tip.getTIPId() + " to speculate." +
                " Statistics: Task's : " +
-               tip.getCurrentProgressRate(JobTracker.getClock().getTime()) +
+               tip.getProgressRate() +
                " Job's : " + (tip.isMapTask() ?
                               runningMapTaskStats : runningReduceTaskStats));
-
-
       return tip;
-
     }
-
     return null;
   }
 
@@ -2350,14 +2416,12 @@ public class JobInProgress {
     return -1;
   }
 
-  private synchronized TaskInProgress getSpeculativeMap(String taskTrackerName,
-      String taskTrackerHost) {
-
+  public synchronized void refreshCandidateSpeculativeMaps () {
     long now = JobTracker.getClock().getTime();
     if ((now - lastSpeculativeMapRefresh) > speculativeRefreshTimeout) {
       //////// Populate allTips with all TaskInProgress
       Set<TaskInProgress> allTips = new HashSet<TaskInProgress>();
-      
+
       // collection of node at max level in the cache structure
       Collection<Node> nodesAtMaxLevel = jobtracker.getNodesAtMaxLevel();
       // Add all tasks from max-level nodes breadth-wise
@@ -2369,9 +2433,20 @@ public class JobInProgress {
       }
       // Add all non-local TIPs
       allTips.addAll(nonLocalRunningMaps);
+
+      // update the progress rates of all the candidate tips ..
+      for(TaskInProgress tip: allTips) {
+        tip.updateProgressRate(now);
+      }
+
       candidateSpeculativeMaps = findSpeculativeTaskCandidates(allTips);
       lastSpeculativeMapRefresh = now;
     }
+  }
+
+
+  private synchronized TaskInProgress getSpeculativeMap(String taskTrackerName,
+      String taskTrackerHost) {
 
     ///////// Select a TIP to run on
     TaskInProgress tip = findSpeculativeTask(candidateSpeculativeMaps, taskTrackerName,
@@ -2450,14 +2525,21 @@ public class JobInProgress {
     return -1;
   }
 
-  private synchronized TaskInProgress getSpeculativeReduce(
-      String taskTrackerName, String taskTrackerHost) {
-
+  public synchronized void refreshCandidateSpeculativeReduces() {
     long now = JobTracker.getClock().getTime();
     if ((now - lastSpeculativeReduceRefresh) > speculativeRefreshTimeout) {
+      // update the progress rates of all the candidate tips ..
+      for(TaskInProgress tip: runningReduces) {
+        tip.updateProgressRate(now);
+      }
       candidateSpeculativeReduces = findSpeculativeTaskCandidates(runningReduces);
       lastSpeculativeReduceRefresh = now;
     }
+  }
+
+
+  private synchronized TaskInProgress getSpeculativeReduce(
+      String taskTrackerName, String taskTrackerHost) {
 
     TaskInProgress tip = findSpeculativeTask(
         candidateSpeculativeReduces, taskTrackerName, taskTrackerHost, TaskType.REDUCE);
@@ -2716,58 +2798,6 @@ public class JobInProgress {
 
   }
 
-  private void incHmonCounters(Counters counters) {
-      // Get hmon information and put them in counters
-      long cpuTime, memTime, memPeak, cpuGCycles;
-      ResourceReporter reporter = jobtracker.getResourceReporter();
-      if (reporter != null) {
-        JobID jobid = status.getJobID();
-        cpuTime = (long)reporter.getJobCpuCumulatedUsageTime(jobid);
-        memTime = (long)reporter.getJobMemCumulatedUsageTime(jobid);
-        memPeak = (long)reporter.getJobMemMaxPercentageOnBoxAllTime(jobid);
-        cpuGCycles = (long)reporter.getJobCpuCumulatedGigaCycles(jobid);
-        counters.incrCounter("hmon", "cpuTime", cpuTime);
-        counters.incrCounter("hmon", "cpuGCycles", cpuGCycles);
-        counters.incrCounter("hmon", "memTime", memTime);
-        counters.incrCounter("hmon", "memPeak", memPeak);
-      }
-  }
-
-  private void setExtendedMetricsCounters(Counters counters) {
-    counters.incrCounter("extMet", "submit_time",
-        getLaunchTime() - getStartTime());
-    for (int i = 0; i < setup.length; i++) {
-      if (setup[i].isComplete()) {
-        counters.incrCounter("extMet", "setup_time",
-            setup[i].getExecFinishTime() - setup[i].getStartTime());
-        break;
-      }
-    }
-    for (int i = cleanup.length - 1; i >= 0; i--) {
-      if (cleanup[i].isComplete()) {
-        counters.incrCounter("extMet", "cleanup_time",
-            cleanup[i].getExecFinishTime() - cleanup[i].getStartTime());
-        break;
-      }
-    }
-    long totalMapWaitTime = 0;
-    long maxMapWaitTime = 0;
-    long totalMaps = 0;
-    for (int i = 0; i < maps.length; i++) {
-      if (maps[i].isComplete()) {
-        long waitTime = maps[i].getExecStartTime() - getLaunchTime();
-        if (waitTime > maxMapWaitTime)
-          maxMapWaitTime = waitTime;
-        totalMapWaitTime += waitTime;
-        ++totalMaps;
-      }
-    }
-    counters.incrCounter("extMet", "avg_map_wait_time",
-        totalMaps > 0 ? (totalMapWaitTime / totalMaps) : 0);
-    counters.incrCounter("extMet", "max_map_wait_time",
-        maxMapWaitTime);
-  }
-
   /**
    * The job is done since all it's component tasks are either
    * successful or have failed.
@@ -2796,8 +2826,6 @@ public class JobInProgress {
       JobSummary.logJobSummary(this, jobtracker.getClusterStatus(false));
 
       Counters counters = getCounters();
-      incHmonCounters(counters);
-      setExtendedMetricsCounters(counters);
       // Log job-history
       JobHistory.JobInfo.logFinished(this.status.getJobID(), finishTime,
                                      this.finishedMapTasks,
@@ -2821,8 +2849,6 @@ public class JobInProgress {
       this.status.setCleanupProgress(1.0f);
 
       Counters counters = getCounters();
-      incHmonCounters(counters);
-      setExtendedMetricsCounters(counters);
       if (jobTerminationState == JobStatus.FAILED) {
         changeStateTo(JobStatus.FAILED);
 
@@ -3596,9 +3622,9 @@ public class JobInProgress {
       //use Math.maxnon (1-prog) by putting it in the denominator 
       //which will cause tasks with prog=1 look 99.99% done instead of 100%
       //which is okay
-      double t1 = tip1.getCurrentProgressRate(time) / Math.max(0.0001, 
+      double t1 = tip1.getProgressRate() / Math.max(0.0001, 
           1.0 - tip1.getProgress());
-      double t2 = tip2.getCurrentProgressRate(time) / Math.max(0.0001, 
+      double t2 = tip2.getProgressRate() / Math.max(0.0001, 
           1.0 - tip2.getProgress());
       if (t1 < t2) return -1;
       else if (t2 < t1) return 1;
@@ -3636,6 +3662,7 @@ public class JobInProgress {
     }
     return false;
   }
+
   static class DataStatistics{
     private int count = 0;
     private double sum = 0;
@@ -3724,11 +3751,21 @@ public class JobInProgress {
     return slowTaskThreshold;
   }
 
+  public float getStddevMeanRatioMax() {
+    return speculativeStddevMeanRatioMax;
+  }
+
   public static int getTotalSpeculativeMapTasks() {
     return totalSpeculativeMapTasks.get();
   }
 
   public static int getTotalSpeculativeReduceTasks() {
     return totalSpeculativeReduceTasks.get();
+  }
+
+  public void updateProgressStats(boolean isMap, double oldProgressRate,
+                                 double newProgressRate) {
+    DataStatistics taskStats = getRunningTaskStatistics(isMap);
+    taskStats.updateStatistics(oldProgressRate, newProgressRate);
   }
 }

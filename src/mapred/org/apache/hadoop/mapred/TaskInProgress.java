@@ -80,7 +80,7 @@ class TaskInProgress {
   private int numTaskFailures = 0;
   private int numKilledTasks = 0;
   private double progress = 0;
-  private double oldProgressRate;
+  private double progressRate;
   private String state = "";
   private long startTime = 0;
   private long lastDispatchTime = 0; // most recent time task given to TT
@@ -467,7 +467,14 @@ class TaskInProgress {
   public double getProgress() {
     return progress;
   }
-    
+
+  /**
+   * Get the last known progress rate for this task
+   */
+  public double getProgressRate() {
+    return progressRate;
+  }
+
   /**
    * Get the task's counters
    */
@@ -676,12 +683,9 @@ class TaskInProgress {
     if (!isCleanupAttempt(taskid)) {
       taskStatuses.put(taskid, status);
       //we don't want to include setup tasks in the task execution stats
-      if (!isJobSetupTask() && ((isMapTask() && job.hasSpeculativeMaps()) || 
+      if (!isJobSetupTask() && !isJobCleanupTask() && ((isMapTask() && job.hasSpeculativeMaps()) || 
           (!isMapTask() && job.hasSpeculativeReduces()))) {
-        long now = JobTracker.getClock().getTime();
-
-        DataStatistics taskStats = job.getRunningTaskStatistics(isMapTask());
-        updateProgressRate(now, taskStats);
+        updateProgressRate(JobTracker.getClock().getTime());
       }
     } else {
       taskStatuses.get(taskid).statusUpdate(status.getRunState(),
@@ -1013,30 +1017,41 @@ class TaskInProgress {
     }
 
     DataStatistics taskStats = job.getRunningTaskStatistics(isMapTask());
-    updateProgressRate(currentTime, taskStats);
-    double currProgRate = getProgressRate();
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("activeTasks.size(): " + activeTasks.size() + " "
           + activeTasks.firstKey() + " task's progressrate: " + 
-          currProgRate + 
+          progressRate + 
           " taskStats : " + taskStats);
     }
 
     // if the task is making progress fast enough to complete within
     // the acceptable duration allowed for each task - do not speculate
     if ((maxProgressRateForSpeculation > 0) &&
-        (currProgRate > maxProgressRateForSpeculation)) {
+        (progressRate > maxProgressRateForSpeculation)) {
       return false;
     }
 
+    if (isMapTask() ? job.shouldSpeculateAllRemainingMaps() :
+                      job.shouldSpeculateAllRemainingReduces()) {
+      LOG.info("Speculate " + getTIPId() +
+          " because the job is almost finished");
+      return true;
+    }
+
+    // Find if task should be speculated based on standard deviation
     // the max difference allowed between the tasks's progress rate
     // and the mean progress rate of sibling tasks.
-    double max_diff = (taskStats.std() == 0 ? 
-                       taskStats.mean()/3 : 
-                       job.getSlowTaskThreshold() * taskStats.std());
 
-    return (taskStats.mean() - currProgRate > max_diff);
+    double maxDiff = (taskStats.std() == 0 ? 
+                       taskStats.mean()/3 : 
+                        job.getSlowTaskThreshold() * taskStats.std());
+
+    // if stddev > mean - we are stuck. cap the max difference at a 
+    // more meaningful number.
+    maxDiff = Math.min(maxDiff, taskStats.mean() * job.getStddevMeanRatioMax());
+
+    return (taskStats.mean() - progressRate > maxDiff);
   }
 
   /**
@@ -1274,42 +1289,45 @@ class TaskInProgress {
     rawSplit.clearBytes();
   }
 
+
   /**
-   * Compare most recent task attempts dispatch time to current system time so
-   * that task progress rate will slow down as time proceeds even if no progress
-   * is reported for the task. This allows speculative tasks to be launched for
-   * tasks on slow/dead TT's before we realize the TT is dead/slow. Skew isn't
-   * an issue since both times are from the JobTrackers perspective.
-   * @return the progress rate from the active task that is doing best
+   * update progress rate for a task
+   * 
+   * The assumption is that the JIP lock is held entering this routine.
+   * So it's left unsynchronized. Currently the only places it's called
+   * from are TIP.updateStatus and JIP.refreshCandidate*
    */
-  public double getCurrentProgressRate(long currentTime) {
+  public void updateProgressRate(long currentTime) {
+
     double bestProgressRate = 0;
+
     for (TaskStatus ts : taskStatuses.values()){
       if (ts.getRunState() == TaskStatus.State.RUNNING  || 
           ts.getRunState() == TaskStatus.State.SUCCEEDED ||
           ts.getRunState() == TaskStatus.State.COMMIT_PENDING) {
-        double progressRate = ts.getProgress()/Math.max(1,
+
+        double tsProgressRate = ts.getProgress()/Math.max(1,
             currentTime - getDispatchTime(ts.getTaskID()));
-        if (progressRate > bestProgressRate){
-          bestProgressRate = progressRate;
+        if (tsProgressRate > bestProgressRate){
+          bestProgressRate = tsProgressRate;
         }
       }
     }
-    return bestProgressRate;
+
+    job.updateProgressStats(isMapTask(), progressRate, bestProgressRate);
+
+    progressRate = bestProgressRate;
   }
 
   /**
-   * update the task's progress rate and roll it up into the job level
-   * summary in one transaction.
+   * Convert a progress rate to the total duration projected by
+   * that progress rate
    */
-  synchronized private void updateProgressRate(long currentTime, DataStatistics jobStats) {
-    double currProgRate = getCurrentProgressRate(currentTime);
-    jobStats.updateStatistics(oldProgressRate, currProgRate);
-    oldProgressRate = currProgRate;
-  }
+  private static long progressRateToTotalDuration(double rate) {
+    if (rate == 0)
+      return Long.MAX_VALUE;
 
-  private double getProgressRate() {
-    return oldProgressRate;
+    return (long)(1.0/rate);
   }
 
   /**

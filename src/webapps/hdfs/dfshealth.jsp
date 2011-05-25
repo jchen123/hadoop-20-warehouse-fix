@@ -258,7 +258,7 @@
 				+ colTxt() + ":" + colTxt() + decommissioning.size()
 				+ rowTxt() + colTxt()
 				+ "Number of Under-Replicated Blocks" + colTxt() + ":" + colTxt()
-				+ fsn.getUnderReplicatedBlocks()
+				+ fsn.getNonCorruptUnderReplicatedBlocks()
                 + "</table></div><br>\n" );
     
     if (live.isEmpty() && dead.isEmpty()) {

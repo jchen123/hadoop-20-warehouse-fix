@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.DataOutputStream;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Collection;
@@ -38,6 +39,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.hadoop.hdfs.AvatarZooKeeperClient;
 import org.apache.hadoop.hdfs.protocol.FSConstants;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.StringUtils;
@@ -46,6 +48,7 @@ import org.apache.hadoop.hdfs.protocol.BlockListAsLongs;
 import org.apache.hadoop.hdfs.protocol.UnregisteredDatanodeException;
 import org.apache.hadoop.hdfs.server.protocol.BlockCommand;
 import org.apache.hadoop.hdfs.server.namenode.NameNode;
+import org.apache.hadoop.hdfs.server.protocol.BlockReport;
 import org.apache.hadoop.hdfs.server.protocol.DatanodeCommand;
 import org.apache.hadoop.hdfs.server.protocol.DatanodeProtocol;
 import org.apache.hadoop.hdfs.server.protocol.DisallowedDatanodeException;
@@ -55,15 +58,23 @@ import org.apache.hadoop.hdfs.server.protocol.DatanodeRegistration;
 import org.apache.hadoop.hdfs.server.datanode.metrics.DataNodeMetrics;
 import org.apache.hadoop.hdfs.server.common.IncorrectVersionException;
 import org.apache.hadoop.hdfs.protocol.AvatarProtocol;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.data.Stat;
 
 public class OfferService implements Runnable {
 
   public static final Log LOG = LogFactory.getLog(OfferService.class.getName());
- 
+  private int numFrequentReports;
+  private int freqReportsCoeff;
+  
+  private final static int BACKOFF_DELAY = 10 * 60 * 1000;
+
   long lastHeartbeat = 0;
   volatile boolean shouldRun = true;
   long lastBlockReport = 0;
   boolean resetBlockReportTime = true;
+  long blockReceivedRetryInterval;
+  int reportsSinceRegister;
   AvatarDataNode anode;
   DatanodeProtocol namenode;
   AvatarProtocol avatarnode;
@@ -71,6 +82,7 @@ public class OfferService implements Runnable {
   InetSocketAddress avatarnodeAddress;
   DatanodeRegistration dnRegistration = null;
   FSDatasetInterface data;
+  AvatarZooKeeperClient zkClient = null;
   DataNodeMetrics myMetrics;
   private static final Random R = new Random();
   private int backlogSize; // if we accumulate this many blockReceived, then it is time
@@ -97,25 +109,54 @@ public class OfferService implements Runnable {
   public OfferService(AvatarDataNode anode, 
                       DatanodeProtocol namenode, InetSocketAddress namenodeAddress,
                       AvatarProtocol avatarnode, InetSocketAddress avatarnodeAddress) {
+    numFrequentReports = anode.getConf().getInt(
+        "ha.blockreport.frequentReports", 4);
+    freqReportsCoeff = anode.getConf()
+    .getInt("ha.blockreport.frequent.coeff", 2);
     this.anode = anode;
     this.namenode = namenode;
     this.avatarnode = avatarnode;
     this.namenodeAddress = namenodeAddress;
     this.avatarnodeAddress = avatarnodeAddress;
+    zkClient = new AvatarZooKeeperClient(anode.getConf(), null);
+    
+    reportsSinceRegister = numFrequentReports;
+    
     dnRegistration = anode.dnRegistration;
     data = anode.data;
     myMetrics = anode.myMetrics;
     scheduleBlockReport(anode.initialBlockReportDelay);
     backlogSize = anode.getConf().getInt("dfs.datanode.blockreceived.backlog", 10000);
+    blockReceivedRetryInterval = anode.getConf().getInt(
+        "dfs.datanode.blockreceived.retry.internval", 10000);
   }
 
   public void stop() {
     shouldRun = false;
   }
+  
+  private boolean isPrimaryService() {
+    try {
+      InetSocketAddress addr = DataNode
+          .getNameNodeAddress(this.anode.getConf());
+      String addrStr = addr.getHostName() + ":" + addr.getPort();
+      Stat stat = new Stat();
+      String actual = zkClient.getPrimaryAvatarAddress(addrStr, stat, true);
+      String offerServiceAddress = this.namenodeAddress.getHostName() + ":"
+          + this.namenodeAddress.getPort();
+      return actual.equalsIgnoreCase(offerServiceAddress);
+    } catch (Exception ex) {
+      LOG.error("Could not get the primary from ZooKeeper", ex);
+    }
+    return false;
+  }
 
   public void run() {
     while (shouldRun) {
       try {
+        if (isPrimaryService()) {
+          this.anode.setPrimaryOfferService(this);
+        }
         offerService();
       } catch (Exception e) {
         LOG.error("OfferService encountered exception " +
@@ -180,7 +221,8 @@ public class OfferService implements Runnable {
         int numBlocks = 0;
         synchronized(receivedBlockList) {
             // retry previously failed blocks every few seconds
-          if (lastBlockReceivedFailed + 10000 < anode.now()) {
+          if (lastBlockReceivedFailed + blockReceivedRetryInterval 
+                < anode.now()) {
             for (BlockInfo blk : retryBlockList) {
               receivedBlockList.add(blk);
             }
@@ -244,21 +286,37 @@ public class OfferService implements Runnable {
           //
           long brStartTime = anode.now();
           Block[] bReport = data.getBlockReport();
-          DatanodeCommand cmd = namenode.blockReport(dnRegistration,
-                  BlockListAsLongs.convertToArrayLongs(bReport));
+          DatanodeCommand cmd = avatarnode.blockReportNew(dnRegistration,
+                  new BlockReport(BlockListAsLongs.convertToArrayLongs(bReport)));
+          if (cmd != null &&
+              cmd.getAction() == DatanodeProtocols.DNA_BACKOFF) {
+            // The Standby is catching up and we need to reschedule
+            scheduleBlockReport(BACKOFF_DELAY);
+            continue;
+          }
           long brTime = anode.now() - brStartTime;
           myMetrics.blockReports.inc(brTime);
           LOG.info("BlockReport of " + bReport.length +
               " blocks got processed in " + brTime + " msecs on " +
               namenodeAddress);
-          //
-          // If we have sent the first block report, then wait a random
-          // time before we start the periodic block reports.
-          //
-          if (resetBlockReportTime) {
+          if (reportsSinceRegister < numFrequentReports) {
+            // Schedule block reports more frequently for the first 
+            // numFrequentReports reports. This helps the standby node
+            // get full information about block locations faster
+            int frequentReportsInterval = 
+              (int) (anode.blockReportInterval / freqReportsCoeff);
+            scheduleBlockReport(frequentReportsInterval);
+            reportsSinceRegister++;
+            LOG.info("Scheduling frequent report #" + reportsSinceRegister);
+          } else if (resetBlockReportTime) {
+            //
+            // If we have sent the first block report, then wait a random
+            // time before we start the periodic block reports.
+            //
             lastBlockReport = startTime - R.nextInt((int)(anode.blockReportInterval));
             resetBlockReportTime = false;
           } else {
+          
             /* say the last block report was at 8:20:14. The current report 
              * should have started around 9:20:14 (default 1 hour interval). 
              * If current time is :
@@ -296,7 +354,7 @@ public class OfferService implements Runnable {
             IncorrectVersionException.class.getName().equals(reClass)) {
           LOG.warn("DataNode is shutting down: " + 
                    StringUtils.stringifyException(re));
-          anode.shutdown();
+          anode.shutdownDN();
           return;
         }
         LOG.warn(StringUtils.stringifyException(re));
@@ -314,8 +372,27 @@ public class OfferService implements Runnable {
    */
   private boolean processCommand(DatanodeCommand[] cmds) {
     if (cmds != null) {
+      boolean isPrimary = this.anode.isPrimaryOfferService(this);
       for (DatanodeCommand cmd : cmds) {
         try {
+          if (cmd.getAction() != DatanodeProtocol.DNA_REGISTER && !isPrimary) {
+            if (isPrimaryService()) {
+              // The failover has occured. Need to update the datanode knowledge
+              this.anode.setPrimaryOfferService(this);
+            } else {
+              continue;
+            }
+          } else if (cmd.getAction() == DatanodeProtocol.DNA_REGISTER && 
+                        !isPrimaryService()) {
+            // Standby issued a DNA_REGISTER. Enter the mode of sending frequent
+            // heartbeats
+            LOG.info("Registering with Standby. Start frequent block reports");
+            reportsSinceRegister = 0;
+            if (isPrimary) {
+              // This information is out of date
+              this.anode.setPrimaryOfferService(null);
+            }
+          }
           if (processCommand(cmd) == false) {
             return false;
           }
@@ -354,8 +431,8 @@ public class OfferService implements Runnable {
         if (anode.blockScanner != null) {
           anode.blockScanner.deleteBlocks(toDelete);
         }
-        data.invalidate(toDelete);
         anode.removeReceivedBlocks(toDelete);
+        data.invalidate(toDelete);
       } catch(IOException e) {
         anode.checkDiskError();
         throw e;
@@ -364,7 +441,7 @@ public class OfferService implements Runnable {
       break;
     case DatanodeProtocol.DNA_SHUTDOWN:
       // shut down the data node
-      anode.shutdown();
+      anode.shutdownDN();
       return false;
     case DatanodeProtocol.DNA_REGISTER:
       // namenode requested a registration - at start or if NN lost contact

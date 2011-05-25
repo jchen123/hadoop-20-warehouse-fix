@@ -34,17 +34,20 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.util.Progressable;
 
 /**
  * Represents a generic decoder that can be used to read a file with
  * corrupt blocks by using the parity file.
  * This is an abstract class, concrete subclasses need to implement
- * fixErasedBlock.
+ * fixErasedBlockImpl.
  */
 public abstract class Decoder {
   public static final Log LOG = LogFactory.getLog(
                                   "org.apache.hadoop.raid.Decoder");
+  public static final int DEFAULT_PARALLELISM = 4;
   protected Configuration conf;
+  protected int parallelism;
   protected int stripeSize;
   protected int paritySize;
   protected Random rand;
@@ -54,19 +57,17 @@ public abstract class Decoder {
 
   Decoder(Configuration conf, int stripeSize, int paritySize) {
     this.conf = conf;
+    this.parallelism = conf.getInt("raid.encoder.parallelism",
+                                   DEFAULT_PARALLELISM);
     this.stripeSize = stripeSize;
     this.paritySize = paritySize;
     this.rand = new Random();
     this.bufSize = conf.getInt("raid.decoder.bufsize", 1024 * 1024);
-    this.readBufs = new byte[stripeSize + paritySize][];
     this.writeBufs = new byte[paritySize][];
     allocateBuffers();
   }
 
   private void allocateBuffers() {
-    for (int i = 0; i < stripeSize + paritySize; i++) {
-      readBufs[i] = new byte[bufSize];
-    }
     for (int i = 0; i < paritySize; i++) {
       writeBufs[i] = new byte[bufSize];
     }
@@ -87,81 +88,6 @@ public abstract class Decoder {
   }
 
   /**
-   * The interface to generate a decoded file using the good portion of the
-   * source file and the parity file.
-   * @param fs The filesystem containing the source file.
-   * @param srcFile The damaged source file.
-   * @param parityFs The filesystem containing the parity file. This could be
-   *        different from fs in case the parity file is part of a HAR archive.
-   * @param parityFile The parity file.
-   * @param errorOffset Known location of error in the source file. There could
-   *        be additional errors in the source file that are discovered during
-   *        the decode process.
-   * @param decodedFile The decoded file. This will have the exact same contents
-   *        as the source file on success.
-   */
-  public void decodeFile(
-    FileSystem fs, Path srcFile, FileSystem parityFs, Path parityFile,
-    long errorOffset, Path decodedFile) throws IOException {
-
-    LOG.info("Create " + decodedFile + " for error at " +
-            srcFile + ":" + errorOffset);
-    FileStatus srcStat = fs.getFileStatus(srcFile);
-    long blockSize = srcStat.getBlockSize();
-    configureBuffers(blockSize);
-    // Move the offset to the start of the block.
-    errorOffset = (errorOffset / blockSize) * blockSize;
-
-    // Create the decoded file.
-    FSDataOutputStream out = fs.create(
-      decodedFile, false, conf.getInt("io.file.buffer.size", 64 * 1024),
-      srcStat.getReplication(), srcStat.getBlockSize());
-
-    // Open the source file.
-    FSDataInputStream in = fs.open(
-      srcFile, conf.getInt("io.file.buffer.size", 64 * 1024));
-
-    // Start copying data block-by-block.
-    for (long offset = 0; offset < srcStat.getLen(); offset += blockSize) {
-      long limit = Math.min(blockSize, srcStat.getLen() - offset);
-      long bytesAlreadyCopied = 0;
-      if (offset != errorOffset) {
-        try {
-          in = fs.open(
-            srcFile, conf.getInt("io.file.buffer.size", 64 * 1024));
-          in.seek(offset);
-          RaidUtils.copyBytes(in, out, readBufs[0], limit);
-          assert(out.getPos() == offset +limit);
-          LOG.info("Copied till " + out.getPos() + " from " + srcFile);
-          continue;
-        } catch (BlockMissingException e) {
-          LOG.info("Encountered BME at " + srcFile + ":" + offset);
-          bytesAlreadyCopied = out.getPos() - offset;
-        } catch (ChecksumException e) {
-          LOG.info("Encountered CE at " + srcFile + ":" + offset);
-          bytesAlreadyCopied = out.getPos() - offset;
-        }
-      }
-      // If we are here offset == errorOffset or we got an exception.
-      // Recover the block starting at offset.
-      fixErasedBlock(fs, srcFile, parityFs, parityFile, blockSize, offset,
-        bytesAlreadyCopied, limit, out);
-    }
-    out.close();
-
-    try {
-      fs.setOwner(decodedFile, srcStat.getOwner(), srcStat.getGroup());
-      fs.setPermission(decodedFile, srcStat.getPermission());
-      fs.setTimes(decodedFile, srcStat.getModificationTime(),
-                  srcStat.getAccessTime());
-    } catch (Exception exc) {
-      LOG.info("Didn't manage to copy meta information because of " + exc +
-               " Ignoring...");
-    }
-
-  }
-
-  /**
    * Recovers a corrupt block to local file.
    *
    * @param srcFs The filesystem containing the source file.
@@ -176,15 +102,32 @@ public abstract class Decoder {
    * @param localBlockFile The file to write the block to.
    * @param limit The maximum number of bytes to be written out.
    *              This is to prevent writing beyond the end of the file.
+   * @param reporter A mechanism to report progress.
    */
   public void recoverBlockToFile(
     FileSystem srcFs, Path srcPath, FileSystem parityFs, Path parityPath,
-    long blockSize, long blockOffset, File localBlockFile, long limit)
-    throws IOException {
+    long blockSize, long blockOffset, File localBlockFile, long limit,
+    Progressable reporter)
+      throws IOException {
     OutputStream out = new FileOutputStream(localBlockFile);
     fixErasedBlock(srcFs, srcPath, parityFs, parityPath,
-                  blockSize, blockOffset, 0, limit, out);
+                  blockSize, blockOffset, limit, out, reporter);
     out.close();
+  }
+
+  /**
+   * Wraps around fixErasedBlockImpl in order to configure buffers.
+   * Having buffers of the right size is extremely important. If the the
+   * buffer size is not a divisor of the block size, we may end up reading
+   * across block boundaries.
+   */
+  void fixErasedBlock(
+      FileSystem fs, Path srcFile, FileSystem parityFs, Path parityFile,
+      long blockSize, long errorOffset, long limit,
+      OutputStream out, Progressable reporter) throws IOException {
+    configureBuffers(blockSize);
+    fixErasedBlockImpl(fs, srcFile, parityFs, parityFile,
+      blockSize, errorOffset, limit, out, reporter);
   }
 
   /**
@@ -198,16 +141,13 @@ public abstract class Decoder {
    * @param errorOffset Known location of error in the source file. There could
    *        be additional errors in the source file that are discovered during
    *        the decode process.
-   * @param bytesToSkip After the block is generated, these many bytes should be
-   *       skipped before writing to the output. This is needed because the
-   *       output may have a portion of the block written from the source file
-   *       before a new corruption is discovered in the block.
-   * @param limit The maximum number of bytes to be written out, including
-   *       bytesToSkip. This is to prevent writing beyond the end of the file.
+   * @param limit The maximum number of bytes to be written out.
+   *        This is to prevent writing beyond the end of the file.
    * @param out The output.
+   * @param reporter A mechanism to report progress.
    */
-  protected abstract void fixErasedBlock(
+  protected abstract void fixErasedBlockImpl(
       FileSystem fs, Path srcFile, FileSystem parityFs, Path parityFile,
-      long blockSize, long errorOffset, long bytesToSkip, long limit,
-      OutputStream out) throws IOException;
+      long blockSize, long errorOffset, long limit,
+      OutputStream out, Progressable reporter) throws IOException;
 }

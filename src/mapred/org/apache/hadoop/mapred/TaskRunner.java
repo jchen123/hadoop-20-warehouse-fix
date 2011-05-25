@@ -302,6 +302,13 @@ abstract class TaskRunner extends Thread {
 
       String sep = System.getProperty("path.separator");
       StringBuffer classPath = new StringBuffer();
+      // The alternate runtime can be used to debug tasks by putting a
+      // custom version of the mapred libraries. This will get loaded before
+      // the TT's jars.
+      String debugRuntime = conf.get("mapred.task.debug.runtime.classpath");
+      if (debugRuntime != null) {
+        classPath.append(debugRuntime);
+      }
       // start with same classpath as parent process
       classPath.append(System.getProperty("java.class.path"));
       classPath.append(sep);

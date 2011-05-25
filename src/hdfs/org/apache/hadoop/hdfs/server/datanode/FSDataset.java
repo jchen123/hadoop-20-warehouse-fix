@@ -52,6 +52,7 @@ import org.apache.hadoop.hdfs.server.datanode.metrics.FSDatasetMBean;
 import org.apache.hadoop.hdfs.server.protocol.InterDatanodeProtocol;
 import org.apache.hadoop.metrics.util.MBeanUtil;
 import org.apache.hadoop.util.DataChecksum;
+import org.apache.hadoop.util.VersionInfo;
 import org.apache.hadoop.util.DiskChecker;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
 import org.apache.hadoop.util.DiskChecker.DiskOutOfSpaceException;
@@ -1567,6 +1568,7 @@ public class FSDataset implements FSConstants, FSDatasetInterface {
   }
 
   private ObjectName mbeanName;
+  private ObjectName versionBeanName;
   private Random rand = new Random();
   
   /**
@@ -1587,6 +1589,7 @@ public class FSDataset implements FSConstants, FSDatasetInterface {
     try {
       bean = new StandardMBean(this,FSDatasetMBean.class);
       mbeanName = MBeanUtil.registerMBean("DataNode", "FSDatasetState-" + storageName, bean);
+      versionBeanName = VersionInfo.registerJMX("DataNode");
     } catch (NotCompliantMBeanException e) {
       e.printStackTrace();
     }
@@ -1597,7 +1600,9 @@ public class FSDataset implements FSConstants, FSDatasetInterface {
   public void shutdown() {
     if (mbeanName != null)
       MBeanUtil.unregisterMBean(mbeanName);
-    
+    if (versionBeanName != null) {
+      MBeanUtil.unregisterMBean(versionBeanName);
+    }
     if (asyncDiskService != null) {
       asyncDiskService.shutdown();
     }

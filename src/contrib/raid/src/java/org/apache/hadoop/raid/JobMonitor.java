@@ -44,6 +44,7 @@ class JobMonitor implements Runnable {
   volatile boolean running = true;
 
   private Map<String, List<DistRaid>> jobs;
+  private Map<String, List<DistRaid>> history;
   private long jobMonitorInterval;
   private volatile long jobsMonitored = 0;
   private volatile long jobsSucceeded = 0;
@@ -51,6 +52,7 @@ class JobMonitor implements Runnable {
   public JobMonitor(Configuration conf) {
     jobMonitorInterval = conf.getLong("raid.jobmonitor.interval", 60000);
     jobs = new java.util.HashMap<String, List<DistRaid>>();
+    history = new java.util.HashMap<String, List<DistRaid>>();
   }
 
   public void run() {
@@ -109,9 +111,14 @@ class JobMonitor implements Runnable {
                 jobsSucceeded++;
               }
             }
-          } catch (IOException ioe) {
+          } catch (Exception e) {
             // If there was an error, consider the job finished.
             addJob(finishedJobs, key, job);
+            try {
+              job.killJob();
+            } catch (Exception ee) {
+              LOG.error(StringUtils.stringifyException(ee));
+            }
           }
         }
       }
@@ -123,6 +130,7 @@ class JobMonitor implements Runnable {
           // removeJob takes care of locking.
           for (DistRaid job: finishedJobList) {
             removeJob(jobs, key, job);
+            addJob(history, key, job);
           }
         }
       }
@@ -194,5 +202,36 @@ class JobMonitor implements Runnable {
         }
       }
     }
+  }
+
+  public String toHtml(boolean running) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(DistRaid.htmlRowHeader());
+    if (running) {
+      synchronized(jobs) {
+        for (List<DistRaid> jobList: jobs.values()) {
+          for (DistRaid job: jobList) {
+            sb.append(job.toHtmlRow());
+          }
+        }
+      }
+    } else {
+      synchronized(history) {
+        for (List<DistRaid> jobList: history.values()) {
+          for (DistRaid job: jobList) {
+            sb.append(job.toHtmlRow());
+          }
+        }
+      }
+    }
+    return JspUtils.table(sb.toString());
+  }
+
+  private static String td(String s) {
+    return JspUtils.td(s);
+  }
+
+  private static String tr(String s) {
+    return JspUtils.tr(s);
   }
 }

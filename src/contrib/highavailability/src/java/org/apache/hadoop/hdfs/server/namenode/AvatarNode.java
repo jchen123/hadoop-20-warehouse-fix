@@ -17,6 +17,7 @@
  */
 package org.apache.hadoop.hdfs.server.namenode;
 
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -25,12 +26,18 @@ import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Collection;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+
+import javax.management.NotCompliantMBeanException;
+import javax.management.StandardMBean;
 
 import org.apache.hadoop.ipc.*;
 import org.apache.commons.logging.Log;
@@ -40,6 +47,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.hadoop.metrics.util.MBeanUtil;
 import org.apache.hadoop.hdfs.AvatarZooKeeperClient;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.FSConstants;
@@ -50,9 +58,13 @@ import org.apache.hadoop.hdfs.protocol.AvatarConstants.Avatar;
 import org.apache.hadoop.hdfs.protocol.AvatarConstants.StartupOption;
 import org.apache.hadoop.hdfs.protocol.AvatarConstants.InstanceId;
 import org.apache.hadoop.hdfs.protocol.Block;
+import org.apache.hadoop.hdfs.server.protocol.AvatarDatanodeCommand;
+import org.apache.hadoop.hdfs.server.protocol.BlockReport;
+import org.apache.hadoop.hdfs.server.protocol.DatanodeCommand;
 import org.apache.hadoop.hdfs.server.protocol.DatanodeRegistration;
 import org.apache.hadoop.hdfs.server.namenode.NameNode;
 import org.apache.hadoop.hdfs.server.namenode.BlocksMap.BlockInfo;
+import org.apache.hadoop.hdfs.server.namenode.metrics.AvatarNodeStatusMBean;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 
@@ -94,7 +106,8 @@ import org.apache.zookeeper.data.Stat;
  *
  */
 
-public class AvatarNode extends NameNode implements AvatarProtocol {
+public class AvatarNode extends NameNode
+    implements AvatarProtocol, AvatarNodeStatusMBean {
 
   static {
     Configuration.addDefaultResource("avatar-default.xml");
@@ -102,7 +115,7 @@ public class AvatarNode extends NameNode implements AvatarProtocol {
   }
 
   public static final Log LOG = LogFactory.getLog(AvatarNode.class.getName());
-  private static final int    INVALIDATES_CLEANUP_INTERVAL = 60 * 1000;
+  private static final int    INVALIDATES_CLEANUP_INTERVAL = 10 * 1000;
   private static final String STORAGE_FILE_LOCK     = "in_use.lock";
   private static final String EDITSFILE     = "/current/edits";
   private static final String EDITSNEW     = "/current/edits.new";
@@ -202,8 +215,10 @@ public class AvatarNode extends NameNode implements AvatarProtocol {
       // if we are still in standbymode, that means we need to restart from scratch.
       if (getAvatar() == Avatar.STANDBY) {
         LOG.info("waitForRestart Stopping encapsulated namenode.");
+        runInfo.isRunning = false;
         super.stop();            // terminate encapsulated namenode
         super.join();            // wait for encapsulated namenode to exit
+        standby.shutdown();
 
         if (server != null) {    // shutdown the AvatarNode
           LOG.info("waitForRestart Stopping avatarnode rpcserver.");
@@ -214,13 +229,51 @@ public class AvatarNode extends NameNode implements AvatarProtocol {
             //eat it up
           }
         }
+        if (cleaner != null) {
+          // Shut down the cleaner thread as it will keep
+          // the process from shutting down
+          cleaner.stop();
+          cleanerThread.interrupt();
+          try {
+            cleanerThread.join();
+          } catch (InterruptedException iex) {
+            Thread.currentThread().interrupt();
+          }          
+        }
         LOG.info("waitForRestart exiting");
         return;
       }
     }
     super.join();            // wait for encapsulated namenode
   }
+  
+  public void registerMBean() {
+    StandardMBean avatarNodeBean;
+    try {
+      avatarNodeBean = new StandardMBean(this, AvatarNodeStatusMBean.class);
+      MBeanUtil.registerMBean("AvatarNode", "AvatarNodeState", avatarNodeBean);
+    } catch (NotCompliantMBeanException mex) {
+      LOG.error("Error registering mbean with JMX", mex);
+    }
+  }
+  
 
+  @Override
+  public String getInstance() {
+    return this.instance.toString();
+  }
+
+  @Override
+  public String getState() {
+    return this.currentAvatar.toString();
+  }
+
+  @Override
+  public long getLagBytes() {
+    if (this.standby == null)
+      return 0;
+    return this.standby.getLagBytes();
+  }
   /**
    * Initialize AvatarNode
    * @param conf the configuration
@@ -238,6 +291,7 @@ public class AvatarNode extends NameNode implements AvatarProtocol {
     // correct info
     this.serverAddress = this.server.getListenerAddress();
     LOG.info("AvatarNode up at: " + this.serverAddress);
+    this.registerMBean();
     this.server.start();
   }
 
@@ -301,6 +355,16 @@ public class AvatarNode extends NameNode implements AvatarProtocol {
       // Check to see if the primary is somehow checkpointing itself. If so, then 
       // refuse to switch to active mode. This check is not foolproof but is a
       // defensive mechanism to prevent administrator errors.
+      try {
+        if (!zkIsEmpty()) {
+          throw new IOException("Can't switch the AvatarNode to primary since " +
+          		"zookeeper record is not clean. Either use shutdownAvatar to kill " +
+          		"the current primary and clean the ZooKeeper entry, " +
+          		"or clear out the ZooKeeper entry if the primary is dead");
+        }
+      } catch (Exception ex) {
+        throw new IOException("Cancelling setAvatar because of Exception", ex);
+      }
       if (standby.hasStaleCheckpoint()) {
         String msg = "Failed to change avatar from " + currentAvatar + 
                      " to " + avatar +
@@ -379,35 +443,60 @@ public class AvatarNode extends NameNode implements AvatarProtocol {
 
   }
 
+  private boolean ignoreDatanodes() {
+    return currentAvatar == Avatar.STANDBY &&
+    (standby == null || standby.fellBehind());
+  }
+
+  public DatanodeCommand blockReportNew(DatanodeRegistration nodeReg, BlockReport rep) throws IOException {
+    if (runInfo.shutdown || !runInfo.isRunning) {
+      return null;
+    }
+    if (ignoreDatanodes()) {
+      LOG.info("Standby fell behind. Telling " + nodeReg.toString() +
+        " to back off");
+      // Do not process block reports yet as the ingest thread is catching up
+      return AvatarDatanodeCommand.BACKOFF;
+    }
+    return super.blockReport(nodeReg, rep);
+  }
+
   /**
    * @inheritDoc
    */
    public Block[] blockReceivedNew(DatanodeRegistration nodeReg,
                                    Block blocks[],
                                    String delHints[]) throws IOException {
-    if (runInfo.shutdown) {
+    if (runInfo.shutdown || !runInfo.isRunning) {
+      // Do not attempt to process blocks when
+      // the namenode is shutting down
       return new Block[0];
     }
-    super.blockReceived(nodeReg, blocks, delHints);
+    if (ignoreDatanodes()) {
+      return blocks;
+    }
     List<Block> failed = new ArrayList<Block>(); 
-    for (int i = 0; i < blocks.length; i++) {
-      Block block = blocks[i];
-      namesystem.writeLock();
-      try {
-        BlockInfo storedBlock = namesystem.blocksMap.getStoredBlock(block);
-        if (storedBlock == null || storedBlock.getINode() == null) {
-          // If this block does not belong to anyfile, then record it.
-          LOG.info("blockReceived request received for "
-                                   + block + " on " + nodeReg.getName()
-                                   + " size " + block.getNumBytes()
-                                   + " But it does not belong to any file."
-                                   + " Retry later.");
-          failed.add(block);
+    if (currentAvatar == Avatar.STANDBY) {
+      for (int i = 0; i < blocks.length; i++) {
+        Block block = blocks[i];
+        namesystem.writeLock();
+        try {
+          BlockInfo storedBlock = namesystem.blocksMap.getStoredBlock(block);
+          if (storedBlock == null || storedBlock.getINode() == null) {
+            // If this block does not belong to anyfile, then record it.
+            LOG.info("blockReceived request received for "
+                                     + block + " on " + nodeReg.getName()
+                                     + " size " + block.getNumBytes()
+                                     + " But it does not belong to any file."
+                                     + " Retry later.");
+            failed.add(block);
+          }
+        } finally {
+          namesystem.writeUnlock();
         }
-      } finally {
-        namesystem.writeUnlock();
       }
     }
+    super.blockReceived(nodeReg, blocks, delHints);
     return failed.toArray(new Block[failed.size()]);
   }
 
@@ -541,13 +630,59 @@ public class AvatarNode extends NameNode implements AvatarProtocol {
 
     // sync cannot be specified along with format or finalize
     validateStartupOptions(startInfo);
+    conf = updateAddressConf(conf, startInfo);
+    
+    // We need to check the zookeeper so that the node starting as active
+    // is the one registered with the zookeeper
+    // and if the node is starting as standby there has to be a master
+    // already so that the node doesn't move the log and the image
+    URI fsname = FileSystem.getDefaultUri(startupConf);
+    URI actualName = FileSystem.getDefaultUri(conf);
 
+    AvatarZooKeeperClient zk = new AvatarZooKeeperClient(conf, null);
+    boolean zkRegistryMatch = true;
+    boolean primaryPresent = false;
+    String errorMsg = null;
+    try {
+      Stat stat = new Stat();
+      String zkRegistry = zk.getPrimaryAvatarAddress(fsname, stat, false);
+      if (zkRegistry == null) {
+        // The registry is empty. Usually this means failover is in progress
+        // we need to manually fix it before starting primary
+        errorMsg = "A zNode that indicates the primary is empty. "
+            + "AvatarNode can only be started as primary if it "
+            + "is registered as primary with ZooKeeper";
+        zkRegistryMatch = false;
+      } else {
+        primaryPresent = true;
+        if (!zkRegistry.equalsIgnoreCase(actualName.getAuthority())) {
+          zkRegistryMatch = false;
+          errorMsg = "Registration information in ZooKeeper doesn't "
+              + "match the address of this node. AvatarNode can "
+              + "only be started as primary if it is registered as "
+              + "primary with ZooKeeper";
+        }
+      }
+    } catch (Exception e) {
+      LOG.error("Got Exception reading primary node registration "
+          + "from ZooKeeper. Aborting the start", e);
+      zkRegistryMatch = false;
+
+    }
+    if (!zkRegistryMatch && !startInfo.isStandby) {
+      LOG.error(errorMsg);
+      throw new IOException("Cannot start this AvatarNode as Primary.");
+    }
+    if (!primaryPresent && startInfo.isStandby) {
+      throw new IOException("Cannot start Standby since the " +
+      		"primary is unknown");
+    }
     // If sync is requested, then we copy only the fsimage
     //  (and not the transaction logs) from the other node. 
     // If we are NODEONE, then modify the configuration to 
     // set fs.name.dir, fs.default.name and dfs.http.address.
     //
-    conf = copyFsImage(startupConf, startInfo);
+    conf = copyFsImage(conf, startInfo);
 
     // namenode options.
     switch (startOpt) {
@@ -563,47 +698,26 @@ public class AvatarNode extends NameNode implements AvatarProtocol {
       default:
     }
 
-    if (!startInfo.isStandby) {
-      // We need to check the zookeeper so that the node starting as active
-      // is the one registered with the zookeeper
-      URI fsname = FileSystem.getDefaultUri(startupConf);
-      URI actualName = FileSystem.getDefaultUri(conf);
-      
-      AvatarZooKeeperClient zk = 
-        new AvatarZooKeeperClient(conf, null);
-      boolean zkRegistryMatch = true;
-      try {
-        Stat stat = new Stat();
-        String zkRegistry = zk.getPrimaryAvatarAddress(fsname, stat, false);
-        if (zkRegistry == null) {
-          // The registry is empty. Usually this means failover is in progress
-          // we need to manually fix it before starting primary
-          LOG.error("A zNode that indicates the primary is empty. " +
-          		"AvatarNode can only be started as primary if it " +
-          		"is registered as primary with ZooKeeper");
-          zkRegistryMatch = false;
-        } else {
-          if (!zkRegistry.equals(actualName.getAuthority())) {
-            zkRegistryMatch = false;
-            LOG.error("Registration information in ZooKeeper doesn't " +
-            		"match the address of this node. AvatarNode can " +
-            		"only be started as primary if it is registered as " +
-            		"primary with ZooKeeper");
-          }
-        }
-      } catch (Exception e) {
-        LOG.error("Got Exception reading primary node registration " +
-        		"from ZooKeeper. Aborting the start", e);
-        zkRegistryMatch = false;
-        
-      }
-      if (!zkRegistryMatch) {
-        throw new IOException("Cannot start this AvatarNode as Active.");
-      }
-    }
+    
     
     return new AvatarNode(startupConf, conf, 
                           startInfo, runInfo);
+  }
+  
+  private boolean zkIsEmpty() throws Exception {
+	  URI fsname = FileSystem.getDefaultUri(startupConf);
+
+      AvatarZooKeeperClient zk = 
+        new AvatarZooKeeperClient(this.confg, null);
+      try {
+        Stat stat = new Stat();
+        String zkRegistry = zk.getPrimaryAvatarAddress(fsname, stat, false);
+        return zkRegistry == null;
+      } catch (Exception e) {
+        LOG.error("Got Exception reading primary node registration " +
+        		"from ZooKeeper.", e);
+        throw e;
+      }
   }
 
   /**
@@ -701,6 +815,7 @@ public class AvatarNode extends NameNode implements AvatarProtocol {
           throw new IOException("Unable to rename " + dest +
                                 " to " +  tmp);
         }
+        cleanupBackup(conf, dest);
         LOG.info("Moved aside " + dest + " as " + tmp);
       }
       if (!FileUtil.copy(localFs, new Path(src.toString()), 
@@ -732,6 +847,7 @@ public class AvatarNode extends NameNode implements AvatarProtocol {
               throw new IOException("Unable to rename " + dest +
                                     " to " +  tmp);
             }
+            cleanupBackup(conf, dest);
             LOG.info("Moved aside " + dest + " as " + tmp);
           }
           if (!FileUtil.copy(localFs, new Path(src.toString()), 
@@ -754,6 +870,7 @@ public class AvatarNode extends NameNode implements AvatarProtocol {
           throw new IOException("Unable to rename " + destedit +
                                 " to " +  tmp);
         }
+        cleanupBackup(conf, destedit);
         LOG.info("Moved aside " + destedit + " as " + tmp);
       }
       if (!FileUtil.copy(localFs, new Path(srcedit.toString()), 
@@ -792,6 +909,7 @@ public class AvatarNode extends NameNode implements AvatarProtocol {
               throw new IOException("Unable to rename " + destedit +
                                     " to " +  tmp);
             }
+            cleanupBackup(conf, destedit);
             LOG.info("Moved aside " + destedit + " as " + tmp);
           }
           if (!FileUtil.copy(localFs, new Path(srcedit.toString()), 
@@ -836,6 +954,79 @@ public class AvatarNode extends NameNode implements AvatarProtocol {
     }
     newconf.set("dfs.name.edits.dir", buf1.toString());
 
+    return newconf;
+  }
+
+ static void cleanupBackup(Configuration conf, File origin) {
+    File root = origin.getParentFile();
+    final String originName = origin.getName();
+    String[] backups = root.list(new FilenameFilter() {
+      @Override
+      public boolean accept(File dir, String name) {
+        if (!name.startsWith(originName) || name.equals(originName))
+          return false;
+        try {
+          dateForm.parse(name.substring(name.indexOf(File.pathSeparator) + 1));
+        } catch (ParseException pex) {
+          return false;
+        }
+        return true;
+      }
+    });
+
+    Arrays.sort(backups, new Comparator<String>() {
+
+      @Override
+      public int compare(String back1, String back2) {
+        try {
+          Date date1 = dateForm.parse(back1.substring(back1
+              .indexOf(File.pathSeparator) + 1));
+          Date date2 = dateForm.parse(back2.substring(back2
+              .indexOf(File.pathSeparator) + 1));
+          // Sorting in reverse order, from later dates to earlier
+          return date2.compareTo(date1);
+        } catch (ParseException pex) {
+          return 0;
+        }
+      }
+    });
+    
+    int copiesToKeep = conf.getInt("standby.image.copies.tokeep", 0);
+    int daysToKeep = conf.getInt("standby.image.days.tokeep", 0);
+    if (copiesToKeep == 0 && daysToKeep == 0) {
+      // Do not delete anything in this case
+      return;
+    }
+    Date now = new Date(now());
+    int copies = 0;
+    for (String backup : backups) {
+      copies++;
+      Date backupDate = null;
+      try {
+        backupDate = dateForm.parse(backup.substring(backup
+            .indexOf(File.pathSeparator) + 1));
+      } catch (ParseException pex) {
+        // This should not happen because of the 
+        // way we construct the list
+      }
+      long backupAge = now.getTime() - backupDate.getTime();
+      if (copies > copiesToKeep && backupAge > daysToKeep * 24 * 60 * 60 * 1000) {
+        // This backup is both old and we have enough of newer backups stored -
+        // delete
+        try {
+          FileUtil.fullyDelete(new File(root, backup));
+          LOG.info("Deleted backup " + new File(root, backup));
+        } catch (IOException iex) {
+          LOG.error("Error deleting backup " + new File(root, backup), iex);
+        }
+      }
+    }
+
+  }
+
+  static Configuration updateAddressConf(Configuration conf,
+                                         StartupInfo startInfo) {
+    Configuration newconf = new Configuration(conf);
     // if we are starting as the other namenode, then change the 
     // default URL to make the namenode attach to the appropriate URL
     if (startInfo.instance == InstanceId.NODEZERO) {
@@ -1130,15 +1321,18 @@ public class AvatarNode extends NameNode implements AvatarProtocol {
   public static class RunInfo {
     volatile boolean doRestart;
     volatile boolean shutdown;
+    volatile boolean isRunning;
 
-    public RunInfo(boolean doRestart, boolean shutdown) {
+    public RunInfo(boolean doRestart, boolean shutdown, boolean isRunning) {
       this.doRestart = doRestart;
       this.shutdown = shutdown;
+      this.isRunning = isRunning;
     }
 
     public RunInfo() {
       this.doRestart = false;
       this.shutdown = false;
+      this.isRunning = true;
     }
 
   }
@@ -1151,6 +1345,7 @@ public class AvatarNode extends NameNode implements AvatarProtocol {
     RunInfo runInfo = new RunInfo();
     do {
       runInfo.doRestart = false;
+      runInfo.isRunning = true;
       exception = null;
       try {
         StringUtils.startupShutdownMessage(AvatarNode.class, argv, LOG);
@@ -1171,7 +1366,8 @@ public class AvatarNode extends NameNode implements AvatarProtocol {
       avatarnode.stopRPC();
     }
     if (exception != null) {
-      throw exception;
+      LOG.fatal("Error running avatar", exception);
+      Runtime.getRuntime().exit(1);
     }
   }
 }

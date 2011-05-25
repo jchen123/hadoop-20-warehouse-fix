@@ -49,6 +49,8 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import javax.management.ObjectName;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -63,6 +65,7 @@ import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.http.HttpServer;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.ipc.ProtocolSignature;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.hadoop.ipc.Server;
@@ -79,6 +82,7 @@ import org.apache.hadoop.metrics.MetricsException;
 import org.apache.hadoop.metrics.MetricsRecord;
 import org.apache.hadoop.metrics.MetricsUtil;
 import org.apache.hadoop.metrics.Updater;
+import org.apache.hadoop.metrics.util.MBeanUtil;
 import org.apache.hadoop.net.DNS;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.SecurityUtil;
@@ -263,6 +267,8 @@ public class TaskTracker
   private IndexCache indexCache;
 
   private MRAsyncDiskService asyncDiskService;
+
+  private ObjectName versionBeanName;
   
   /**
   * Handle to the specific instance of the {@link TaskController} class
@@ -476,6 +482,12 @@ public class TaskTracker
     }
   }
     
+  public ProtocolSignature getProtocolSignature(String protocol,
+      long clientVersion, int clientMethodsHash) throws IOException {
+    return ProtocolSignature.getProtocolSignature(
+        this, protocol, clientVersion, clientMethodsHash);
+  }
+
   /**
    * Do the real constructor work here.  It's in a separate method
    * so we can call it again and "recycle" the object after calling
@@ -501,6 +513,8 @@ public class TaskTracker
     asyncDiskService = new MRAsyncDiskService(FileSystem.getLocal(fConf),
         fConf.getLocalDirs(), fConf);
     asyncDiskService.cleanupAllVolumes();
+    DistributedCache.purgeCache(fConf, asyncDiskService);
+    versionBeanName = VersionInfo.registerJMX("TaskTracker");
 
     // Clear out state tables
     this.tasks.clear();
@@ -840,7 +854,7 @@ public class TaskTracker
                               new LocalDirAllocator("mapred.local.dir");
 
   // intialize the job directory
-  private void localizeJob(TaskInProgress tip) throws IOException {
+  private JobConf localizeJob(TaskInProgress tip) throws IOException {
     Path localJarFile = null;
     Task t = tip.getTask();
     JobID jobId = t.getJobID();
@@ -954,15 +968,9 @@ public class TaskTracker
         }
       }
     }
-    launchTaskForJob(tip, new JobConf(rjob.jobConf));
+    return new JobConf(rjob.jobConf);
   }
 
-  private void launchTaskForJob(TaskInProgress tip, JobConf jobConf) throws IOException{
-    synchronized (tip) {
-      tip.setJobConf(jobConf);
-      tip.launchTask();
-    }
-  }
     
   public synchronized void shutdown() throws IOException {
     shuttingDown = true;
@@ -995,7 +1003,9 @@ public class TaskTracker
     }
     
     this.running = false;
-        
+    if (versionBeanName != null) {
+      MBeanUtil.unregisterMBean(versionBeanName);
+    } 
     // Clear local storage
     if (asyncDiskService != null) {
       // Clear local storage
@@ -1225,39 +1235,6 @@ public class TaskTracker
         // Note the time when the heartbeat returned, use this to decide when to send the
         // next heartbeat   
         lastHeartbeat = System.currentTimeMillis();
-        
-        
-        // Check if the map-event list needs purging
-        Set<JobID> jobs = heartbeatResponse.getRecoveredJobs();
-        if (jobs.size() > 0) {
-          synchronized (this) {
-            // purge the local map events list
-            for (JobID job : jobs) {
-              RunningJob rjob;
-              synchronized (runningJobs) {
-                rjob = runningJobs.get(job);          
-                if (rjob != null) {
-                  synchronized (rjob) {
-                    FetchStatus f = rjob.getFetchStatus();
-                    if (f != null) {
-                      f.reset();
-                    }
-                  }
-                }
-              }
-            }
-
-            // Mark the reducers in shuffle for rollback
-            synchronized (shouldReset) {
-              for (Map.Entry<TaskAttemptID, TaskInProgress> entry 
-                   : runningTasks.entrySet()) {
-                if (entry.getValue().getStatus().getPhase() == Phase.SHUFFLE) {
-                  this.shouldReset.add(entry.getKey());
-                }
-              }
-            }
-          }
-        }
         
         TaskTrackerAction[] actions = heartbeatResponse.getActions();
         if(LOG.isDebugEnabled()) {
@@ -2019,7 +1996,17 @@ public class TaskTracker
    */
   private void startNewTask(TaskInProgress tip) {
     try {
-      localizeJob(tip);
+      JobConf localConf = localizeJob(tip);
+      boolean launched = false;
+      synchronized (tip) {
+        tip.setJobConf(localConf);
+        launched = tip.launchTask();
+      }
+      if (!launched) {
+        // Free the slot.
+        tip.kill(true);
+        tip.cleanup(true);
+      }
     } catch (Throwable e) {
       String msg = ("Error initializing " + tip.getTask().getTaskID() + 
                     ":\n" + StringUtils.stringifyException(e));
@@ -2297,7 +2284,7 @@ public class TaskTracker
     /**
      * Kick off the task execution
      */
-    public synchronized void launchTask() throws IOException {
+    public synchronized boolean launchTask() throws IOException {
       if (this.taskStatus.getRunState() == TaskStatus.State.UNASSIGNED ||
           this.taskStatus.getRunState() == TaskStatus.State.FAILED_UNCLEAN ||
           this.taskStatus.getRunState() == TaskStatus.State.KILLED_UNCLEAN) {
@@ -2308,9 +2295,11 @@ public class TaskTracker
         this.runner = task.createRunner(TaskTracker.this, this);
         this.runner.start();
         this.taskStatus.setStartTime(System.currentTimeMillis());
+        return true;
       } else {
         LOG.info("Not launching task: " + task.getTaskID() + 
             " since it's state is " + this.taskStatus.getRunState());
+        return false;
       }
     }
 
@@ -3244,16 +3233,28 @@ public class TaskTracker
    */
   public static void main(String argv[]) throws Exception {
     StringUtils.startupShutdownMessage(TaskTracker.class, argv, LOG);
-    if (argv.length != 0) {
-      System.out.println("usage: TaskTracker");
-      System.exit(-1);
-    }
     try {
-      JobConf conf=new JobConf();
-      // enable the server to track time spent waiting on locks
-      ReflectionUtils.setContentionTracing
+      if (argv.length == 0) {
+        JobConf conf = new JobConf();
+        ReflectionUtils.setContentionTracing
         (conf.getBoolean("tasktracker.contention.tracking", false));
-      new TaskTracker(conf).run();
+        new TaskTracker(conf).run();
+        return;
+      }
+      if ("-instance".equals(argv[0]) && argv.length == 2) {
+        int instance = Integer.parseInt(argv[1]);
+        if (instance == 0 || instance == 1) {
+          JobConf conf = new JobConf();
+          JobConf.overrideConfiguration(conf, instance);
+          // enable the server to track time spent waiting on locks
+          ReflectionUtils.setContentionTracing
+          (conf.getBoolean("tasktracker.contention.tracking", false));
+          new TaskTracker(conf).run();
+          return;
+        }
+      }
+      System.out.println("usage: TaskTracker [-instance <0|1>]");
+      System.exit(-1);
     } catch (Throwable e) {
       LOG.error("Can not start task tracker because "+
                 StringUtils.stringifyException(e));

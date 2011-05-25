@@ -30,10 +30,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -41,8 +39,9 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.hadoop.mapred.FairScheduler.JobInfo;
 import org.apache.hadoop.mapred.FairScheduler.JobComparator;
+import org.apache.hadoop.mapred.FairScheduler.JobInfo;
+import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.util.StringUtils;
 
 /**
@@ -85,13 +84,32 @@ public class FairSchedulerServlet extends HttpServlet {
   
   @Override
   public void doGet(HttpServletRequest request, HttpServletResponse response)
+      throws ServletException, IOException {
+    try {
+      doActualGet(request, response);
+    } catch (IOException ioe) {
+      FairScheduler.LOG.error(
+          FairSchedulerServlet.class + " throws exception", ioe);
+      throw ioe;
+    } catch (ServletException se) {
+      FairScheduler.LOG.error(
+          FairSchedulerServlet.class + " throws exception", se);
+      throw se;
+    } catch (Throwable t) {
+      FairScheduler.LOG.error(
+          FairSchedulerServlet.class + " throws exception", t);
+      throw new RuntimeException(t);
+    }
+  }
+
+  public void doActualGet(HttpServletRequest request, HttpServletResponse response)
     throws ServletException, IOException {
     // If the request has a set* param, handle that and redirect to the regular
     // view page so that the user won't resubmit the data if they hit refresh.
     boolean advancedView = request.getParameter("advanced") != null;
     if (request.getParameter("setJobComparator") != null) {
       String newMode = request.getParameter("setJobComparator");
-      scheduler.setJobComparator(JobComparator.fromString(newMode));
+      scheduler.setJobComparator(JobComparator.valueOf(newMode));
       response.sendRedirect("/scheduler" + (advancedView ? "?advanced" : ""));
       return;
     }
@@ -451,20 +469,20 @@ public class FairSchedulerServlet extends HttpServlet {
                        job.getPriority().toString(),
                        "/scheduler?setPriority=<CHOICE>&jobid=" + profile.getJobID() +
                        (advancedView ? "&advanced" : "")));
-          out.printf("<td>%d / %d</td><td>%d</td><td>%8.1f</td>\n",
+          out.printf("<td>%d / %d</td><td>%d</td><td>%f</td>\n",
                      job.finishedMaps(), job.desiredMaps(), info.runningMaps,
                      info.mapFairShare);
           if (advancedView) {
-            out.printf("<td>%8.1f</td>\n", info.mapWeight);
+            out.printf("<td>%f</td>\n", info.mapWeight);
             out.printf("<td>%s</td>\n", info.neededMaps > 0 ?
                        (info.mapDeficit / 1000) + "s" : "--");
             out.printf("<td>%d</td>\n", info.minMaps);
           }
-          out.printf("<td>%d / %d</td><td>%d</td><td>%8.1f</td>\n",
+          out.printf("<td>%d / %d</td><td>%d</td><td>%f</td>\n",
                      job.finishedReduces(), job.desiredReduces(), info.runningReduces,
                      info.reduceFairShare);
           if (advancedView) {
-            out.printf("<td>%8.1f</td>\n", info.reduceWeight);
+            out.printf("<td>%f</td>\n", info.reduceWeight);
             out.printf("<td>%s</td>\n", info.neededReduces > 0 ?
                        (info.reduceDeficit / 1000) + "s" : "--");
             out.printf("<td>%d</td>\n", info.minReduces);

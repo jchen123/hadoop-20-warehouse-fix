@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.net.InetSocketAddress;
+import java.net.SocketException;
 import javax.security.auth.login.LoginException;
 
 import org.apache.hadoop.ipc.*;
@@ -46,6 +47,7 @@ import org.apache.hadoop.security.UnixUserGroupInformation;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.HarFileSystem;
 
@@ -311,7 +313,20 @@ public class RaidShell extends Configured implements Tool {
       String path = argv[i];
       long corruptOffset = Long.parseLong(argv[i+1]);
       LOG.info("RaidShell recoverFile for " + path + " corruptOffset " + corruptOffset);
-      paths[j] = new Path(raidnode.recoverFile(path, corruptOffset));
+      Path recovered = new Path("/tmp/recovered." + System.currentTimeMillis());
+      FileSystem fs = recovered.getFileSystem(conf);
+      DistributedFileSystem dfs = (DistributedFileSystem)fs;
+      Configuration raidConf = new Configuration(conf);
+      raidConf.set("fs.hdfs.impl",
+                     "org.apache.hadoop.hdfs.DistributedRaidFileSystem");
+      raidConf.set("fs.raid.underlyingfs.impl",
+                     "org.apache.hadoop.hdfs.DistributedFileSystem");
+      raidConf.setBoolean("fs.hdfs.impl.disable.cache", true);
+      java.net.URI dfsUri = dfs.getUri();
+      FileSystem raidFs = FileSystem.get(dfsUri, raidConf);
+      FileUtil.copy(raidFs, new Path(path), fs, recovered, false, conf);
+
+      paths[j] = recovered;
       LOG.info("Raidshell created recovery file " + paths[j]);
       j++;
     }
@@ -333,7 +348,7 @@ public class RaidShell extends Configured implements Tool {
     BlockFixer.BlockFixerHelper fixer = new BlockFixer.BlockFixerHelper(conf);
     for (int i = startIndex; i < args.length; i++) {
       String path = args[i];
-      fixer.fixFile(new Path(path));
+      fixer.fixFile(new Path(path), RaidUtils.NULL_PROGRESSABLE);
     }
   }
 
@@ -344,63 +359,72 @@ public class RaidShell extends Configured implements Tool {
   private boolean isFileCorrupt(final DistributedFileSystem dfs, 
                                 final Path filePath) 
     throws IOException {
-    // corruptBlocksPerStripe: 
-    // map stripe # -> # of corrupt blocks in that stripe (data + parity)
-    HashMap<Integer, Integer> corruptBlocksPerStripe =
-      new LinkedHashMap<Integer, Integer>();
+    try {
+      // corruptBlocksPerStripe: 
+      // map stripe # -> # of corrupt blocks in that stripe (data + parity)
+      HashMap<Integer, Integer> corruptBlocksPerStripe =
+        new LinkedHashMap<Integer, Integer>();
 
-    // read conf
-    final int stripeBlocks = RaidNode.getStripeLength(conf);
+      // read conf
+      final int stripeBlocks = RaidNode.getStripeLength(conf);
 
-    // figure out which blocks are missing/corrupted
-    final FileStatus fileStatus = dfs.getFileStatus(filePath);
-    final long blockSize = fileStatus.getBlockSize();
-    final long fileLength = fileStatus.getLen();
-    final long fileLengthInBlocks = (fileLength / blockSize) +
-      (((fileLength % blockSize) == 0) ? 0L : 1L);
-    final long fileStripes = (fileLengthInBlocks / stripeBlocks) +
-      (((fileLengthInBlocks % stripeBlocks) == 0) ? 0L : 1L);
-    final BlockLocation[] fileBlocks = 
-      dfs.getFileBlockLocations(fileStatus, 0, fileLength);
-    
-    // figure out which stripes these corrupted blocks belong to
-    for (BlockLocation fileBlock: fileBlocks) {
-      int blockNo = (int) (fileBlock.getOffset() / blockSize);
-      final int stripe = (int) (blockNo / stripeBlocks);
-      if (fileBlock.isCorrupt() || 
-          (fileBlock.getNames().length == 0 && fileBlock.getLength() > 0)) {
-        if (corruptBlocksPerStripe.get(stripe) == null) {
-          corruptBlocksPerStripe.put(stripe, 1);
+      // figure out which blocks are missing/corrupted
+      final FileStatus fileStatus = dfs.getFileStatus(filePath);
+      final long blockSize = fileStatus.getBlockSize();
+      final long fileLength = fileStatus.getLen();
+      final long fileLengthInBlocks = (fileLength / blockSize) +
+        (((fileLength % blockSize) == 0) ? 0L : 1L);
+      final long fileStripes = (fileLengthInBlocks / stripeBlocks) +
+        (((fileLengthInBlocks % stripeBlocks) == 0) ? 0L : 1L);
+      final BlockLocation[] fileBlocks = 
+        dfs.getFileBlockLocations(fileStatus, 0, fileLength);
+      
+      // figure out which stripes these corrupted blocks belong to
+      for (BlockLocation fileBlock: fileBlocks) {
+        int blockNo = (int) (fileBlock.getOffset() / blockSize);
+        final int stripe = (int) (blockNo / stripeBlocks);
+        if (fileBlock.isCorrupt() || 
+            (fileBlock.getNames().length == 0 && fileBlock.getLength() > 0)) {
+          if (corruptBlocksPerStripe.get(stripe) == null) {
+            corruptBlocksPerStripe.put(stripe, 1);
+          } else {
+            corruptBlocksPerStripe.put(stripe, corruptBlocksPerStripe.
+                                       get(stripe) + 1);
+          }
+          LOG.debug("file " + filePath.toString() + " corrupt in block " + 
+                   blockNo + "/" + fileLengthInBlocks + ", stripe " + stripe +
+                   "/" + fileStripes);
         } else {
-          corruptBlocksPerStripe.put(stripe, corruptBlocksPerStripe.
-                                     get(stripe) + 1);
+          LOG.debug("file " + filePath.toString() + " OK in block " + blockNo +
+                   "/" + fileLengthInBlocks + ", stripe " + stripe + "/" +
+                   fileStripes);
         }
-        LOG.info("file " + filePath.toString() + " corrupt in block " + 
-                 blockNo + "/" + fileLengthInBlocks + ", stripe " + stripe +
-                 "/" + fileStripes);
-      } else {
-        LOG.info("file " + filePath.toString() + " OK in block " + blockNo +
-                 "/" + fileLengthInBlocks + ", stripe " + stripe + "/" +
-                 fileStripes);
       }
-    }
 
-    RaidInfo raidInfo = getFileRaidInfo(dfs, filePath);
+      RaidInfo raidInfo = getFileRaidInfo(dfs, filePath);
 
-    // now check parity blocks
-    if (raidInfo.raidType != RaidType.NONE) {
-      checkParityBlocks(filePath, corruptBlocksPerStripe, blockSize,
-                        fileStripes, raidInfo);
-    }
-
-    final int maxCorruptBlocksPerStripe = raidInfo.parityBlocksPerStripe;
-
-    for (int corruptBlocksInStripe: corruptBlocksPerStripe.values()) {
-      if (corruptBlocksInStripe > maxCorruptBlocksPerStripe) {
-        return true;
+      // now check parity blocks
+      if (raidInfo.raidType != RaidType.NONE) {
+        checkParityBlocks(filePath, corruptBlocksPerStripe, blockSize,
+                          fileStripes, raidInfo);
       }
+
+      final int maxCorruptBlocksPerStripe = raidInfo.parityBlocksPerStripe;
+
+      for (int corruptBlocksInStripe: corruptBlocksPerStripe.values()) {
+        if (corruptBlocksInStripe > maxCorruptBlocksPerStripe) {
+          return true;
+        }
+      }
+      return false;
+    } catch (SocketException e) {
+      // Re-throw network-related exceptions.
+      throw e;
+    } catch (IOException e) {
+      LOG.error("While trying to check isFileCorrupt " + filePath +
+        " got exception ", e);
+      return true;
     }
-    return false;
   }
 
   /**
@@ -417,14 +441,14 @@ public class RaidShell extends Configured implements Tool {
    */
   private class RaidInfo {
     public RaidInfo(final RaidType raidType, 
-                    final RaidNode.ParityFilePair parityPair,
+                    final ParityFilePair parityPair,
                     final int parityBlocksPerStripe) {
       this.raidType = raidType;
       this.parityPair = parityPair;
       this.parityBlocksPerStripe = parityBlocksPerStripe;
     }
     public final RaidType raidType;
-    public final RaidNode.ParityFilePair parityPair;
+    public final ParityFilePair parityPair;
     public final int parityBlocksPerStripe;
   }
 
@@ -435,12 +459,10 @@ public class RaidShell extends Configured implements Tool {
                                    final Path filePath)
     throws IOException {
     // now look for the parity file
-    Path destPath = null;
-    RaidNode.ParityFilePair ppair = null;
+    ParityFilePair ppair = null;
     try {
       // look for xor parity file first
-      destPath = RaidNode.xorDestinationPath(conf);
-      ppair = RaidNode.getParityFile(destPath, filePath, conf);
+      ppair = ParityFilePair.getParityFile(ErasureCodeType.XOR, filePath, conf);
     } catch (FileNotFoundException ignore) {
     }
     if (ppair != null) {
@@ -448,8 +470,8 @@ public class RaidShell extends Configured implements Tool {
     } else {
       // failing that, look for rs parity file
       try {
-        destPath = RaidNode.rsDestinationPath(conf);
-        ppair = RaidNode.getParityFile(destPath, filePath, conf);
+        ppair = ParityFilePair.getParityFile(
+            ErasureCodeType.RS, filePath, conf);
       } catch (FileNotFoundException ignore) {
       }
       if (ppair != null) {
@@ -503,7 +525,7 @@ public class RaidShell extends Configured implements Tool {
                               parityBlockSize);
       }
     } else if (parityFS instanceof HarFileSystem) {
-      LOG.info("HAR FS found");
+      LOG.debug("HAR FS found");
     } else {
       LOG.warn("parity file system is not of a supported type");
     }
@@ -541,7 +563,7 @@ public class RaidShell extends Configured implements Tool {
                               "multiple of parity block size");
       }
       int blocksInContainer = (int) (cb.getLength() / blockSize);
-      LOG.info("found container with offset " + cb.getOffset() +
+      LOG.debug("found container with offset " + cb.getOffset() +
                ", length " + cb.getLength());
 
       for (long offset = cb.getOffset();
@@ -564,7 +586,7 @@ public class RaidShell extends Configured implements Tool {
 
         if (cb.isCorrupt() ||
             (cb.getNames().length == 0 && cb.getLength() > 0)) {
-          LOG.info("parity file for " + filePath.toString() + 
+          LOG.debug("parity file for " + filePath.toString() + 
                    " corrupt in block " + block +
                    ", stripe " + stripe + "/" + fileStripes);
           
@@ -576,7 +598,7 @@ public class RaidShell extends Configured implements Tool {
                                        1);
           }
         } else {
-          LOG.info("parity file for " + filePath.toString() + 
+          LOG.debug("parity file for " + filePath.toString() + 
                    " OK in block " + block +
                    ", stripe " + stripe + "/" + fileStripes);
         }
@@ -620,7 +642,7 @@ public class RaidShell extends Configured implements Tool {
     if (!rsPrefix.endsWith("/")) {
       rsPrefix = rsPrefix + "/";
     }
-    LOG.info("prefixes: " + xorPrefix + ", " + rsPrefix);
+    LOG.debug("prefixes: " + xorPrefix + ", " + rsPrefix);
     
     // get a list of corrupted files (not considering parity blocks just yet)
     // from the name node
@@ -629,16 +651,15 @@ public class RaidShell extends Configured implements Tool {
     // of its parity blocks are corrupted, so no further checking is
     // necessary
     final String[] files = DFSUtil.getCorruptFiles(dfs);
-    final List<Path> corruptFileCandidates = new LinkedList<Path>();
+    final List<String> corruptFileCandidates = new LinkedList<String>();
     for (final String f: files) {
-      final Path p = new Path(f);
       // if this file is a parity file
       // or if it does not start with the specified path,
       // ignore it
-      if (!p.toString().startsWith(xorPrefix) &&
-          !p.toString().startsWith(rsPrefix) &&
-          p.toString().startsWith(path)) {
-        corruptFileCandidates.add(p);
+      if (!f.startsWith(xorPrefix) &&
+          !f.startsWith(rsPrefix) &&
+          f.startsWith(path)) {
+        corruptFileCandidates.add(f);
       }
     }
     // filter files marked for deletion
@@ -646,9 +667,9 @@ public class RaidShell extends Configured implements Tool {
 
     int numberOfCorruptFiles = 0;
 
-    for (final Path corruptFileCandidate: corruptFileCandidates) {
-      if (isFileCorrupt(dfs, corruptFileCandidate)) {
-        System.out.println(corruptFileCandidate.toString());
+    for (final String corruptFileCandidate: corruptFileCandidates) {
+      if (isFileCorrupt(dfs, new Path(corruptFileCandidate))) {
+        System.out.println(corruptFileCandidate);
         numberOfCorruptFiles++;
       }
     }

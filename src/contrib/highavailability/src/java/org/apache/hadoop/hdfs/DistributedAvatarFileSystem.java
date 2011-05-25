@@ -2,17 +2,23 @@ package org.apache.hadoop.hdfs;
 
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.FileNotFoundException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.CorruptFileBlocks;
+import org.apache.hadoop.fs.BlockLocation;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
 import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.ClientProtocol;
+import org.apache.hadoop.hdfs.protocol.CorruptFileBlocks;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.DirectoryListing;
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
@@ -23,8 +29,10 @@ import org.apache.hadoop.hdfs.protocol.FSConstants.DatanodeReportType;
 import org.apache.hadoop.hdfs.protocol.FSConstants.SafeModeAction;
 import org.apache.hadoop.hdfs.protocol.FSConstants.UpgradeAction;
 import org.apache.hadoop.hdfs.server.common.UpgradeStatusReport;
+import org.apache.hadoop.ipc.ProtocolSignature;
 import org.apache.hadoop.ipc.RPC.VersionIncompatible;
 import org.apache.hadoop.security.AccessControlException;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
@@ -56,17 +64,44 @@ public class DistributedAvatarFileSystem extends DistributedFileSystem {
   // Indicates whether subscription model is used for ZK communication 
   boolean watchZK;
 
+  // number of milliseconds to wait between successive attempts
+  // to initialize standbyFS
+  long standbyFSInitInterval;
+
+  // time at which we last attempted to initialize standbyFS
+  long lastStandbyFSInit = 0L;
+
+  // number of milliseconds before we should check if a failover has occurred
+  // (used when making calls to the standby avatar)
+  long standbyFSCheckInterval;
+
+  // time at which last check for failover was performed
+  long lastStandbyFSCheck = 0L;
+
+  // number of requests to standbyFS between checks for failover
+  int standbyFSCheckRequestInterval;
+
+  // number of requests to standbyFS since last last failover check
+  AtomicInteger standbyFSCheckRequestCount = new AtomicInteger(0);
+
   volatile boolean shutdown = false;
   // indicates that the DFS is used instead of DAFS
   volatile boolean fallback = false;
 
   // We need to keep track of the FS object we used for failover
   DistributedFileSystem failoverFS;
+
+  // a filesystem object that points to the standby avatar
+  StandbyFS standbyFS = null;
+  // URI of primary and standby avatar
+  URI primaryURI;
+  URI standbyURI;
+
   // Will try for two minutes checking with ZK every 15 seconds
   // to see if the failover has happened in pull case
   // and just wait for two minutes in watch case
   public static final int FAILOVER_CHECK_PERIOD = 15000;
-  public static final int FAILOVER_RETIES = 8;
+  public static final int FAILOVER_RETRIES = 8;
   // Tolerate up to 5 retries connecting to the NameNode
   private static final int FAILURE_RETRY = 5;
 
@@ -100,37 +135,113 @@ public class DistributedAvatarFileSystem extends DistributedFileSystem {
     }
     zk = new AvatarZooKeeperClient(conf, watcher);
 
+    // default interval between standbyFS initialization attempts is 10 mins
+    standbyFSInitInterval = conf.getLong("fs.avatar.standbyfs.initinterval",
+                                         10 * 60 * 1000);
+
+    // default interval between failover checks is 5 min
+    standbyFSCheckInterval = conf.getLong("fs.avatar.standbyfs.checkinterval",
+                                         5 * 60 * 1000);
+
+    // default interval between failover checks is 5000 requests
+    standbyFSCheckRequestInterval =
+      conf.getInt("fs.avatar.standbyfs.checkrequests", 5000);
+
     initUnderlyingFileSystem(false);
+  }
+
+  private URI addrToURI(String addrString) throws URISyntaxException {
+    if (addrString.startsWith(logicalName.getScheme())) {
+      return new URI(addrString);
+    } else {
+      if (addrString.indexOf(":") == -1) {
+        // This is not a valid addr string
+        return null;
+      }
+      String fsHost = addrString.substring(0, addrString.indexOf(":"));
+      int port = Integer.parseInt(addrString
+                                  .substring(addrString.indexOf(":") + 1));
+      return new URI(logicalName.getScheme(),
+                     logicalName.getUserInfo(),
+                     fsHost, port, logicalName.getPath(),
+                     logicalName.getQuery(), logicalName.getFragment());
+    }
+  }
+
+  private class StandbyFS extends DistributedFileSystem {
+    @Override
+    public URI getUri() {
+      return DistributedAvatarFileSystem.this.logicalName;
+    }
+  }
+
+  /**
+   * Try to initialize standbyFS. Must hold writelock to call this method.
+   */
+  private void initStandbyFS() {
+    lastStandbyFSInit = System.currentTimeMillis();
+    try {
+      if (standbyFS != null) {
+        standbyFS.close();
+      }
+
+      LOG.info("DAFS initializing standbyFS");
+      LOG.info("DAFS primary=" + primaryURI.toString() +
+               " standby=" + standbyURI.toString());
+      standbyFS = new StandbyFS();
+      standbyFS.initialize(standbyURI, conf);
+
+    } catch (Exception e) {
+      LOG.info("DAFS cannot initialize standbyFS: " +
+               StringUtils.stringifyException(e));
+      standbyFS = null;
+    }
   }
 
   private boolean initUnderlyingFileSystem(boolean failover) throws IOException {
     try {
       Stat stat = new Stat();
-      String addrString = 
+      String primaryAddr = 
         zk.getPrimaryAvatarAddress(logicalName, stat, true);
       lastPrimaryUpdate = stat.getMtime();
+      primaryURI = addrToURI(primaryAddr);
 
-      String fsHost = addrString.substring(0, addrString.indexOf(":"));
-      int port = Integer.parseInt(addrString
-          .substring(addrString.indexOf(":") + 1));
-      URI realName = new URI(logicalName.getScheme(),
-          logicalName.getUserInfo(), fsHost, port, logicalName.getPath(),
-          logicalName.getQuery(), logicalName.getFragment());
+      URI uri0 = addrToURI(conf.get("fs.default.name0", ""));
+      // if the uri is null the configuration is broken.
+      // no need to try to initialize a standby
+      if (uri0 != null) {
+  
+        // the standby avatar is whichever one is not the primary
+        // note that standbyFS connects to the datanode port of the standby avatar
+        // since the client port is not available while in safe mode
+        if (uri0.equals(primaryURI)) {
+          standbyURI = addrToURI(conf.get("dfs.namenode.dn-address1", ""));
+        } else {
+          standbyURI = addrToURI(conf.get("dfs.namenode.dn-address0", ""));
+        }
+        initStandbyFS();
+      } else {
+        LOG.warn("Not initializing standby filesystem because the needed " +
+                  "configuration parameters fs.default.name{0|1} are missing.");
+      }
+
 
       if (failover) {
         if (failoverFS != null) {
           failoverFS.close();
         }
         failoverFS = new DistributedFileSystem();
-        failoverFS.initialize(realName, conf);
+        failoverFS.initialize(primaryURI, conf);
 
         failoverClient.newNameNode(failoverFS.dfs.namenode);
+
       } else {
-        super.initialize(realName, conf);
+        super.initialize(primaryURI, conf);
         failoverClient = new FailoverClientProtocol(this.dfs.namenode);
         this.dfs.namenode = failoverClient;
       }
-      LOG.info("Initialized new filesystem pointing to " + this.getUri() + " with the actual address " + addrString);
+      LOG.info("Initialized new filesystem pointing to " + this.getUri() +
+               " with the actual address " + primaryAddr);
     } catch (Exception ex) {
       if (failover) {
         // Succeed or die trying
@@ -165,6 +276,16 @@ public class DistributedAvatarFileSystem extends DistributedFileSystem {
 
     public synchronized boolean isDown() {
       return this.namenode == null;
+    }
+
+    @Override
+    public int getDataTransferProtocolVersion() throws IOException {
+      return (new ImmutableFSCaller<Integer>() {
+        @Override
+        Integer call() throws IOException {
+          return namenode.getDataTransferProtocolVersion();
+        }    
+      }).callFS();
     }
 
     @Override
@@ -609,6 +730,16 @@ public class DistributedAvatarFileSystem extends DistributedFileSystem {
     }
 
     @Override
+    public void saveNamespace(final boolean force, final boolean uncompressed) throws IOException {
+      (new MutableFSCaller<Boolean>() {
+        Boolean call(int r) throws IOException {
+          namenode.saveNamespace(force, uncompressed);
+          return true;
+        }
+      }).callFS();
+    }
+
+    @Override
     public void setOwner(final String src, final String username,
         final String groupname) throws IOException {
       (new MutableFSCaller<Boolean>() {
@@ -698,6 +829,19 @@ public class DistributedAvatarFileSystem extends DistributedFileSystem {
       }).callFS();
     }
 
+    @Override
+    public ProtocolSignature getProtocolSignature(final String protocol,
+        final long clientVersion, final int clientMethodsHash) throws IOException {
+      return (new ImmutableFSCaller<ProtocolSignature>() {
+
+        @Override
+        ProtocolSignature call() throws IOException {
+          return namenode.getProtocolSignature(
+              protocol, clientVersion, clientMethodsHash);
+        }
+
+      }).callFS();
+    }
   }
   
   private boolean shouldHandleException(IOException ex) {
@@ -705,6 +849,28 @@ public class DistributedAvatarFileSystem extends DistributedFileSystem {
       return true;
     }
     return ex.getMessage().toLowerCase().contains("connection");
+  }
+
+  /**
+   * @return true if a failover has happened, false otherwise
+   * requires write lock
+   */
+  private boolean zkCheckFailover() {
+    try {
+      long registrationTime = zk.getPrimaryRegistrationTime(logicalName);
+      LOG.debug("File is in ZK");
+      LOG.debug("Checking mod time: " + registrationTime + 
+                " > " + lastPrimaryUpdate);
+      if (registrationTime > lastPrimaryUpdate) {
+        // Failover has happened happened already
+        failoverClient.nameNodeDown();
+        return true;
+      }
+    } catch (Exception x) {
+      // just swallow for now
+      LOG.error(x);
+    }
+    return false;
   }
 
   private void handleFailure(IOException ex, int failures) throws IOException {
@@ -724,22 +890,11 @@ public class DistributedAvatarFileSystem extends DistributedFileSystem {
         // Check with zookeeper
         fsLock.readLock().unlock();
         fsLock.writeLock().lock();
-        try {
-          long registrationTime = zk.getPrimaryRegistrationTime(logicalName);
-          LOG.debug("File is in ZK");
-          LOG.debug("Checking mod time: " + registrationTime + 
-              " > " + lastPrimaryUpdate);
-          if (registrationTime > lastPrimaryUpdate) {
-            // Failover has happened happened already
-            failoverClient.nameNodeDown();
-            return;
-          }
-        } catch (Exception x) {
-          // just swallow for now
-          LOG.error(x);
-        } finally {
-          fsLock.writeLock().unlock();
-          fsLock.readLock().lock();
+        boolean failover = zkCheckFailover();
+        fsLock.writeLock().unlock();
+        fsLock.readLock().lock();
+        if (failover) {
+          return;
         }
       }
       Thread.sleep(1000);
@@ -763,6 +918,9 @@ public class DistributedAvatarFileSystem extends DistributedFileSystem {
       super.close();
       if (failoverFS != null) {
         failoverFS.close();
+      }
+      if (standbyFS != null) {
+        standbyFS.close();
       }
       try {
         zk.shutdown();
@@ -824,7 +982,7 @@ public class DistributedAvatarFileSystem extends DistributedFileSystem {
   }
 
   private void readLock() throws IOException {
-    for (int i = 0; i < FAILOVER_RETIES; i++) {
+    for (int i = 0; i < FAILOVER_RETRIES; i++) {
       fsLock.readLock().lock();
 
       if (failoverClient.isDown()) {
@@ -861,7 +1019,7 @@ public class DistributedAvatarFileSystem extends DistributedFileSystem {
         return;
       }
     }
-    // We retried FAILOVER_RETIES times with no luck - fail the call
+    // We retried FAILOVER_RETRIES times with no luck - fail the call
     throw new IOException("No FileSystem for " + logicalName);
   }
 
@@ -910,6 +1068,187 @@ public class DistributedAvatarFileSystem extends DistributedFileSystem {
         }
       }
     }
+  }
+
+  /**
+   * Used to direct a call either to the standbyFS or to the underlying DFS.
+   */
+  private abstract class StandbyCaller<T> {
+    abstract T call(DistributedFileSystem fs) throws IOException;
+
+    private T callPrimary() throws IOException {
+      return call(DistributedAvatarFileSystem.this);
+    }
+
+    private T callStandby() throws IOException {
+      boolean primaryCalled = false;
+      try {
+        // grab the read lock but don't check for failover yet
+        fsLock.readLock().lock();
+
+        if (System.currentTimeMillis() >
+            lastStandbyFSCheck + standbyFSCheckInterval ||
+            standbyFSCheckRequestCount.get() >=
+            standbyFSCheckRequestInterval) {
+          // check if a failover has happened
+          LOG.debug("DAFS checking for failover time=" +
+                    System.currentTimeMillis() +
+                    " last=" + lastStandbyFSCheck +
+                    " t_interval=" + standbyFSCheckInterval +
+                    " count=" + (standbyFSCheckRequestCount.get()) +
+                    " r_interval=" + standbyFSCheckRequestInterval);
+
+          // release read lock, grab write lock
+          fsLock.readLock().unlock();
+          fsLock.writeLock().lock();
+          boolean failover = zkCheckFailover();
+          if (failover) {
+            LOG.info("DAFS failover has happened");
+            failoverClient.nameNodeDown();
+          } else {
+            LOG.debug("DAFS failover has not happened");
+          }
+        
+          standbyFSCheckRequestCount.set(0);
+          lastStandbyFSCheck = System.currentTimeMillis();
+
+          // release write lock
+          fsLock.writeLock().unlock();
+
+          // now check for failover
+          readLock();
+        } else if (standbyFS == null && (System.currentTimeMillis() >
+                                         lastStandbyFSInit +
+                                         standbyFSInitInterval)) {
+          // try to initialize standbyFS
+
+          // release read lock, grab write lock
+          fsLock.readLock().unlock();
+          fsLock.writeLock().lock();
+          initStandbyFS();
+
+          fsLock.writeLock().unlock();
+          fsLock.readLock().lock();
+        }
+
+        standbyFSCheckRequestCount.incrementAndGet();
+
+        if (standbyFS == null) {
+          // if there is still no standbyFS, use the primary
+          LOG.info("DAFS Standby avatar not available, using primary.");
+          primaryCalled = true;
+          fsLock.readLock().unlock();
+          return callPrimary();
+        }
+        return call(standbyFS);
+      } catch (FileNotFoundException fe) {
+        throw fe;
+      } catch (IOException ie) {
+        if (primaryCalled) {
+          throw ie;
+        } else {
+          LOG.error("DAFS Request to standby avatar failed, trying primary.\n" +
+                    "Standby exception:\n" +
+                    StringUtils.stringifyException(ie));
+          primaryCalled = true;
+          fsLock.readLock().unlock();
+          return callPrimary();
+        }
+      } finally {
+        if (!primaryCalled) {
+          fsLock.readLock().unlock();
+        }
+      }
+    }
+
+    T callFS(boolean useStandby) throws IOException {
+      if (!useStandby) {
+        LOG.debug("DAFS using primary");
+        return callPrimary();
+      } else {
+        LOG.debug("DAFS using standby");
+        return callStandby();
+      }
+    }
+  }
+
+  /**
+   * Return the stat information about a file.
+   * @param f path
+   * @param useStandby flag indicating whether to read from standby avatar
+   * @throws FileNotFoundException if the file does not exist.
+   */
+  public FileStatus getFileStatus(final Path f, final boolean useStandby)
+    throws IOException {
+    return new StandbyCaller<FileStatus>() {
+      @Override
+      FileStatus call(DistributedFileSystem fs) throws IOException {
+        return fs.getFileStatus(f);
+      }
+    }.callFS(useStandby);
+  }
+
+  /**
+   * List files in a directory.
+   * @param f path
+   * @param useStandby flag indicating whether to read from standby avatar
+   * @throws FileNotFoundException if the file does not exist.
+   */
+  public FileStatus[] listStatus(final Path f, final boolean useStandby)
+    throws IOException {
+    return new StandbyCaller<FileStatus[]>() {
+      @Override
+      FileStatus[] call(DistributedFileSystem fs) throws IOException {
+        return fs.listStatus(f);
+      }
+    }.callFS(useStandby);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public ContentSummary getContentSummary(final Path f,
+                                          final boolean useStandby)
+    throws IOException {
+    return new StandbyCaller<ContentSummary>() {
+      @Override
+      ContentSummary call(DistributedFileSystem fs) throws IOException {
+        return fs.getContentSummary(f);
+      }
+    }.callFS(useStandby);
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * This will only work if the standby avatar is
+   * set up to populate its underreplicated
+   * block queues while still in safe mode.
+   */
+  public RemoteIterator<Path> listCorruptFileBlocks(final Path path,
+                                                    final boolean useStandby)
+    throws IOException {
+    return new StandbyCaller<RemoteIterator<Path>>() {
+      @Override
+      RemoteIterator<Path> call(DistributedFileSystem fs) throws IOException {
+        return fs.listCorruptFileBlocks(path);
+      }
+    }.callFS(useStandby);
+  }
+
+  /**
+   * Return statistics for each datanode.
+   * @return array of data node reports
+   * @throw IOException
+   */
+  public DatanodeInfo[] getDataNodeStats(final boolean useStandby)
+    throws IOException {
+    return new StandbyCaller<DatanodeInfo[]>() {
+      @Override
+      DatanodeInfo[] call(DistributedFileSystem fs) throws IOException {
+        return fs.getDataNodeStats();
+      }
+    }.callFS(useStandby);
   }
 
 }

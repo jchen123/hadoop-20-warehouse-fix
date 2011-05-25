@@ -57,6 +57,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Executors;
 
+import javax.management.ObjectName;
 import javax.security.auth.login.LoginException;
 
 import org.apache.commons.logging.Log;
@@ -70,6 +71,7 @@ import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.http.HttpServer;
+import org.apache.hadoop.ipc.ProtocolSignature;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.Server;
 import org.apache.hadoop.ipc.RPC.VersionMismatch;
@@ -80,6 +82,7 @@ import org.apache.hadoop.mapred.JobInProgress.KillInterruptedException;
 import org.apache.hadoop.mapred.JobStatusChangeEvent.EventType;
 import org.apache.hadoop.mapred.CleanupQueue.PathDeletionContext;
 import org.apache.hadoop.mapred.TaskTrackerStatus.TaskTrackerHealthStatus;
+import org.apache.hadoop.metrics.util.MBeanUtil;
 import org.apache.hadoop.net.DNSToSwitchMapping;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.net.NetworkTopology;
@@ -303,6 +306,52 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
       throw new IOException("Unknown protocol to job tracker: " + protocol);
     }
   }
+
+  public ProtocolSignature getProtocolSignature(String protocol,
+      long clientVersion, int clientMethodsHash) throws IOException {
+    return ProtocolSignature.getProtocolSignature(
+        this, protocol, clientVersion, clientMethodsHash);
+  }
+
+  /**
+   * A thread to update speculatable candidates for all Jobs
+   */
+  private class SpeculationUpdater implements Runnable {
+
+    public void run() {
+      while (!shutdown) {
+        try {
+          // Check every second if jobs speculation stats need update
+          Thread.sleep(1000L);
+          List<JobInProgress> cachedJobs = new ArrayList<JobInProgress> ();
+
+          // get a snapshot of all the jobs in the system
+          synchronized (jobs) {
+            cachedJobs.addAll(jobs.values());
+          }
+
+          for (JobInProgress job: cachedJobs) {
+
+            if (job.getStatus().getRunState() != JobStatus.RUNNING)
+              continue;
+
+            if (job.hasSpeculativeMaps())
+              job.refreshCandidateSpeculativeMaps();
+
+            if (job.hasSpeculativeReduces())
+              job.refreshCandidateSpeculativeReduces();
+          }
+
+        } catch (InterruptedException ie) {
+          // ignore. if shutting down, while cond. will catch it
+        } catch (Exception e) {
+          LOG.error("Speculation Updater Thread got exception: " +
+                    StringUtils.stringifyException(e));
+        }
+      }
+    }
+  }
+
 
   /**
    * A thread to timeout tasks that have been assigned to task trackers,
@@ -1001,10 +1050,10 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
         // remove the capacity of trackers on this host
         int numTrackersOnHost = 0;
         for (TaskTrackerStatus status : getStatusesOnHost(hostName)) {
-          int mapSlots = status.getMaxMapSlots();
-          totalMapTaskCapacity -= mapSlots;
-          int reduceSlots = status.getMaxReduceSlots();
-          totalReduceTaskCapacity -= reduceSlots;
+          updateTotalTaskCapacity(status);
+          removeTaskTrackerCapacity(status);
+          int mapSlots = taskScheduler.getMaxSlots(status, TaskType.MAP);
+          int reduceSlots = taskScheduler.getMaxSlots(status, TaskType.REDUCE);
           ++numTrackersOnHost;
           getInstrumentation().addBlackListedMapSlots(
               mapSlots);
@@ -1022,10 +1071,9 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
         int numTrackersOnHost = 0;
         // add the capacity of trackers on the host
         for (TaskTrackerStatus status : getStatusesOnHost(hostName)) {
-          int mapSlots = status.getMaxMapSlots();
-          totalMapTaskCapacity += mapSlots;
-          int reduceSlots = status.getMaxReduceSlots();
-          totalReduceTaskCapacity += reduceSlots;
+          updateTotalTaskCapacity(status);
+          int mapSlots = taskScheduler.getMaxSlots(status, TaskType.MAP);
+          int reduceSlots = taskScheduler.getMaxSlots(status, TaskType.REDUCE);
           numTrackersOnHost++;
           getInstrumentation().decBlackListedMapSlots(mapSlots);
           getInstrumentation().decBlackListedReduceSlots(reduceSlots);
@@ -1122,768 +1170,8 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
     return statuses;
   }
 
-  ///////////////////////////////////////////////////////
-  // Used to recover the jobs upon restart
-  ///////////////////////////////////////////////////////
-  class RecoveryManager {
-    Set<JobID> jobsToRecover; // set of jobs to be recovered
-
-    private int totalEventsRecovered = 0;
-    private int restartCount = 0;
-    private boolean shouldRecover = false;
-
-    Set<String> recoveredTrackers =
-      Collections.synchronizedSet(new HashSet<String>());
-
-    /** A custom listener that replays the events in the order in which the
-     * events (task attempts) occurred.
-     */
-    class JobRecoveryListener implements Listener {
-      // The owner job
-      private JobInProgress jip;
-
-      private JobHistory.JobInfo job; // current job's info object
-
-      // Maintain the count of the (attempt) events recovered
-      private int numEventsRecovered = 0;
-
-      // Maintains open transactions
-      private Map<String, String> hangingAttempts =
-        new HashMap<String, String>();
-
-      // Whether there are any updates for this job
-      private boolean hasUpdates = false;
-
-      public JobRecoveryListener(JobInProgress jip) {
-        this.jip = jip;
-        this.job = new JobHistory.JobInfo(jip.getJobID().toString());
-      }
-
-      /**
-       * Process a task. Note that a task might commit a previously pending
-       * transaction.
-       */
-      private void processTask(String taskId, JobHistory.Task task) {
-        // Any TASK info commits the previous transaction
-        boolean hasHanging = hangingAttempts.remove(taskId) != null;
-        if (hasHanging) {
-          numEventsRecovered += 2;
-        }
-
-        TaskID id = TaskID.forName(taskId);
-        TaskInProgress tip = getTip(id);
-
-        updateTip(tip, task);
-      }
-
-      /**
-       * Adds a task-attempt in the listener
-       */
-      private void processTaskAttempt(String taskAttemptId,
-                                      JobHistory.TaskAttempt attempt) {
-        TaskAttemptID id = TaskAttemptID.forName(taskAttemptId);
-
-        // Check if the transaction for this attempt can be committed
-        String taskStatus = attempt.get(Keys.TASK_STATUS);
-        TaskAttemptID taskID = TaskAttemptID.forName(taskAttemptId);
-        JobInProgress jip = getJob(taskID.getJobID());
-        JobStatus prevStatus = (JobStatus)jip.getStatus().clone();
-
-        if (taskStatus.length() > 0) {
-          // This means this is an update event
-          if (taskStatus.equals(Values.SUCCESS.name())) {
-            // Mark this attempt as hanging
-            hangingAttempts.put(id.getTaskID().toString(), taskAttemptId);
-            addSuccessfulAttempt(jip, id, attempt);
-          } else {
-            addUnsuccessfulAttempt(jip, id, attempt);
-            numEventsRecovered += 2;
-          }
-        } else {
-          createTaskAttempt(jip, id, attempt);
-        }
-
-        JobStatus newStatus = (JobStatus)jip.getStatus().clone();
-        if (prevStatus.getRunState() != newStatus.getRunState()) {
-          if(LOG.isDebugEnabled())
-            LOG.debug("Status changed hence informing prevStatus" +  prevStatus + " currentStatus "+ newStatus);
-          JobStatusChangeEvent event =
-            new JobStatusChangeEvent(jip, EventType.RUN_STATE_CHANGED,
-                                     prevStatus, newStatus);
-          updateJobInProgressListeners(event);
-        }
-      }
-
-      public void handle(JobHistory.RecordTypes recType, Map<Keys,
-                         String> values) throws IOException {
-        if (recType == JobHistory.RecordTypes.Job) {
-          // Update the meta-level job information
-          job.handle(values);
-
-          // Forcefully init the job as we have some updates for it
-          checkAndInit();
-        } else if (recType.equals(JobHistory.RecordTypes.Task)) {
-          String taskId = values.get(Keys.TASKID);
-
-          // Create a task
-          JobHistory.Task task = new JobHistory.Task();
-          task.handle(values);
-
-          // Ignore if its a cleanup task
-          if (isCleanup(task)) {
-            return;
-          }
-
-          // Process the task i.e update the tip state
-          processTask(taskId, task);
-        } else if (recType.equals(JobHistory.RecordTypes.MapAttempt)) {
-          String attemptId = values.get(Keys.TASK_ATTEMPT_ID);
-
-          // Create a task attempt
-          JobHistory.MapAttempt attempt = new JobHistory.MapAttempt();
-          attempt.handle(values);
-
-          // Ignore if its a cleanup task
-          if (isCleanup(attempt)) {
-            return;
-          }
-
-          // Process the attempt i.e update the attempt state via job
-          processTaskAttempt(attemptId, attempt);
-        } else if (recType.equals(JobHistory.RecordTypes.ReduceAttempt)) {
-          String attemptId = values.get(Keys.TASK_ATTEMPT_ID);
-
-          // Create a task attempt
-          JobHistory.ReduceAttempt attempt = new JobHistory.ReduceAttempt();
-          attempt.handle(values);
-
-          // Ignore if its a cleanup task
-          if (isCleanup(attempt)) {
-            return;
-          }
-
-          // Process the attempt i.e update the job state via job
-          processTaskAttempt(attemptId, attempt);
-        }
-      }
-
-      // Check if the task is of type CLEANUP
-      private boolean isCleanup(JobHistory.Task task) {
-        String taskType = task.get(Keys.TASK_TYPE);
-        return Values.CLEANUP.name().equals(taskType);
-      }
-
-      // Init the job if its ready for init. Also make sure that the scheduler
-      // is updated
-      private void checkAndInit() throws IOException {
-        String jobStatus = this.job.get(Keys.JOB_STATUS);
-        if (Values.PREP.name().equals(jobStatus)) {
-          hasUpdates = true;
-          LOG.info("Calling init from RM for job " + jip.getJobID().toString());
-          try {
-            initJob(jip);
-          } catch (Throwable t) {
-            LOG.error(jip.getJobID() + ": Job initialization failed : \n"
-                      + StringUtils.stringifyException(t));
-            failJob(jip);
-            throw new IOException(t);
-          }
-        }
-      }
-
-      void close() {
-        if (hasUpdates) {
-          // Apply the final (job-level) updates
-          JobStatusChangeEvent event = updateJob(jip, job);
-
-          synchronized (JobTracker.this) {
-            // Update the job listeners
-            updateJobInProgressListeners(event);
-          }
-        }
-      }
-
-      public int getNumEventsRecovered() {
-        return numEventsRecovered;
-      }
-
-    }
-
-    public RecoveryManager() {
-      jobsToRecover = new TreeSet<JobID>();
-    }
-
-    public boolean contains(JobID id) {
-      return jobsToRecover.contains(id);
-    }
-
-    void addJobForRecovery(JobID id) {
-      jobsToRecover.add(id);
-    }
-
-    public boolean shouldRecover() {
-      return shouldRecover;
-    }
-
-    public boolean shouldSchedule() {
-      return recoveredTrackers.isEmpty();
-    }
-
-    private void markTracker(String trackerName) {
-      recoveredTrackers.add(trackerName);
-    }
-
-    void unMarkTracker(String trackerName) {
-      recoveredTrackers.remove(trackerName);
-    }
-
-    Set<JobID> getJobsToRecover() {
-      return jobsToRecover;
-    }
-
-    /** Check if the given string represents a job-id or not
-     */
-    private boolean isJobNameValid(String str) {
-      if(str == null) {
-        return false;
-      }
-      String[] parts = str.split("_");
-      if(parts.length == 3) {
-        if(parts[0].equals("job")) {
-            // other 2 parts should be parseable
-            return JobTracker.validateIdentifier(parts[1])
-                   && JobTracker.validateJobNumber(parts[2]);
-        }
-      }
-      return false;
-    }
-
-    // checks if the job dir has the required files
-    public void checkAndAddJob(FileStatus status) throws IOException {
-      String fileName = status.getPath().getName();
-      if (isJobNameValid(fileName)) {
-        if (JobClient.isJobDirValid(status.getPath(), fs)) {
-          recoveryManager.addJobForRecovery(JobID.forName(fileName));
-          shouldRecover = true; // enable actual recovery if num-files > 1
-        } else {
-          LOG.info("Found an incomplete job directory " + fileName + "."
-                   + " Deleting it!!");
-          fs.delete(status.getPath(), true);
-        }
-      }
-    }
-
-    private JobStatusChangeEvent updateJob(JobInProgress jip,
-                                           JobHistory.JobInfo job) {
-      // Change the job priority
-      String jobpriority = job.get(Keys.JOB_PRIORITY);
-      JobPriority priority = JobPriority.valueOf(jobpriority);
-      // It's important to update this via the jobtracker's api as it will
-      // take care of updating the event listeners too
-      setJobPriority(jip.getJobID(), priority);
-
-      // Save the previous job status
-      JobStatus oldStatus = (JobStatus)jip.getStatus().clone();
-
-      // Set the start/launch time only if there are recovered tasks
-      // Increment the job's restart count
-      jip.updateJobInfo(job.getLong(JobHistory.Keys.SUBMIT_TIME),
-                        job.getLong(JobHistory.Keys.LAUNCH_TIME));
-
-      // Save the new job status
-      JobStatus newStatus = (JobStatus)jip.getStatus().clone();
-
-      return new JobStatusChangeEvent(jip, EventType.START_TIME_CHANGED, oldStatus,
-                                      newStatus);
-    }
-
-    private void updateTip(TaskInProgress tip, JobHistory.Task task) {
-      long startTime = task.getLong(Keys.START_TIME);
-      if (startTime != 0) {
-        tip.setExecStartTime(startTime);
-      }
-
-      long finishTime = task.getLong(Keys.FINISH_TIME);
-      // For failed tasks finish-time will be missing
-      if (finishTime != 0) {
-        tip.setExecFinishTime(finishTime);
-      }
-
-      String cause = task.get(Keys.TASK_ATTEMPT_ID);
-      if (cause.length() > 0) {
-        // This means that the this is a FAILED events
-        TaskAttemptID id = TaskAttemptID.forName(cause);
-        TaskStatus status = tip.getTaskStatus(id);
-        synchronized (JobTracker.this) {
-          // This will add the tip failed event in the new log
-          tip.getJob().failedTask(tip, id, status.getDiagnosticInfo(),
-                                  status.getPhase(), status.getRunState(),
-                                  status.getTaskTracker());
-        }
-      }
-    }
-
-    private void createTaskAttempt(JobInProgress job,
-                                   TaskAttemptID attemptId,
-                                   JobHistory.TaskAttempt attempt) {
-      TaskID id = attemptId.getTaskID();
-      String type = attempt.get(Keys.TASK_TYPE);
-      TaskInProgress tip = job.getTaskInProgress(id);
-
-      //    I. Get the required info
-      TaskStatus taskStatus = null;
-      String trackerName = attempt.get(Keys.TRACKER_NAME);
-      String trackerHostName =
-        JobInProgress.convertTrackerNameToHostName(trackerName);
-      // recover the port information.
-      int port = 0; // default to 0
-      String hport = attempt.get(Keys.HTTP_PORT);
-      if (hport != null && hport.length() > 0) {
-        port = attempt.getInt(Keys.HTTP_PORT);
-      }
-
-      long attemptStartTime = attempt.getLong(Keys.START_TIME);
-
-      // II. Create the (appropriate) task status
-      if (type.equals(Values.MAP.name())) {
-        taskStatus =
-          new MapTaskStatus(attemptId, 0.0f, job.getNumSlotsPerTask(TaskType.MAP),
-                            TaskStatus.State.RUNNING, "", "", trackerName,
-                            TaskStatus.Phase.MAP, new Counters());
-      } else {
-        taskStatus =
-          new ReduceTaskStatus(attemptId, 0.0f, job.getNumSlotsPerTask(TaskType.REDUCE),
-                               TaskStatus.State.RUNNING, "", "", trackerName,
-                               TaskStatus.Phase.REDUCE, new Counters());
-      }
-
-      // Set the start time
-      taskStatus.setStartTime(attemptStartTime);
-
-      List<TaskStatus> ttStatusList = new ArrayList<TaskStatus>();
-      ttStatusList.add(taskStatus);
-
-      // III. Create the dummy tasktracker status
-      TaskTrackerStatus ttStatus =
-        new TaskTrackerStatus(trackerName, trackerHostName, port, ttStatusList,
-                              0 , 0, 0);
-      ttStatus.setLastSeen(getClock().getTime());
-
-      synchronized (JobTracker.this) {
-        synchronized (taskTrackers) {
-          synchronized (trackerExpiryQueue) {
-            // IV. Register a new tracker
-            TaskTracker taskTracker = getTaskTracker(trackerName);
-            boolean isTrackerRegistered =  (taskTracker != null);
-            if (!isTrackerRegistered) {
-              markTracker(trackerName); // add the tracker to recovery-manager
-              taskTracker = new TaskTracker(trackerName);
-              taskTracker.setStatus(ttStatus);
-              addNewTracker(taskTracker);
-            }
-
-            // V. Update the tracker status
-            // This will update the meta info of the jobtracker and also add the
-            // tracker status if missing i.e register it
-            updateTaskTrackerStatus(trackerName, ttStatus);
-          }
-        }
-        // Register the attempt with job and tip, under JobTracker lock.
-        // Since, as of today they are atomic through heartbeat.
-        // VI. Register the attempt
-        //   a) In the job
-        job.addRunningTaskToTIP(tip, attemptId, ttStatus, false);
-        
-        createTaskEntry(attemptId, trackerName, tip);
-
-        //   b) In the tip
-        tip.updateStatus(taskStatus);
-      }
-
-      // VII. Make an entry in the launched tasks
-      expireLaunchingTasks.addNewTask(attemptId);
-    }
-
-    private void addSuccessfulAttempt(JobInProgress job,
-                                      TaskAttemptID attemptId,
-                                      JobHistory.TaskAttempt attempt) {
-      // I. Get the required info
-      TaskID taskId = attemptId.getTaskID();
-      String type = attempt.get(Keys.TASK_TYPE);
-
-      TaskInProgress tip = job.getTaskInProgress(taskId);
-      long attemptFinishTime = attempt.getLong(Keys.FINISH_TIME);
-
-      // Get the task status and the tracker name and make a copy of it
-      TaskStatus taskStatus = (TaskStatus)tip.getTaskStatus(attemptId).clone();
-      taskStatus.setFinishTime(attemptFinishTime);
-
-      String stateString = attempt.get(Keys.STATE_STRING);
-
-      // Update the basic values
-      taskStatus.setStateString(stateString);
-      taskStatus.setProgress(1.0f);
-      taskStatus.setRunState(TaskStatus.State.SUCCEEDED);
-
-      // Set the shuffle/sort finished times
-      if (type.equals(Values.REDUCE.name())) {
-        long shuffleTime =
-          Long.parseLong(attempt.get(Keys.SHUFFLE_FINISHED));
-        long sortTime =
-          Long.parseLong(attempt.get(Keys.SORT_FINISHED));
-        taskStatus.setShuffleFinishTime(shuffleTime);
-        taskStatus.setSortFinishTime(sortTime);
-      }
-
-      // Add the counters
-      String counterString = attempt.get(Keys.COUNTERS);
-      Counters counter = null;
-      //TODO Check if an exception should be thrown
-      try {
-        counter = Counters.fromEscapedCompactString(counterString);
-      } catch (ParseException pe) {
-        counter = new Counters(); // Set it to empty counter
-      }
-      taskStatus.setCounters(counter);
-
-      synchronized (JobTracker.this) {
-        // II. Replay the status
-        job.updateTaskStatus(tip, taskStatus);
-      }
-
-      // III. Prevent the task from expiry
-      expireLaunchingTasks.removeTask(attemptId);
-    }
-
-    private void addUnsuccessfulAttempt(JobInProgress job,
-                                        TaskAttemptID attemptId,
-                                        JobHistory.TaskAttempt attempt) {
-      // I. Get the required info
-      TaskID taskId = attemptId.getTaskID();
-      TaskInProgress tip = job.getTaskInProgress(taskId);
-      long attemptFinishTime = attempt.getLong(Keys.FINISH_TIME);
-
-      TaskStatus taskStatus = (TaskStatus)tip.getTaskStatus(attemptId).clone();
-      taskStatus.setFinishTime(attemptFinishTime);
-
-      // Reset the progress
-      taskStatus.setProgress(0.0f);
-
-      String stateString = attempt.get(Keys.STATE_STRING);
-      taskStatus.setStateString(stateString);
-
-      boolean hasFailed =
-        attempt.get(Keys.TASK_STATUS).equals(Values.FAILED.name());
-      // Set the state failed/killed
-      if (hasFailed) {
-        taskStatus.setRunState(TaskStatus.State.FAILED);
-      } else {
-        taskStatus.setRunState(TaskStatus.State.KILLED);
-      }
-
-      // Get/Set the error msg
-      String diagInfo = attempt.get(Keys.ERROR);
-      taskStatus.setDiagnosticInfo(diagInfo); // diag info
-
-      synchronized (JobTracker.this) {
-        // II. Update the task status
-        job.updateTaskStatus(tip, taskStatus);
-      }
-
-     // III. Prevent the task from expiry
-     expireLaunchingTasks.removeTask(attemptId);
-    }
-
-    Path getRestartCountFile() {
-      return new Path(getSystemDir(), "jobtracker.info");
-    }
-
-    Path getTempRestartCountFile() {
-      return new Path(getSystemDir(), "jobtracker.info.recover");
-    }
-
-    /**
-     * Initialize the recovery process. It simply creates a jobtracker.info file
-     * in the jobtracker's system directory and writes its restart count in it.
-     * For the first start, the jobtracker writes '0' in it. Upon subsequent
-     * restarts the jobtracker replaces the count with its current count which
-     * is (old count + 1). The whole purpose of this api is to obtain restart
-     * counts across restarts to avoid attempt-id clashes.
-     *
-     * Note that in between if the jobtracker.info files goes missing then the
-     * jobtracker will disable recovery and continue.
-     *
-     */
-    void updateRestartCount() throws IOException {
-      Path restartFile = getRestartCountFile();
-      Path tmpRestartFile = getTempRestartCountFile();
-      FileSystem fs = restartFile.getFileSystem(conf);
-      FsPermission filePerm = new FsPermission(SYSTEM_FILE_PERMISSION);
-
-      // read the count from the jobtracker info file
-      if (fs.exists(restartFile)) {
-        fs.delete(tmpRestartFile, false); // delete the tmp file
-      } else if (fs.exists(tmpRestartFile)) {
-        // if .rec exists then delete the main file and rename the .rec to main
-        fs.rename(tmpRestartFile, restartFile); // rename .rec to main file
-      } else {
-        // For the very first time the jobtracker will create a jobtracker.info
-        // file. If the jobtracker has restarted then disable recovery as files'
-        // needed for recovery are missing.
-
-        // disable recovery if this is a restart
-        shouldRecover = false;
-
-        // write the jobtracker.info file
-        try {
-          FSDataOutputStream out = FileSystem.create(fs, restartFile,
-                                                     filePerm);
-          out.writeInt(0);
-          out.close();
-        } catch (IOException ioe) {
-          LOG.warn("Writing to file " + restartFile + " failed!");
-          LOG.warn("FileSystem is not ready yet!");
-          fs.delete(restartFile, false);
-          throw ioe;
-        }
-        return;
-      }
-
-      FSDataInputStream in = fs.open(restartFile);
-      try {
-        // read the old count
-        restartCount = in.readInt();
-        ++restartCount; // increment the restart count
-      } catch (IOException ioe) {
-        LOG.warn("System directory is garbled. Failed to read file "
-                 + restartFile);
-        LOG.warn("Jobtracker recovery is not possible with garbled"
-                 + " system directory! Please delete the system directory and"
-                 + " restart the jobtracker. Note that deleting the system"
-                 + " directory will result in loss of all the running jobs.");
-        throw new RuntimeException(ioe);
-      } finally {
-        if (in != null) {
-          in.close();
-        }
-      }
-
-      // Write back the new restart count and rename the old info file
-      //TODO This is similar to jobhistory recovery, maybe this common code
-      //      can be factored out.
-
-      // write to the tmp file
-      FSDataOutputStream out = FileSystem.create(fs, tmpRestartFile, filePerm);
-      out.writeInt(restartCount);
-      out.close();
-
-      // delete the main file
-      fs.delete(restartFile, false);
-
-      // rename the .rec to main file
-      fs.rename(tmpRestartFile, restartFile);
-    }
-
-    public void recover() {
-      if (!shouldRecover()) {
-        // clean up jobs structure
-        jobsToRecover.clear();
-        return;
-      }
-
-      LOG.info("Restart count of the jobtracker : " + restartCount);
-
-      // I. Init the jobs and cache the recovered job history filenames
-      Map<JobID, Path> jobHistoryFilenameMap = new HashMap<JobID, Path>();
-      Iterator<JobID> idIter = jobsToRecover.iterator();
-      JobInProgress job = null;
-      File jobIdFile = null;
-
-      // 0. Cleanup
-      try {
-        JobHistory.JobInfo.deleteConfFiles();
-      } catch (IOException ioe) {
-        LOG.info("Error in cleaning up job history folder", ioe);
-      }
-
-      while (idIter.hasNext()) {
-        JobID id = idIter.next();
-        LOG.info("Trying to recover details of job " + id);
-        try {
-          // 1. Recover job owner and create JIP
-          jobIdFile =
-            new File(lDirAlloc.getLocalPathToRead(SUBDIR + "/" + id, conf).toString());
-
-          String user = null;
-          if (jobIdFile != null && jobIdFile.exists()) {
-            LOG.info("File " + jobIdFile + " exists for job " + id);
-            FileInputStream in = new FileInputStream(jobIdFile);
-            BufferedReader reader = null;
-            try {
-              reader = new BufferedReader(new InputStreamReader(in));
-              user = reader.readLine();
-              LOG.info("Recovered user " + user + " for job " + id);
-            } finally {
-              if (reader != null) {
-                reader.close();
-              }
-              in.close();
-            }
-          }
-          if (user == null) {
-            throw new RuntimeException("Incomplete job " + id);
-          }
-
-          // Create the job
-          job = new JobInProgress(id, JobTracker.this, conf, user,
-                                  restartCount);
-
-          // 2. Check if the user has appropriate access
-          // Get the user group info for the job's owner
-          UserGroupInformation ugi =
-            UserGroupInformation.readFrom(job.getJobConf());
-          LOG.info("Submitting job " + id + " on behalf of user "
-                   + ugi.getUserName() + " in groups : "
-                   + StringUtils.arrayToString(ugi.getGroupNames()));
-
-          // check the access
-          try {
-            checkAccess(job, QueueManager.QueueOperation.SUBMIT_JOB, ugi);
-          } catch (Throwable t) {
-            LOG.warn("Access denied for user " + ugi.getUserName()
-                     + " in groups : ["
-                     + StringUtils.arrayToString(ugi.getGroupNames()) + "]");
-            throw t;
-          }
-
-          // 3. Get the log file and the file path
-          String logFileName =
-            JobHistory.JobInfo.getJobHistoryFileName(job.getJobConf(), id);
-          if (logFileName != null) {
-            Path jobHistoryFilePath =
-              JobHistory.JobInfo.getJobHistoryLogLocation(logFileName);
-
-            // 4. Recover the history file. This involved
-            //     - deleting file.recover if file exists
-            //     - renaming file.recover to file if file doesnt exist
-            // This makes sure that the (master) file exists
-            JobHistory.JobInfo.recoverJobHistoryFile(job.getJobConf(),
-                                                     jobHistoryFilePath);
-
-            // 5. Cache the history file name as it costs one dfs access
-            jobHistoryFilenameMap.put(job.getJobID(), jobHistoryFilePath);
-          } else {
-            LOG.info("No history file found for job " + id);
-            idIter.remove(); // remove from recovery list
-          }
-
-          // 6. Sumbit the job to the jobtracker
-          addJob(id, job);
-        } catch (Throwable t) {
-          LOG.warn("Failed to recover job " + id + " Ignoring the job.", t);
-          idIter.remove();
-          if (jobIdFile != null) {
-            jobIdFile.delete();
-            jobIdFile = null;
-          }
-          if (job != null) {
-            job.fail();
-            job = null;
-          }
-          continue;
-        }
-      }
-
-      long recoveryStartTime = getClock().getTime();
-
-      // II. Recover each job
-      idIter = jobsToRecover.iterator();
-      while (idIter.hasNext()) {
-        JobID id = idIter.next();
-        JobInProgress pJob = getJob(id);
-
-        // 1. Get the required info
-        // Get the recovered history file
-        Path jobHistoryFilePath = jobHistoryFilenameMap.get(pJob.getJobID());
-        String logFileName = jobHistoryFilePath.getName();
-
-        FileSystem fs;
-        try {
-          fs = jobHistoryFilePath.getFileSystem(conf);
-        } catch (IOException ioe) {
-          LOG.warn("Failed to get the filesystem for job " + id + ". Ignoring.",
-                   ioe);
-          continue;
-        }
-
-        // 2. Parse the history file
-        // Note that this also involves job update
-        JobRecoveryListener listener = new JobRecoveryListener(pJob);
-        try {
-          JobHistory.parseHistoryFromFS(jobHistoryFilePath.toString(),
-                                        listener, fs);
-        } catch (Throwable t) {
-          LOG.info("Error reading history file of job " + pJob.getJobID()
-                   + ". Ignoring the error and continuing.", t);
-        }
-
-        // 3. Close the listener
-        listener.close();
-
-        // 4. Update the recovery metric
-        totalEventsRecovered += listener.getNumEventsRecovered();
-
-        // 5. Cleanup history
-        // Delete the master log file as an indication that the new file
-        // should be used in future
-        try {
-          synchronized (pJob) {
-            JobHistory.JobInfo.checkpointRecovery(logFileName,
-                                                  pJob.getJobConf());
-          }
-        } catch (Throwable t) {
-          LOG.warn("Failed to delete log file (" + logFileName + ") for job "
-                   + id + ". Continuing.", t);
-        }
-
-        if (pJob.isComplete()) {
-          idIter.remove(); // no need to keep this job info as its successful
-        }
-      }
-
-      recoveryDuration = getClock().getTime() - recoveryStartTime;
-      hasRecovered = true;
-
-      // III. Finalize the recovery
-      synchronized (trackerExpiryQueue) {
-        // Make sure that the tracker statuses in the expiry-tracker queue
-        // are updated
-        long now = getClock().getTime();
-        int size = trackerExpiryQueue.size();
-        for (int i = 0; i < size ; ++i) {
-          // Get the first tasktracker
-          TaskTrackerStatus taskTracker = trackerExpiryQueue.first();
-
-          // Remove it
-          trackerExpiryQueue.remove(taskTracker);
-
-          // Set the new time
-          taskTracker.setLastSeen(now);
-
-          // Add back to get the sorted list
-          trackerExpiryQueue.add(taskTracker);
-        }
-      }
-
-      LOG.info("Restoration complete");
-    }
-
-    int totalEventsRecovered() {
-      return totalEventsRecovered;
-    }
-  }
-
   private final JobTrackerInstrumentation myInstrumentation;
+  private ObjectName versionBeanName;
 
   /////////////////////////////////////////////////////////////////
   // The real JobTracker
@@ -1895,12 +1183,15 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
   int totalSubmissions = 0;
   private int totalMapTaskCapacity;
   private int totalReduceTaskCapacity;
-  private HostsFileReader hostsReader;
 
-  // JobTracker recovery variables
-  private volatile boolean hasRestarted = false;
-  private volatile boolean hasRecovered = false;
-  private volatile long recoveryDuration;
+  // Remember the last number of slots for updating total map and reduce
+  // capacity
+  private Map<String, Integer> trackerNameToMapSlots =
+      new HashMap<String, Integer>();
+  private Map<String, Integer> trackerNameToReduceSlots =
+      new HashMap<String, Integer>();
+
+  private HostsFileReader hostsReader;
 
   //
   // Properties to maintain while running Jobs and Tasks:
@@ -1993,12 +1284,15 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
   Thread retireJobsThread = null;
   final int retiredJobsCacheSize;
   ExpireLaunchingTasks expireLaunchingTasks = new ExpireLaunchingTasks();
+  SpeculationUpdater speculationUpdater = new SpeculationUpdater();
+  
   Thread expireLaunchingTaskThread = new Thread(expireLaunchingTasks,
                                                 "expireLaunchingTasks");
+  Thread speculationUpdaterThread = new Thread(speculationUpdater,
+                                               "speculationUpdater");
 
   CompletedJobStatusStore completedJobStatusStore = null;
   Thread completedJobsStoreThread = null;
-  RecoveryManager recoveryManager;
 
   /**
    * It might seem like a bug to maintain a TreeSet of tasktracker objects,
@@ -2209,6 +1503,7 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
       tmp = new JobTrackerMetricsInst(this, jobConf);
     }
     myInstrumentation = tmp;
+    versionBeanName = VersionInfo.registerJMX("JobTracker");
 
     int excludedAtStart = hostsReader.getExcludedHosts().size();
     myInstrumentation.setDecommissionedTrackers(excludedAtStart);
@@ -2222,9 +1517,6 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
     this.conf.set("mapred.job.tracker.http.address",
         infoBindAddress + ":" + this.infoPort);
     LOG.info("JobTracker webserver: " + this.infoServer.getPort());
-
-    // start the recovery manager
-    recoveryManager = new RecoveryManager();
 
     // start async disk service for asynchronous deletion service
     asyncDiskService = new MRAsyncDiskService(FileSystem.getLocal(jobConf),
@@ -2241,35 +1533,35 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
         if(systemDir == null) {
           systemDir = new Path(getSystemDir());
         }
+        // make the systemdir if it doesn't exist already
+        if (!fs.isDirectory(systemDir)) {
+          // if systemdir is a file, delete it
+          if (fs.exists(systemDir)) {
+            fs.delete(systemDir, true);
+          }
+          if (!FileSystem.mkdirs(fs, systemDir,
+                                new FsPermission(SYSTEM_DIR_PERMISSION))) {
+            LOG.error("Mkdirs failed to create " + systemDir);
+          } else {
+            // point of success
+            break;
+          }
+        } else {
+
+        // system dir exists
         // Make sure that the backup data is preserved
         FileStatus[] systemDirData = fs.listStatus(this.systemDir);
-        // Check if the history is enabled .. as we cant have persistence with
-        // history disabled
-        if (conf.getBoolean("mapred.jobtracker.restart.recover", false)
-            && !JobHistory.isDisableHistory()
-            && systemDirData != null) {
-          for (FileStatus status : systemDirData) {
-            try {
-              recoveryManager.checkAndAddJob(status);
-            } catch (Throwable t) {
-              LOG.warn("Failed to add the job " + status.getPath().getName(),
-                       t);
-            }
-          }
-
-          // Check if there are jobs to be recovered
-          hasRestarted = recoveryManager.shouldRecover();
-          if (hasRestarted) {
-            break; // if there is something to recover else clean the sys dir
-          }
-        }
         LOG.info("Cleaning up the system directory");
-        fs.delete(systemDir, true);
-        if (FileSystem.mkdirs(fs, systemDir,
-            new FsPermission(SYSTEM_DIR_PERMISSION))) {
-          break;
+        for (FileStatus status: systemDirData) {
+          // spare the CAR directory - shared cache files are immutable and reusable
+          if (status.isDir() && status.getPath().getName().equals(this.CAR)) {
+            LOG.info("Preserving shared cache in system directory");
+            continue;
+          }
+          fs.delete(status.getPath(), true);
         }
-        LOG.error("Mkdirs failed to create " + systemDir);
+        break;
+        }
       } catch (AccessControlException ace) {
         LOG.warn("Failed to operate on mapred.system.dir (" + systemDir
                  + ") because of permissions.");
@@ -2287,10 +1579,7 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
       throw new InterruptedException();
     }
 
-    // Same with 'localDir' except it's always on the local disk.
-    if (!hasRestarted) {
-      asyncDiskService.moveAndDeleteFromEachVolume(SUBDIR);
-    }
+    asyncDiskService.moveAndDeleteFromEachVolume(SUBDIR);
 
     // Initialize history DONE folder
     if (historyInitialized) {
@@ -2310,7 +1599,6 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
 
     //initializes the job status store
     completedJobStatusStore = new CompletedJobStatusStore(conf);
-
 
     // Initialize the shared cache expiry thread
     // this thread needs to be started unconditionally because some clients may use
@@ -2332,7 +1620,7 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
                    24 * 60 * 60 * 1000);
 
     ExpireUnusedFilesInCache eufic = new ExpireUnusedFilesInCache(this,
-                                                                  new Path(getSystemDir(), "CAR"));
+                                                                  new Path(getSystemDir(), this.CAR));
     Executors.newScheduledThreadPool(1)
       .scheduleAtFixedRate(eufic,
                            CLEAR_CACHE_INTERVAL,
@@ -2366,29 +1654,6 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
     return false;
   }
 
-  /**
-   * Whether the JT has restarted
-   */
-  public boolean hasRestarted() {
-    return hasRestarted;
-  }
-
-  /**
-   * Whether the JT has recovered upon restart
-   */
-  public boolean hasRecovered() {
-    return hasRecovered;
-  }
-
-  /**
-   * How long the jobtracker took to recover from restart.
-   */
-  public long getRecoveryDuration() {
-    return hasRestarted()
-           ? recoveryDuration
-           : 0;
-  }
-
   public static Class<? extends JobTrackerInstrumentation> getInstrumentationClass(Configuration conf) {
     return conf.getClass("mapred.jobtracker.instrumentation",
         JobTrackerMetricsInst.class, JobTrackerInstrumentation.class);
@@ -2413,28 +1678,9 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
    * Run forever
    */
   public void offerService() throws InterruptedException, IOException {
-    // Prepare for recovery. This is done irrespective of the status of restart
-    // flag.
-    while (true) {
-      try {
-        recoveryManager.updateRestartCount();
-        break;
-      } catch (IOException ioe) {
-        LOG.warn("Failed to initialize recovery manager. ", ioe);
-        // wait for some time
-        Thread.sleep(FS_ACCESS_RETRY_PERIOD);
-        LOG.warn("Retrying...");
-      }
-    }
 
     taskScheduler.start();
 
-    //  Start the recovery after starting the scheduler
-    try {
-      recoveryManager.recover();
-    } catch (Throwable t) {
-      LOG.warn("Recovery manager crashed! Ignoring.", t);
-    }
     // refresh the node list as the recovery manager might have added
     // disallowed trackers
     refreshHosts();
@@ -2448,6 +1694,8 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
     this.retireJobsThread.start();
     expireLaunchingTaskThread.setDaemon(true);
     expireLaunchingTaskThread.start();
+    speculationUpdaterThread.setDaemon(true);
+    speculationUpdaterThread.start();
 
     if (completedJobStatusStore.isActive()) {
       completedJobsStoreThread = new Thread(completedJobStatusStore,
@@ -2467,6 +1715,19 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
     LOG.info("Stopped interTrackerServer");
   }
 
+  private void closeThread(Thread t) {
+    if (t != null && t.isAlive()) {
+      LOG.info("Stopping " + t.getName());
+      t.interrupt();
+      try {
+        t.join();
+      } catch (InterruptedException ex) {
+        ex.printStackTrace();
+      }
+    }
+  }
+
+
   void close() throws IOException {
     if (this.infoServer != null) {
       LOG.info("Stopping infoServer");
@@ -2483,45 +1744,18 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
 
     shutdown = true;
 
-    if (this.expireTrackersThread != null && this.expireTrackersThread.isAlive()) {
-      LOG.info("Stopping expireTrackers");
-      this.expireTrackersThread.interrupt();
-      try {
-        this.expireTrackersThread.join();
-      } catch (InterruptedException ex) {
-        ex.printStackTrace();
-      }
-    }
-    if (this.retireJobsThread != null && this.retireJobsThread.isAlive()) {
-      LOG.info("Stopping retirer");
-      this.retireJobsThread.interrupt();
-      try {
-        this.retireJobsThread.join();
-      } catch (InterruptedException ex) {
-        ex.printStackTrace();
-      }
-    }
+    closeThread(this.expireTrackersThread);
+    closeThread(this.retireJobsThread);
+    closeThread(this.speculationUpdaterThread);
+
     if (taskScheduler != null) {
       taskScheduler.terminate();
     }
-    if (this.expireLaunchingTaskThread != null && this.expireLaunchingTaskThread.isAlive()) {
-      LOG.info("Stopping expireLaunchingTasks");
-      this.expireLaunchingTaskThread.interrupt();
-      try {
-        this.expireLaunchingTaskThread.join();
-      } catch (InterruptedException ex) {
-        ex.printStackTrace();
-      }
-    }
-    if (this.completedJobsStoreThread != null &&
-        this.completedJobsStoreThread.isAlive()) {
-      LOG.info("Stopping completedJobsStore thread");
-      this.completedJobsStoreThread.interrupt();
-      try {
-        this.completedJobsStoreThread.join();
-      } catch (InterruptedException ex) {
-        ex.printStackTrace();
-      }
+
+    closeThread(this.expireLaunchingTaskThread);
+    closeThread(this.completedJobsStoreThread);
+    if (versionBeanName != null) {
+      MBeanUtil.unregisterMBean(versionBeanName);
     }
     LOG.info("stopped all jobtracker services");
     return;
@@ -2698,13 +1932,6 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
 
     // start the merge of log files
     JobID id = job.getStatus().getJobID();
-    if (job.hasRestarted()) {
-      try {
-        JobHistory.JobInfo.finalizeRecovery(id, job.getJobConf());
-      } catch (IOException ioe) {
-        LOG.info("Failed to finalize the log file recovery for job " + id, ioe);
-      }
-    }
 
     // mark the job as completed
     try {
@@ -3160,21 +2387,13 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
         // no record of the 'previous heartbeat'; if so, ask the
         // tasktracker to re-initialize itself.
         if (prevHeartbeatResponse == null) {
-          // This is the first heartbeat from the old tracker to the newly
-          // started JobTracker
-          if (hasRestarted()) {
-            addRestartInfo = true;
-            // inform the recovery manager about this tracker joining back
-            recoveryManager.unMarkTracker(trackerName);
-          } else {
-            // Jobtracker might have restarted but no recovery is needed
-            // otherwise this code should not be reached
-            LOG.warn("Serious problem, cannot find record of 'previous' " +
-                     "heartbeat for '" + trackerName +
-                     "'; reinitializing the tasktracker");
-            return new HeartbeatResponse(responseId,
-                                         new TaskTrackerAction[] {new ReinitTrackerAction()});
-          }
+          // Jobtracker might have restarted but no recovery is needed
+          // otherwise this code should not be reached
+          LOG.warn("Serious problem, cannot find record of 'previous' " +
+              "heartbeat for '" + trackerName +
+          "'; reinitializing the tasktracker");
+          return new HeartbeatResponse(responseId,
+              new TaskTrackerAction[] {new ReinitTrackerAction()});
 
         } else {
 
@@ -3203,8 +2422,7 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
       }
 
 
-      shouldSchedule = recoveryManager.shouldSchedule() && 
-        acceptNewTasks &&
+      shouldSchedule = acceptNewTasks &&
         !faultyTrackers.isBlacklisted(status.getHost());
 
       taskTrackerStatus = 
@@ -3215,22 +2433,58 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
     // Initialize the response to be sent for the heartbeat
     HeartbeatResponse response = new HeartbeatResponse(newResponseId, null);
     List<TaskTrackerAction> actions = new ArrayList<TaskTrackerAction>();
-    List<Task> tasks = null;
+    List<Task> setupCleanupTasks = null;
 
     // Check for setup/cleanup tasks to be executed on the tasktracker
     if (shouldSchedule) {
       if (taskTrackerStatus == null) {
         LOG.warn("Unknown task tracker polling; ignoring: " + trackerName);
       } else {
-        tasks = getSetupAndCleanupTasks(taskTrackerStatus);
+        setupCleanupTasks = getSetupAndCleanupTasks(taskTrackerStatus);
       }
     }
 
     synchronized (this) {
 
+      // Check for tasks to be killed
+      // we compute this first so that additional tasks can be scheduled
+      // to compensate for the kill actions
+      List<TaskTrackerAction> killTasksList = getTasksToKill(trackerName);
+      if (killTasksList != null) {
+        actions.addAll(killTasksList);
+      }
+
+      // remember how many maps and reduces we killed. this will allow
+      // extra tasks to be scheduled by the taskScheduler
+      int mapsKilled=0, reducesKilled=0;
+      for (TaskTrackerAction t: killTasksList) {
+        if (((KillTaskAction)t).getTaskID().isMap())
+          mapsKilled++;
+        else
+          reducesKilled++;
+      }
+      status.setMapsKilled(mapsKilled);
+      status.setReducesKilled(reducesKilled);
+
+      List<Task> tasks = null;
+
       // Check for map/reduce tasks to be executed on the tasktracker
-      if ((taskTrackerStatus != null) && (tasks == null)) {
-        tasks = taskScheduler.assignTasks(taskTrackers.get(trackerName));
+      // ignore any contribution by setup/cleanup tasks - it's ok to try
+      // and overschedule since setup/cleanup tasks are super fast
+      if (taskTrackerStatus != null) {
+        List<Task> assignedTasks = taskScheduler.assignTasks(taskTrackers.get(trackerName));
+
+        if ((setupCleanupTasks != null) && (assignedTasks != null)) {
+            // tasks is immutable. so merge the tasks and assignedTasks into a new list
+            // make sure that the setup/cleanup tasks go first since we can be overscheduling
+            // tasks here and we need to make sure that the setup/cleanup is run first
+          tasks = new ArrayList<Task> (assignedTasks.size() +
+                                       setupCleanupTasks.size());
+          tasks.addAll(setupCleanupTasks);
+          tasks.addAll(assignedTasks);
+        } else {
+          tasks = (setupCleanupTasks != null) ? setupCleanupTasks : assignedTasks;
+        }
       }
 
       if (tasks != null) {
@@ -3255,12 +2509,6 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
         }
       }
 
-      // Check for tasks to be killed
-      List<TaskTrackerAction> killTasksList = getTasksToKill(trackerName);
-      if (killTasksList != null) {
-        actions.addAll(killTasksList);
-      }
-
       // Check for jobs to be killed/cleanedup
       List<TaskTrackerAction> killJobsList = getJobsForCleanup(trackerName);
       if (killJobsList != null) {
@@ -3278,11 +2526,6 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
       response.setHeartbeatInterval(nextInterval);
       response.setActions(
                           actions.toArray(new TaskTrackerAction[actions.size()]));
-
-      // check if the restart info is req
-      if (addRestartInfo) {
-        response.setRecoveredJobs(recoveryManager.getJobsToRecover());
-      }
 
       // Update the trackerToHeartbeatResponseMap
       trackerToHeartbeatResponseMap.put(trackerName, response);
@@ -3357,12 +2600,6 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
       getInstrumentation().decRunningReduces(oldStatus.countReduceTasks());
       getInstrumentation().decOccupiedMapSlots(oldStatus.countOccupiedMapSlots());
       getInstrumentation().decOccupiedReduceSlots(oldStatus.countOccupiedReduceSlots());
-      if (!faultyTrackers.isBlacklisted(oldStatus.getHost())) {
-        int mapSlots = oldStatus.getMaxMapSlots();
-        totalMapTaskCapacity -= mapSlots;
-        int reduceSlots = oldStatus.getMaxReduceSlots();
-        totalReduceTaskCapacity -= reduceSlots;
-      }
       if (status == null) {
         taskTrackers.remove(trackerName);
         Integer numTaskTrackersInHost =
@@ -3387,11 +2624,9 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
       getInstrumentation().addRunningReduces(status.countReduceTasks());
       getInstrumentation().addOccupiedMapSlots(status.countOccupiedMapSlots());
       getInstrumentation().addOccupiedReduceSlots(status.countOccupiedReduceSlots());
-      if (!faultyTrackers.isBlacklisted(status.getHost())) {
-        int mapSlots = status.getMaxMapSlots();
-        totalMapTaskCapacity += mapSlots;
-        int reduceSlots = status.getMaxReduceSlots();
-        totalReduceTaskCapacity += reduceSlots;
+      updateTotalTaskCapacity(status);
+      if (faultyTrackers.isBlacklisted(status.getHost())) {
+        removeTaskTrackerCapacity(status);
       }
       boolean alreadyPresent = false;
       TaskTracker taskTracker = taskTrackers.get(trackerName);
@@ -3637,8 +2872,9 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
   // returns cleanup tasks first, then setup tasks.
   List<Task> getSetupAndCleanupTasks(
     TaskTrackerStatus taskTracker) throws IOException {
-    int maxMapTasks = taskTracker.getMaxMapSlots();
-    int maxReduceTasks = taskTracker.getMaxReduceSlots();
+    int maxMapTasks = taskScheduler.getMaxSlots(taskTracker, TaskType.MAP);
+    int maxReduceTasks =
+        taskScheduler.getMaxSlots(taskTracker, TaskType.REDUCE);
     int numMaps = taskTracker.countOccupiedMapSlots();
     int numReduces = taskTracker.countOccupiedReduceSlots();
     int numTaskTrackers = getClusterStatus().getTaskTrackers();
@@ -4432,8 +3668,10 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
       report.setTaskTracker(trackerName);
       TaskAttemptID taskId = report.getTaskID();
 
-      // expire it
-      expireLaunchingTasks.removeTask(taskId);
+      // Remove it from the expired task list
+      if (report.getRunState() != TaskStatus.State.UNASSIGNED) {
+        expireLaunchingTasks.removeTask(taskId);
+      }
 
       JobInProgress job = getJob(taskId.getJobID());
       if (job == null) {
@@ -4465,13 +3703,7 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
       TaskInProgress tip = taskidToTIPMap.get(taskId);
       // Check if the tip is known to the jobtracker. In case of a restarted
       // jt, some tasks might join in later
-      if (tip != null || hasRestarted()) {
-        if (tip == null) {
-          tip = job.getTaskInProgress(taskId.getTaskID());
-          job.addRunningTaskToTIP(tip, taskId, status, false);
-          createTaskEntry(taskId, trackerName, tip);
-        }
-
+      if (tip != null) {
         // Update the job and inform the listeners if necessary
         JobStatus prevStatus = (JobStatus)job.getStatus().clone();
         // Clone TaskStatus object here, because JobInProgress
@@ -4531,9 +3763,6 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
     synchronized (trackerToTasksToCleanup) {
       trackerToTasksToCleanup.remove(trackerName);
     }
-
-    // Inform the recovery manager
-    recoveryManager.unMarkTracker(trackerName);
 
     Set<TaskAttemptIDWithTip> lostTasks = trackerToTaskMap.get(trackerName);
     trackerToTaskMap.remove(trackerName);
@@ -4634,6 +3863,9 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
     String trackerName = tracker.getTrackerName();
     // Remove completely after marking the tasks as 'KILLED'
     lostTaskTracker(tracker);
+    TaskTrackerStatus status = tracker.getStatus();
+    updateTotalTaskCapacity(status);
+    removeTaskTrackerCapacity(status);
     // tracker is lost, and if it is blacklisted, remove
     // it from the count of blacklisted trackers in the cluster
     if (isBlacklisted(trackerName)) {
@@ -4697,24 +3929,35 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
     StringUtils.startupShutdownMessage(JobTracker.class, argv, LOG);
 
     try {
-      if(argv.length == 0) {
+      if (argv.length == 0) {
         JobTracker tracker = startTracker(new JobConf());
         tracker.offerService();
+        return;
       }
-      else {
-        if ("-dumpConfiguration".equals(argv[0]) && argv.length == 1) {
-          dumpConfiguration(new PrintWriter(System.out));
-        }
-        else {
-          System.out.println("usage: JobTracker [-dumpConfiguration]");
-          System.exit(-1);
+      if ("-instance".equals(argv[0]) && argv.length == 2) {
+        int instance = Integer.parseInt(argv[1]);
+        if (instance == 0 || instance == 1) {
+          JobConf conf = new JobConf();
+          JobConf.overrideConfiguration(conf, instance);
+          JobTracker tracker = startTracker(conf);
+          tracker.offerService();
+          return;
         }
       }
+      if ("-dumpConfiguration".equals(argv[0]) && argv.length == 1) {
+        dumpConfiguration(new PrintWriter(System.out));
+        return;
+      }
+      System.out.println("usage: JobTracker [-dumpConfiguration]");
+      System.out.println("       JobTracker [-instance <0|1>]");
+      System.exit(-1);
+
     } catch (Throwable e) {
       LOG.fatal(StringUtils.stringifyException(e));
       System.exit(-1);
     }
   }
+
   /**
    * Dumps the configuration properties in Json format
    * @param writer {@link}Writer object to which the output is written
@@ -4935,5 +4178,62 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
    */
   public ResourceReporter getResourceReporter() {
     return resourceReporter;
+  }
+
+  /**
+   * Update totalMapTaskCapacity and totalReduceTaskCapacity to resolve the
+   * number of slots changed in a tasktracker. The change could be from
+   * TaskScheduler or TaskTrackerStatus
+   *
+   * @param status The status of the tasktracker
+   */
+  private void updateTotalTaskCapacity(TaskTrackerStatus status) {
+    int mapSlots = taskScheduler.getMaxSlots(status, TaskType.MAP);
+    String trackerName = status.getTrackerName();
+    Integer oldMapSlots = trackerNameToMapSlots.get(trackerName);
+    if (oldMapSlots == null) {
+      oldMapSlots = 0;
+    }
+    int delta = mapSlots - oldMapSlots;
+
+    if (delta != 0) {
+      LOG.info("Changing map slot count due to " + trackerName + " from " +
+               oldMapSlots + " to " + mapSlots);
+    }
+
+    totalMapTaskCapacity += delta;
+    trackerNameToMapSlots.put(trackerName, mapSlots);
+
+    int reduceSlots = taskScheduler.getMaxSlots(status, TaskType.REDUCE);
+    Integer oldReduceSlots = trackerNameToReduceSlots.get(trackerName);
+    if (oldReduceSlots == null) {
+      oldReduceSlots = 0;
+    }
+
+    delta = reduceSlots - oldReduceSlots;
+
+    if (delta != 0) {
+      LOG.info("Changing reduce slot count due to " + trackerName + " from " +
+               oldReduceSlots + " to " + reduceSlots);
+    }
+
+    totalReduceTaskCapacity += delta;
+    trackerNameToReduceSlots.put(trackerName, reduceSlots);
+  }
+
+  /**
+   * Update totalMapTaskCapacity and totalReduceTaskCapacity for removing
+   * a tasktracker
+   *
+   * @param status The status of the tasktracker
+   */
+  private void removeTaskTrackerCapacity(TaskTrackerStatus status) {
+    int mapSlots = trackerNameToMapSlots.remove(status.getTrackerName());
+    totalMapTaskCapacity -= mapSlots;
+    int reduceSlots = trackerNameToReduceSlots.remove(status.getTrackerName());
+    totalReduceTaskCapacity -= reduceSlots;
+
+    LOG.info("Removing " + mapSlots + " map slots, " + reduceSlots +
+             " reduce slots " + " due to " + status.getTrackerName());
   }
 }

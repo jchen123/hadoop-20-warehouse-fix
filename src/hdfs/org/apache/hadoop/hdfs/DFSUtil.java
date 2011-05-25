@@ -26,7 +26,7 @@ import java.util.HashSet;
 
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.CorruptFileBlocks;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
@@ -180,6 +180,9 @@ public class DFSUtil {
     }
     int nrBlocks = blocks.locatedBlockCount();
     BlockLocation[] blkLocations = new BlockLocation[nrBlocks];
+    if (nrBlocks == 0) {
+      return blkLocations;
+    }
     int idx = 0;
     for (LocatedBlock blk : blocks.getLocatedBlocks()) {
       assert idx < nrBlocks : "Incorrect index";
@@ -204,25 +207,17 @@ public class DFSUtil {
   }
 
   /**
-   * maked successive calls to listCorruptFiles to obtain all 
-   * corrupt files
-   */ 
+   * @return all corrupt files in dfs
+   */
   public static String[] getCorruptFiles(DistributedFileSystem dfs)
     throws IOException {
     Set<String> corruptFiles = new HashSet<String>();
-    
-    String cookie = null;
-    for (CorruptFileBlocks fbs = dfs.listCorruptFileBlocks("/", cookie);
-         fbs.getFiles().length > 0;
-         fbs = dfs.listCorruptFileBlocks("/", cookie)) {
-      for (String path : fbs.getFiles()) {
-        corruptFiles.add(path);
-      }
-      cookie = fbs.getCookie();
+    RemoteIterator<Path> cfb = dfs.listCorruptFileBlocks(new Path("/"));
+    while (cfb.hasNext()) {
+      corruptFiles.add(cfb.next().toUri().getPath());
     }
 
     return corruptFiles.toArray(new String[corruptFiles.size()]);
   }
-
 }
 

@@ -428,8 +428,10 @@ class INodeDirectory extends INode {
     itemCounts.numDirectories = 1; // count the current directory
     itemCounts.numFiles = 0;
     itemCounts.numBlocks = 0;
-    for (INode child : children) {
-      countItemsRecursively(child);
+    if (children != null) {
+      for (INode child : children) {
+        countItemsRecursively(child);
+      }
     }
     itemCounts.finishTime = System.currentTimeMillis();
   }

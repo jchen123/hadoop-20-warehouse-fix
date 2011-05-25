@@ -18,25 +18,28 @@
 
 package org.apache.hadoop.raid.protocol;
 
-import java.io.IOException;
 import java.io.DataInput;
 import java.io.DataOutput;
-import java.util.Properties;
-import java.util.Enumeration;
-import java.lang.Math;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableFactories;
 import org.apache.hadoop.io.WritableFactory;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.raid.ErasureCodeType;
+import org.apache.hadoop.raid.RaidNode;
 
 /**
  * Maintains information about one policy
@@ -55,20 +58,6 @@ public class PolicyInfo implements Writable {
 
   private Properties properties;   // Policy-dependent properties
 
-  private ReentrantReadWriteLock plock; // protects policy operations.
-  public static enum ErasureCodeType {
-    XOR, RS;
-    public static ErasureCodeType fromString(String s) {
-      if (XOR.toString().equalsIgnoreCase(s)) {
-        return XOR;
-      }
-      if (RS.toString().equalsIgnoreCase(s)) {
-        return RS;
-      }
-      return null;
-    }
-  }
-
   /**
    * Create the empty object
    */
@@ -78,19 +67,17 @@ public class PolicyInfo implements Writable {
     this.description = "";
     this.srcPath = null;
     this.properties = new Properties();
-    this.plock = new ReentrantReadWriteLock();
   }
 
   /**
    * Create the metadata that describes a policy
    */
-  public PolicyInfo(String  policyName, Configuration conf) {
+  public PolicyInfo(String policyName, Configuration conf) {
     this.conf = conf;
     this.policyName = policyName;
     this.description = "";
     this.srcPath = null;
     this.properties = new Properties();
-    this.plock = new ReentrantReadWriteLock();
   }
 
   /**
@@ -130,7 +117,7 @@ public class PolicyInfo implements Writable {
    * Set the erasure code type used in this policy
    */
   public void setErasureCode(String code) {
-    this.codeType = ErasureCodeType.fromString(code);
+    this.codeType = ErasureCodeType.valueOf(code.toUpperCase());
   }
 
   /**
@@ -181,22 +168,44 @@ public class PolicyInfo implements Writable {
   /**
    * Get the expanded (unglobbed) forms of the srcPaths
    */
-  public Path[] getSrcPathExpanded() throws IOException {
+  public List<Path> getSrcPathExpanded() throws IOException {
     FileSystem fs = srcPath.getFileSystem(conf);
 
     // globbing on srcPath
     FileStatus[] gpaths = fs.globStatus(srcPath);
     if (gpaths == null) {
-      return null;
+      return Collections.emptyList();
     }
-    Path[] values = new Path[gpaths.length];
-    for (int i = 0; i < gpaths.length; i++) {
-      Path p = gpaths[i].getPath();
-      values[i] = p.makeQualified(fs);
+    List<Path> results = new ArrayList<Path>(gpaths.length);
+    for (FileStatus f : gpaths) {
+      results.add(f.getPath().makeQualified(fs));
     }
-    return values;
+    return removeConflictPath(results);
   }
 
+  private List<Path> removeConflictPath(List<Path> expandedPaths)
+      throws IOException {
+    String destPrefix = RaidNode.getDestinationPath(codeType, conf).toString();
+    destPrefix = normalizePath(destPrefix);
+    List<Path> filtered = new ArrayList<Path>(expandedPaths.size());
+    for (Path path : expandedPaths) {
+      String pathStr = path.toString();
+      if (pathStr.startsWith(destPrefix) || destPrefix.startsWith(pathStr)) {
+        LOG.warn("Bad policy file. Path:" + pathStr +
+            " conflicts with Prefix:" + destPrefix);
+        continue;
+      }
+      filtered.add(path);
+    }
+    return filtered;
+  }
+
+  private String normalizePath(String path) {
+    if (!path.endsWith(Path.SEPARATOR)) {
+      path += Path.SEPARATOR;
+    }
+    return path;
+  }
   /**
    * Convert this policy into a printable form
    */
@@ -245,7 +254,7 @@ public class PolicyInfo implements Writable {
   public void readFields(DataInput in) throws IOException {
     this.srcPath = new Path(Text.readString(in));
     this.policyName = Text.readString(in);
-    this.codeType = ErasureCodeType.fromString(Text.readString(in));
+    this.codeType = ErasureCodeType.valueOf(Text.readString(in).toUpperCase());
     this.description = Text.readString(in);
     for (int n = in.readInt(); n>0; n--) {
       String name = Text.readString(in);

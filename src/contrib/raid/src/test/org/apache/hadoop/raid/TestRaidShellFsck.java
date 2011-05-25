@@ -192,8 +192,6 @@ public class TestRaidShellFsck {
 
     createTestFile(FILE_PATH0);
     createTestFile(FILE_PATH1);
-
-    RaidNode.FileStatusCache.clear();
     
     Path[] filePaths = { FILE_PATH0, FILE_PATH1 };
     raidTestFiles(RAID_PATH, filePaths, doHar);
@@ -240,7 +238,6 @@ public class TestRaidShellFsck {
     raidConf = new Configuration(conf);
     raidConf.set(RaidNode.RAID_LOCATION_KEY, RAID_DIR);
     raidConf.setInt("raid.blockfix.interval", 1000);
-    raidConf.setLong("har.block.size", BLOCK_SIZE * 3);
     // the RaidNode does the raiding inline (instead of submitting to MR node)
     conf.set("raid.classname", "org.apache.hadoop.raid.LocalRaidNode");
     rnode = RaidNode.createRaidNode(null, raidConf);
@@ -387,10 +384,8 @@ public class TestRaidShellFsck {
    */
   private void removeParityBlock(Path filePath, int stripe) throws IOException {
     // find parity file
-    Path destPath = new Path(RAID_DIR);
-    RaidNode.ParityFilePair ppair = null;
-
-    ppair = RaidNode.getParityFile(destPath, filePath, conf);
+    ParityFilePair ppair =
+        ParityFilePair.getParityFile(ErasureCodeType.XOR, filePath, conf);
     String parityPathStr = ppair.getPath().toUri().getPath();
     LOG.info("parity path: " + parityPathStr);
     FileSystem parityFS = ppair.getFileSystem();
@@ -627,10 +622,10 @@ public class TestRaidShellFsck {
    * both files have one corrupt block, parity blocks are clean
    *
    * parity blocks in har (file.stripe):
-   * +-----+-----+-----+  +-----+
-   * | 0.0 | 0.1 | 1.0 |  | 1.1 |
-   * +-----+-----+-----+  +-----+
-   *  0                    1
+   * +-----+ +-----+ +-----+  +-----+
+   * | 0.0 | | 0.1 | | 1.0 |  | 1.1 |
+   * +-----+ +-----+ +-----+  +-----+
+   *  0       1       2        3
    *
    */
   @Test
@@ -654,56 +649,20 @@ public class TestRaidShellFsck {
    * use 2 files to verify HAR offset logic in RaidShell fsck
    *
    * parity blocks in har (file.stripe):
-   * +-----+-----+-----+  +-----+
-   * | 0.0 | 0.1 | 1.0 |  | 1.1 |
-   * +-----+-----+-----+  +-----+
-   *  0                    1
+   * +-----+ +-----+ +-----+  +-----+
+   * | 0.0 | | 0.1 | | 1.0 |  | 1.1 |
+   * +-----+ +-----+ +-----+  +-----+
+   *  0       1       2        3
    *
    * corrupt file 0, stripe 0 file block 0
    * corrupt file 0, stripe 1 file block 0
    * corrupt file 1, stripe 0 file block 0
    * corrupt file 1, stripe 1 file block 0
-   * corrupt har block 0
-   * both files should be corrupt
+   * corrupt har block 2
+   * only file 1 should be corrupt
    */
   @Test
-  public void testFileBlockAndParityBlockMissingHar1() 
-    throws Exception {
-    LOG.info("testFileBlockAndParityBlockMissingHar1");
-    setUp(true);
-    waitUntilCorruptFileCount(dfs, 0);
-    removeFileBlock(FILE_PATH0, 0, 0);
-    removeFileBlock(FILE_PATH0, 1, 0);
-    removeFileBlock(FILE_PATH1, 0, 0);
-    removeFileBlock(FILE_PATH1, 1, 0);
-    removeHarParityBlock(0);
-    waitUntilCorruptFileCount(dfs, 3);
-
-    int result = ToolRunner.run(shell, args);
-
-    assertTrue("fsck should return 2, but returns " +
-               Integer.toString(result), result == 2);
-  }
-
-  /**
-   * checks fsck with file block missing (HAR)
-   * use 2 files to verify HAR offset logic in RaidShell fsck
-   *
-   * parity blocks in har (file.stripe):
-   * +-----+-----+-----+  +-----+
-   * | 0.0 | 0.1 | 1.0 |  | 1.1 |
-   * +-----+-----+-----+  +-----+
-   *  0                    1
-   *
-   * corrupt file 0, stripe 0 file block 0
-   * corrupt file 0, stripe 1 file block 0
-   * corrupt file 1, stripe 0 file block 0
-   * corrupt file 1, stripe 1 file block 0
-   * corrupt har block 1
-   * only file 2 should be corrupt
-   */
-  @Test
-  public void testFileBlockAndParityBlockMissingHar2() 
+  public void testFileBlockAndParityBlockMissingHar() 
     throws Exception {
     LOG.info("testFileBlockAndParityBlockMissingHar2");
     setUp(true);
@@ -712,7 +671,7 @@ public class TestRaidShellFsck {
     removeFileBlock(FILE_PATH0, 1, 0);
     removeFileBlock(FILE_PATH1, 0, 0);
     removeFileBlock(FILE_PATH1, 1, 0);
-    removeHarParityBlock(1);
+    removeHarParityBlock(2);
     waitUntilCorruptFileCount(dfs, 3);
 
     int result = ToolRunner.run(shell, args);

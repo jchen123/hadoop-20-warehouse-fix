@@ -66,5 +66,8 @@ public interface HdfsConstants {
   public static final String DFS_IMAGE_TRANSFER_RATE_KEY =
     "dfs.image.transfer.bandwidthPerSec";
   public static final long DFS_IMAGE_TRANSFER_RATE_DEFAULT = 0;  // disable
+  public static final String DFS_IMAGE_SAVE_ON_START_KEY =
+    "dfs.image.save.on.start";
+  public static final boolean DFS_IMAGE_SAVE_ON_START_DEFAULT = true;
 }
 

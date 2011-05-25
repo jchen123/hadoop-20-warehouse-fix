@@ -332,7 +332,7 @@ public class TestStartup extends TestCase {
         new PermissionStatus("hairong", null, FsPermission.getDefault()));
     assertTrue(namenode.getFileInfo("/test").isDir());
     namenode.setSafeMode(SafeModeAction.SAFEMODE_ENTER);
-    namenode.saveNamespace();
+    namenode.saveNamespace(false, false);
     namenode.stop();
     namenode.join();
     
@@ -361,7 +361,7 @@ public class TestStartup extends TestCase {
     NameNode namenode = new NameNode(conf);
     assertTrue(namenode.getFileInfo("/test").isDir());
     namenode.setSafeMode(SafeModeAction.SAFEMODE_ENTER);
-    namenode.saveNamespace();
+    namenode.saveNamespace(false, false);
     namenode.stop();
     namenode.join();
   }

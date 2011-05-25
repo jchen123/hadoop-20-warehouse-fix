@@ -24,13 +24,17 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.mapred.MRSharedCaching.TestResult;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 /**
  * A JUnit test to test caching with DFS
  * 
  */
 public class TestMiniMRDFSSharedCaching extends TestCase {
+  private static final Log LOG = LogFactory.getLog(TestMiniMRDFSSharedCaching.class);
 
-  public void testWithDFS() throws IOException {
+  public void testWithDFS() throws Throwable {
     MiniMRCluster mr = null;
     MiniDFSCluster dfs = null;
     FileSystem fileSys = null;
@@ -48,14 +52,23 @@ public class TestMiniMRDFSSharedCaching extends TestCase {
                                         mr.createJobConf(),
                                         "The quick brown fox\nhas many silly\n"
                                         + "red fox sox\n", false);
+      LOG.info ("Finished Job1");
       assertTrue("Archives not matching", ret.isOutputOk);
 
+      mr.stopJobTracker();
+      mr.startJobTracker();
+
+      JobConf jConf = mr.createJobConf();
+      JobClient jc = new JobClient(jConf);
+      UtilsForTests.waitForJobTracker(jc);
+
       ret = MRSharedCaching.launchMRCache("/testing/wc/input",
-                                        "/testing/wc/output",
-                                        "/cachedir",
-                                        mr.createJobConf(),
-                                        "The quick brown fox\nhas many silly\n"
-                                        + "red fox sox\n", true);
+                                          "/testing/wc/output",
+                                          "/cachedir",
+                                          jConf,
+                                          "The quick brown fox\nhas many silly\n"
+                                          + "red fox sox\n", true);
+      LOG.info ("Finished Job2");
       assertTrue("Symlinks not working", ret.isOutputOk);
 
       ret = MRSharedCaching.launchMRCache2("/testing/wc/input",
@@ -64,14 +77,22 @@ public class TestMiniMRDFSSharedCaching extends TestCase {
                                        mr.createJobConf(),
                                        "The quick brown fox\nhas many silly\n"
                                        + "red fox sox\n");
+      LOG.info ("Finished Job3");
       assertTrue("Duplicate filenames", ret.isOutputOk);
+
       ret = MRSharedCaching.launchMRCache3("/testing/wc/input",
                                        "/testing/wc/output",
                                        "/cachedir",
                                        mr.createJobConf(),
                                        "The quick brown fox\nhas many silly\n"
                                        + "red fox sox\n");
+      LOG.info ("Finished Job4");
       assertTrue("Same file, different filename", ret.isOutputOk);
+    } catch (Throwable t) {
+
+      t.printStackTrace();
+      throw t;
+
     } finally {
       if (fileSys != null) {
         fileSys.close();
@@ -85,7 +106,7 @@ public class TestMiniMRDFSSharedCaching extends TestCase {
     }
   }
 
-  public static void main(String[] argv) throws Exception {
+  public static void main(String[] argv) throws Throwable {
     TestMiniMRDFSSharedCaching td = new TestMiniMRDFSSharedCaching();
     td.testWithDFS();
   }

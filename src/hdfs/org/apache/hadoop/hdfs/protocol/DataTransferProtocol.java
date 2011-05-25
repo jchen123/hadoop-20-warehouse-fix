@@ -56,6 +56,6 @@ public interface DataTransferProtocol {
   public static final int OP_STATUS_ERROR_EXISTS = 4;  
   public static final int OP_STATUS_CHECKSUM_OK = 5;  
 
-
+  public static final int CLIENT_HEARTBEAT_VERSION = 19;
 
 }

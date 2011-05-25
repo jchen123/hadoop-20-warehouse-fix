@@ -7,6 +7,7 @@
   import="java.text.DecimalFormat"
   import="org.apache.hadoop.mapred.*"
   import="org.apache.hadoop.util.*"
+  import="org.apache.hadoop.mapreduce.*"
 %>
 <%
   JobTracker tracker = (JobTracker) application.getAttribute("job.tracker");
@@ -65,6 +66,7 @@
 
       int maxFailures = 0;
       String failureKing = null;
+      TaskScheduler scheduler = tracker.getTaskScheduler();
       for (TaskTrackerStatus tt : tasktrackers) {
         long sinceHeartbeat = System.currentTimeMillis() - tt.getLastSeen();
         boolean isHealthy = tt.getHealthStatus().isNodeHealthy();
@@ -93,9 +95,13 @@
         out.print("<tr><td><a href=\"http://");
         out.print(tt.getHost() + ":" + tt.getHttpPort() + "/\">");
         out.print(tt.getTrackerName() + "</a></td><td>");
+        int maxMaps =
+         scheduler.getMaxSlots(tt, org.apache.hadoop.mapreduce.TaskType.MAP);
+        int maxReduces =
+         scheduler.getMaxSlots(tt, org.apache.hadoop.mapreduce.TaskType.REDUCE);
         out.print(tt.getHost() + "</td><td>" + numCurTasks +
-                  "</td><td>" + tt.getMaxMapSlots() +
-                  "</td><td>" + tt.getMaxReduceSlots() + 
+                  "</td><td>" + maxMaps +
+                  "</td><td>" + maxReduces + 
                   "</td><td>" + numFailures +
                   "</td><td>" + healthString +
                   "</td><td>" + sinceHealthCheck); 

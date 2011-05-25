@@ -102,6 +102,19 @@ public interface DatanodeProtocol extends VersionedProtocol {
                                      long[] blocks) throws IOException;
     
   /**
+   * blockReport() uses customized serialized form
+   * @param registration
+   * @param blocks - the block list as an array of longs.
+   *     Each block is represented as 2 longs.
+   *     This is done instead of Block[] to reduce memory used by block reports.
+   *     
+   * @return - the next command for DN to process.
+   * @throws IOException
+   */
+  public DatanodeCommand blockReport(DatanodeRegistration registration,
+                                     BlockReport blocks) throws IOException;
+
+  /**
    * blockReceived() allows the DataNode to tell the NameNode about
    * recently-received block data, with a hint for pereferred replica
    * to be deleted when there is any excessive blocks.

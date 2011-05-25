@@ -42,33 +42,55 @@ public class ReedSolomonEncoder extends Encoder {
     this.reedSolomonCode = new ReedSolomonCode(stripeSize, paritySize);
   }
 
-  protected void encodeStripe(
+  protected void encodeStripeImpl(
     InputStream[] blocks,
     long stripeStartOffset,
     long blockSize,
     OutputStream[] outs,
     Progressable reporter) throws IOException {
+    int boundedBufferCapacity = 1;
+    ParallelStreamReader parallelReader = new ParallelStreamReader(
+      reporter, blocks, bufSize, parallelism, boundedBufferCapacity);
+    parallelReader.start();
+     try {
+       encodeStripeParallel(
+         blocks, stripeStartOffset, blockSize, outs, reporter, parallelReader);
+     } finally {
+       parallelReader.shutdown();
+     }
+   }
+
+   private void encodeStripeParallel(
+     InputStream[] blocks,
+     long stripeStartOffset,
+     long blockSize,
+     OutputStream[] outs,
+     Progressable reporter,
+     ParallelStreamReader parallelReader) throws IOException {
 
     int[] data = new int[stripeSize];
     int[] code = new int[paritySize];
 
     for (long encoded = 0; encoded < blockSize; encoded += bufSize) {
       // Read some data from each block = bufSize.
-      for (int i = 0; i < blocks.length; i++) {
-        RaidUtils.readTillEnd(blocks[i], readBufs[i], true);
+      ParallelStreamReader.ReadResult readResult;
+      try {
+        readResult = parallelReader.getReadResult();
+      } catch (InterruptedException e) {
+        throw new IOException("Interrupted while waiting for read result");
       }
 
       // Encode the data read.
       for (int j = 0; j < bufSize; j++) {
-        performEncode(readBufs, writeBufs, j, data, code);
+        performEncode(readResult.readBufs, writeBufs, j, data, code);
       }
+      reporter.progress();
 
       // Now that we have some data to write, send it to the temp files.
       for (int i = 0; i < paritySize; i++) {
         outs[i].write(writeBufs[i], 0, bufSize);
+        reporter.progress();
       }
-
-      reporter.progress();
     }
   }
 

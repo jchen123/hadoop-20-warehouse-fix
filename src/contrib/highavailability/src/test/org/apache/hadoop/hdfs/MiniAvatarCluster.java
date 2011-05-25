@@ -40,6 +40,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.protocol.FSConstants.DatanodeReportType;
 import org.apache.hadoop.hdfs.protocol.AvatarConstants;
+import org.apache.hadoop.hdfs.protocol.FSConstants;
 import org.apache.hadoop.hdfs.server.common.HdfsConstants;
 import org.apache.hadoop.hdfs.server.namenode.AvatarNode;
 import org.apache.hadoop.hdfs.server.datanode.AvatarDataNode;
@@ -237,13 +238,13 @@ public class MiniAvatarCluster {
     fsedits1Dir = avatarDir + "/fsedits1";
 
     nnPort = getFreePort();
-    nn0Port = getFreePorts(2);
-    nn1Port = getFreePorts(2);
     nnDnPort = getFreePort();
-    nnDn0Port = getFreePort();
-    nnDn1Port = getFreePort();
     httpPort = getFreePort();
+    nn0Port = getFreePorts(2);
+    nnDn0Port = getFreePort();
     http0Port = getFreePort();
+    nn1Port = getFreePorts(2);
+    nnDn1Port = getFreePort();
     http1Port = getFreePort();
 
     this.conf = conf;
@@ -357,6 +358,11 @@ public class MiniAvatarCluster {
     conf.set("dfs.name.edits.dir.shared0", fsedits0Dir);
     conf.set("dfs.name.edits.dir.shared1", fsedits1Dir);
 
+    LOG.info("conf fs.default.name0=hdfs://localhost:" + nn0Port);
+    LOG.info("conf fs.default.name1=hdfs://localhost:" + nn1Port);
+    LOG.info("conf dfs.namenode.dn-address0=localhost:" + nnDn0Port);
+    LOG.info("conf dfs.namenode.dn-address1=localhost:" + nnDn1Port);
+
     // datanodes
     conf.set("dfs.datanode.address", "localhost:0");
     conf.set("dfs.datanode.http.address", "localhost:0");
@@ -372,6 +378,9 @@ public class MiniAvatarCluster {
     conf.setLong("dfs.blockreport.initialDelay", 0);
     conf.setClass("topology.node.switch.mapping.impl", 
                   StaticMapping.class, DNSToSwitchMapping.class);
+
+    // never automatically exit from safe mode
+    conf.setFloat("dfs.safemode.threshold.pct", 1.5f);
 
     // server config for avatar nodes
     a0Conf = new Configuration(conf);
@@ -423,16 +432,21 @@ public class MiniAvatarCluster {
     {
       LOG.info("starting avatar 0");
       String[] a0Args = { AvatarConstants.StartupOption.NODEZERO.getName() };
-      avatars.add(new AvatarInfo(AvatarNode.
-                                 createAvatarNode(a0Args, 
-                                                  getServerConf(AvatarConstants.
-                                                                StartupOption.
-                                                                NODEZERO.
-                                                                getName())),
+      AvatarNode a0 = AvatarNode.
+        createAvatarNode(a0Args, 
+                         getServerConf(AvatarConstants.
+                                       StartupOption.
+                                       NODEZERO.
+                                       getName()));
+      // leave safe mode manually
+      a0.setSafeMode(FSConstants.SafeModeAction.SAFEMODE_LEAVE);
+
+      avatars.add(new AvatarInfo(a0,
                                  AvatarState.ACTIVE,
                                  nn0Port, nnDn0Port, http0Port,
                                  AvatarConstants.StartupOption.NODEZERO.
                                  getName()));
+
     }
 
     {
@@ -590,7 +604,7 @@ public class MiniAvatarCluster {
 
   private void waitAvatarNodesActive() {
     for (AvatarInfo avatar: avatars) {
-      while (avatar.avatar.getNameNodeAddress() == null) {
+      while (avatar.avatar.getNameNodeDNAddress() == null) {
         try {
           LOG.info("waiting for avatar");
           Thread.sleep(200);
@@ -676,11 +690,22 @@ public class MiniAvatarCluster {
 
   /**
    * Kill the primary avatar node.
+   * @param updateZK clear zookeeper?
    */
   public void killPrimary() throws IOException {
+    killPrimary(true);
+  }
+
+  /**
+   * Kill the primary avatar node.
+   * @param clearZK clear zookeeper?
+   */
+  public void killPrimary(boolean clearZK) throws IOException {
     AvatarInfo primary = getPrimaryAvatar();
     if (primary != null) {
-      clearZooKeeperNode();
+      if (clearZK) {
+        clearZooKeeperNode();
+      }
 
       primary.avatar.shutdownAvatar();
       primary.avatar.stopRPC();

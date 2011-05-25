@@ -24,7 +24,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.Trash;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.CorruptFileBlocks;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.fs.permission.PermissionStatus;
 import org.apache.hadoop.hdfs.HDFSPolicyProvider;
@@ -34,6 +33,7 @@ import org.apache.hadoop.hdfs.server.common.IncorrectVersionException;
 import org.apache.hadoop.hdfs.server.common.UpgradeStatusReport;
 import org.apache.hadoop.hdfs.server.namenode.FSNamesystem.CompleteFileStatus;
 import org.apache.hadoop.hdfs.server.namenode.metrics.NameNodeMetrics;
+import org.apache.hadoop.hdfs.server.protocol.BlockReport;
 import org.apache.hadoop.hdfs.server.protocol.BlocksWithLocations;
 import org.apache.hadoop.hdfs.server.protocol.DatanodeCommand;
 import org.apache.hadoop.hdfs.server.protocol.DatanodeProtocol;
@@ -65,6 +65,7 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**********************************************************
  * NameNode serves as both directory namespace manager and
@@ -100,14 +101,17 @@ import java.util.ArrayList;
  * secondary namenodes or rebalancing processes to get partial namenode's
  * state, for example partial blocksMap etc.
  **********************************************************/
-public class NameNode implements ClientProtocol, DatanodeProtocol,
-                                 NamenodeProtocol, FSConstants,
-                                 RefreshAuthorizationPolicyProtocol {
+public class NameNode extends ReconfigurableBase
+  implements ClientProtocol, DatanodeProtocol,
+             NamenodeProtocol, FSConstants,
+             RefreshAuthorizationPolicyProtocol {
   static{
     Configuration.addDefaultResource("hdfs-default.xml");
     Configuration.addDefaultResource("hdfs-site.xml");
   }
   
+  private static final String CONF_SERVLET_PATH = "/nnconfchange";
+
   public long getProtocolVersion(String protocol, 
                                  long clientVersion) throws IOException {
     InetSocketAddress requestAddress = Server.get().getListenerAddress();
@@ -141,6 +145,13 @@ public class NameNode implements ClientProtocol, DatanodeProtocol,
     }
   }
 
+  @Override
+  public ProtocolSignature getProtocolSignature(String protocol,
+      long clientVersion, int clientMethodsHash) throws IOException {
+    return ProtocolSignature.getProtocolSignature(
+        this, protocol, clientVersion, clientMethodsHash);
+  }
+
   // The number of handlers to be used to process datanode requests
   public static final String DATANODE_PROTOCOL_HANDLERS =
                                 "dfs.namenode.dn-handlers";
@@ -169,8 +180,6 @@ public class NameNode implements ClientProtocol, DatanodeProtocol,
   private boolean stopRequested = false;
   /** Is service level authorization enabled? */
   private boolean serviceAuthEnabled = false;
-  /** Active configuration of the namenode */
-  private Configuration conf;
   
   /** Format a new filesystem.  Destroys any filesystem that may already
    * exist at this location.  **/
@@ -229,31 +238,28 @@ public class NameNode implements ClientProtocol, DatanodeProtocol,
   /**
    * Initialize name-node.
    * 
-   * @param conf the configuration
    */
-  private void initialize(Configuration conf) throws IOException {
-    this.conf = conf;
-    
+  private void initialize() throws IOException {
     // set service-level authorization security policy
-    if (serviceAuthEnabled = 
-          conf.getBoolean(
+    if (serviceAuthEnabled =
+        getConf().getBoolean(
             ServiceAuthorizationManager.SERVICE_AUTHORIZATION_CONFIG, false)) {
       PolicyProvider policyProvider = 
         (PolicyProvider)(ReflectionUtils.newInstance(
-            conf.getClass(PolicyProvider.POLICY_PROVIDER_CONFIG, 
+            getConf().getClass(PolicyProvider.POLICY_PROVIDER_CONFIG,
                 HDFSPolicyProvider.class, PolicyProvider.class), 
-            conf));
-      SecurityUtil.setPolicy(new ConfiguredPolicy(conf, policyProvider));
+            getConf()));
+      SecurityUtil.setPolicy(new ConfiguredPolicy(getConf(), policyProvider));
     }
 
     // This is a check that the port is free
     // create a socket and bind to it, throw exception if port is busy
     // This has to be done before we are reading Namesystem not to waste time and fail fast
-    InetSocketAddress clientSocket = NameNode.getAddress(conf);
+    InetSocketAddress clientSocket = NameNode.getAddress(getConf());
     ServerSocket socket = new ServerSocket();
     socket.bind(clientSocket);
     socket.close();
-    InetSocketAddress dnSocket = NameNode.getDNProtocolAddress(conf);
+    InetSocketAddress dnSocket = NameNode.getDNProtocolAddress(getConf());
     if (dnSocket != null) {
       socket = new ServerSocket();
       socket.bind(dnSocket);
@@ -262,11 +268,11 @@ public class NameNode implements ClientProtocol, DatanodeProtocol,
     }
     
     
-    myMetrics = new NameNodeMetrics(conf, this);
+    myMetrics = new NameNodeMetrics(getConf(), this);
 
-    this.namesystem = new FSNamesystem(this, conf);
+    this.namesystem = new FSNamesystem(this, getConf());
     this.startDNServer();
-    startHttpServer(conf);
+    startHttpServer(getConf());
   }
 
   private void startTrashEmptier(Configuration conf) throws IOException {
@@ -302,13 +308,18 @@ public class NameNode implements ClientProtocol, DatanodeProtocol,
     this.httpServer.setAttribute("name.node.address", getNameNodeAddress());
     this.httpServer.setAttribute("name.system.image", getFSImage());
     this.httpServer.setAttribute("name.conf", conf);
-    this.httpServer.addInternalServlet("nnconf", "/nnconf", NameNodeConfServlet.class);
     this.httpServer.addInternalServlet("fsck", "/fsck", FsckServlet.class);
     this.httpServer.addInternalServlet("getimage", "/getimage", GetImageServlet.class);
     this.httpServer.addInternalServlet("listPaths", "/listPaths/*", ListPathsServlet.class);
     this.httpServer.addInternalServlet("data", "/data/*", FileDataServlet.class);
     this.httpServer.addInternalServlet("checksum", "/fileChecksum/*",
         FileChecksumServlets.RedirectServlet.class);
+    httpServer.setAttribute(ReconfigurationServlet.
+                            CONF_SERVLET_RECONFIGURABLE_PREFIX +
+                            CONF_SERVLET_PATH, NameNode.this);
+    httpServer.addInternalServlet("nnconfchange", CONF_SERVLET_PATH,
+                                  ReconfigurationServlet.class);
+
     this.httpServer.start();
 
     // The web-server port can be ephemeral... ensure we have the correct info
@@ -341,8 +352,9 @@ public class NameNode implements ClientProtocol, DatanodeProtocol,
    * @throws IOException
    */
   public NameNode(Configuration conf) throws IOException {
+    super(conf);
     try {
-      initialize(conf);
+      initialize();
     } catch (IOException e) {
       this.stop();
       throw e;
@@ -367,15 +379,15 @@ public class NameNode implements ClientProtocol, DatanodeProtocol,
   
   public void startServerForClientRequests() throws IOException {
     if (this.server == null) {
-      InetSocketAddress socAddr = NameNode.getAddress(conf);
-      int handlerCount = conf.getInt("dfs.namenode.handler.count", 10);
+      InetSocketAddress socAddr = NameNode.getAddress(getConf());
+      int handlerCount = getConf().getInt("dfs.namenode.handler.count", 10); 
       
       // create rpc server 
       this.server = RPC.getServer(this, socAddr.getHostName(), socAddr.getPort(),
-                                  handlerCount, false, conf);
+                                  handlerCount, false, getConf());
       // The rpc-server port can be ephemeral... ensure we have the correct info
       this.serverAddress = this.server.getListenerAddress();
-      FileSystem.setDefaultUri(conf, getUri(serverAddress));
+      FileSystem.setDefaultUri(getConf(), getUri(serverAddress));
       if (this.httpServer != null) {
         // This means the server is being started once out of safemode
         // and jetty is initialized already
@@ -385,20 +397,22 @@ public class NameNode implements ClientProtocol, DatanodeProtocol,
       
       
       this.server.start();
-      startTrashEmptier(conf); 
+      startTrashEmptier(getConf()); 
     }
   }
   
   public void startDNServer() throws IOException {
-    InetSocketAddress dnAddr = NameNode.getDNProtocolAddress(conf);
-    int handlerCount = conf.getInt("dfs.namenode.handler.count", 10);
+    InetSocketAddress dnAddr = NameNode.getDNProtocolAddress(getConf());
+    int handlerCount = getConf().getInt("dfs.namenode.handler.count", 10);
     
     if (dnAddr != null) {
-      int dnHandlerCount = conf.getInt(DATANODE_PROTOCOL_HANDLERS, handlerCount);
+      int dnHandlerCount =
+        getConf().getInt(DATANODE_PROTOCOL_HANDLERS, handlerCount);
       this.dnProtocolServer = RPC.getServer(this, dnAddr.getHostName(),
-                              dnAddr.getPort(), dnHandlerCount, false, conf);
+                                            dnAddr.getPort(), dnHandlerCount,
+                                            false, getConf());
       this.dnProtocolAddress = dnProtocolServer.getListenerAddress();
-      NameNode.setDNProtocolAddress(conf, 
+      NameNode.setDNProtocolAddress(getConf(), 
           dnProtocolAddress.getHostName() + ":" + dnProtocolAddress.getPort());
       LOG.info("Datanodes endpoint is up at: " + this.dnProtocolAddress);
     }
@@ -596,6 +610,7 @@ public class NameNode implements ClientProtocol, DatanodeProtocol,
       Block blk = blocks[i].getBlock();
       DatanodeInfo[] nodes = blocks[i].getLocations();
       for (int j = 0; j < nodes.length; j++) {
+        myMetrics.numReportedCorruptReplicas.inc();
         DatanodeInfo dn = nodes[j];
         namesystem.markBlockAsCorrupt(blk, dn);
       }
@@ -792,7 +807,13 @@ public class NameNode implements ClientProtocol, DatanodeProtocol,
    * @inheritDoc
    */
   public void saveNamespace() throws IOException {
-    namesystem.saveNamespace();
+    saveNamespace(false, false);
+  }
+
+  @Override
+  public void saveNamespace(boolean force, boolean uncompressed)
+  throws IOException {
+    namesystem.saveNamespace(force, uncompressed);
     myMetrics.numSaveNamespace.inc();
   }
 
@@ -945,6 +966,13 @@ public class NameNode implements ClientProtocol, DatanodeProtocol,
         xceiverCount, xmitsInProgress);
   }
 
+  @Override
+  public DatanodeCommand blockReport(DatanodeRegistration nodeReg,
+      BlockReport blocks) throws IOException {
+    return blockReport(nodeReg, blocks.getBlockReportInLongs());
+  }
+  
+  @Override
   public DatanodeCommand blockReport(DatanodeRegistration nodeReg,
                                      long[] blocks) throws IOException {
     verifyRequest(nodeReg);
@@ -1037,9 +1065,6 @@ public class NameNode implements ClientProtocol, DatanodeProtocol,
     return namesystem.dir.fsImage;
   }
 
-  public Configuration getConf() {
-    return conf;
-  }
   /**
    * Returns the name of the fsImage file uploaded by periodic
    * checkpointing
@@ -1234,5 +1259,34 @@ public class NameNode implements ClientProtocol, DatanodeProtocol,
       LOG.error(StringUtils.stringifyException(e));
       System.exit(-1);
     }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void reconfigurePropertyImpl(String property, String newVal) 
+    throws ReconfigurationException {
+    // just pass everything to the namesystem
+    if (namesystem.isPropertyReconfigurable(property)) {
+      namesystem.reconfigureProperty(property, newVal);
+    } else {
+      throw new ReconfigurationException(property, newVal,
+                                         getConf().get(property));
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public List<String> getReconfigurableProperties() {
+    // only allow reconfiguration of namesystem's reconfigurable properties
+    return namesystem.getReconfigurableProperties();
+  }
+  
+  @Override
+  public int getDataTransferProtocolVersion() throws IOException {
+    return DataTransferProtocol.DATA_TRANSFER_VERSION;
   }
 }

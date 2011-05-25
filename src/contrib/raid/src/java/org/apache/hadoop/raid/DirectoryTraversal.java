@@ -15,300 +15,272 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.hadoop.raid;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Stack;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.util.StringUtils;
+import org.apache.hadoop.raid.protocol.PolicyInfo;
+
 
 /**
- * Implements depth-first traversal using a Stack object. The traversal
- * can be stopped at any time and the state of traversal is saved.
+ * Traverses the directory tree and gets the desired FileStatus specified by
+ * a given {@link DirectoryTraversal.Filter}. This class is not thread safe.
  */
 public class DirectoryTraversal {
-  public static final Log LOG =
-    LogFactory.getLog("org.apache.hadoop.raid.DirectoryTraversal");
 
-  private FileSystem fs;
-  private List<FileStatus> paths;
-  private int pathIdx = 0;  // Next path to process.
-  private Stack<Node> stack = new Stack<Node>();
-  private ExecutorService executor;
+  static final public Log LOG =
+    LogFactory.getLog(DirectoryTraversal.class);
+  static final public FileStatus FINISH_TOKEN = new FileStatus();
+  static final int OUTPUT_QUEUE_SIZE = 10000;
 
-  private int numThreads;
+  final private FileSystem fs;
+  final private BlockingQueue<FileStatus> output;
+  final private BlockingDeque<Path> directories;
+  final private Filter filter;
+  final private Processor[] processors;
+  final private AtomicInteger totalDirectories;
+  final private AtomicInteger activeThreads;
+  final private boolean doShuffle;
+  private volatile boolean finished = false;
 
   /**
-   * A FileFilter object can be used to choose files during directory traversal.
+   * Filters the elements to output
    */
-  public interface FileFilter {
-    /**
-     * @return a boolean value indicating if the file passes the filter.
-     */
+  public interface Filter {
     boolean check(FileStatus f) throws IOException;
   }
 
-  /**
-   * Represents a directory node in directory traversal.
-   */
-  static class Node {
-    private FileStatus path;  // Path that this node represents.
-    private FileStatus[] elements;  // Elements in the node.
-    private int idx = 0;
-
-    public Node(FileStatus path, FileStatus[] elements) {
-      this.path = path;
-      this.elements = elements;
-    }
-
-    public boolean hasNext() {
-      return idx < elements.length;
-    }
-
-    public FileStatus next() {
-      return elements[idx++];
-    }
-
-    public FileStatus path() {
-      return this.path;
-    }
+  public DirectoryTraversal(Collection<Path> roots, FileSystem fs,
+      Filter filter, int numThreads, boolean doShuffle)
+      throws IOException {
+    this(DirectoryTraversal.class.getSimpleName(), roots, fs, filter,
+        numThreads, doShuffle);
   }
 
-  /**
-   * Constructor.
-   * @param fs The filesystem to use.
-   * @param startPaths A list of paths that need to be traversed
-   */
-  public DirectoryTraversal(FileSystem fs, List<FileStatus> startPaths) {
-    this(fs, startPaths, 1);
-  }
-
-  public DirectoryTraversal(
-    FileSystem fs, List<FileStatus> startPaths, int numThreads) {
+  public DirectoryTraversal(String friendlyName, Collection<Path> roots,
+      FileSystem fs, Filter filter, int numThreads, boolean doShuffle)
+      throws IOException {
+    this.output = new ArrayBlockingQueue<FileStatus>(OUTPUT_QUEUE_SIZE);
+    this.directories = new LinkedBlockingDeque<Path>();
     this.fs = fs;
-    paths = startPaths;
-    pathIdx = 0;
-    this.numThreads = numThreads;
-    executor = Executors.newFixedThreadPool(numThreads);
-  }
-
-  public List<FileStatus> getFilteredFiles(FileFilter filter, int limit) {
-    List<FileStatus> filtered = new ArrayList<FileStatus>();
-
-    // We need this semaphore to block when the number of running workitems
-    // is equal to the number of threads. FixedThreadPool limits the number
-    // of threads, but not the queue size. This way we will limit the memory
-    // usage.
-    Semaphore slots = new Semaphore(numThreads);
-
-    while (true) {
-      synchronized(filtered) {
-        if (filtered.size() >= limit) break;
-      }
-      FilterFileWorkItem work = null;
+    this.filter = filter;
+    this.totalDirectories = new AtomicInteger(roots.size());
+    this.processors = new Processor[numThreads];
+    this.activeThreads = new AtomicInteger(numThreads);
+    this.doShuffle = doShuffle;
+    if (doShuffle) {
+      List<Path> toShuffleAndAdd = new ArrayList<Path>();
+      toShuffleAndAdd.addAll(roots);
+      Collections.shuffle(toShuffleAndAdd);
+      this.directories.addAll(toShuffleAndAdd);
+    } else {
+      this.directories.addAll(roots);
+    }
+    LOG.info("Starting with directories:" + roots.toString() +
+        " numThreads:" + numThreads);
+    if (roots.isEmpty()) {
       try {
-        Node next = getNextDirectoryNode();
-        if (next == null) {
-          break;
-        }
-        work = new FilterFileWorkItem(filter, next, filtered, slots);
-        slots.acquire();
-      } catch (InterruptedException ie) {
-        break;
-      } catch (IOException e) {
-        break;
+        output.put(FINISH_TOKEN);
+      } catch (InterruptedException e) {
+        throw new IOException(e);
       }
-      executor.execute(work);
-    }
-
-    try {
-      // Wait for all submitted items to finish.
-      slots.acquire(numThreads);
-      // If this traversal is finished, shutdown the executor.
-      if (doneTraversal()) {
-        executor.shutdown();
-        executor.awaitTermination(1, TimeUnit.HOURS);
-      }
-    } catch (InterruptedException ie) {
-    }
-
-    return filtered;
-  }
-
-  class FilterFileWorkItem implements Runnable {
-    FileFilter filter;
-    Node dir;
-    List<FileStatus> filtered;
-    Semaphore slots;
-
-    FilterFileWorkItem(FileFilter filter, Node dir, List<FileStatus> filtered,
-                       Semaphore slots) {
-      this.slots = slots;
-      this.filter = filter;
-      this.dir = dir;
-      this.filtered = filtered;
-    }
-
-    @SuppressWarnings("deprecation")
-    public void run() {
-      try {
-        LOG.info("Initiating file filtering for " + dir.path.getPath());
-        for (FileStatus f: dir.elements) {
-          if (f.isDir()) {
-            continue;
-          }
-          if (filter.check(f)) {
-            synchronized(filtered) {
-              filtered.add(f);
-            }
-          }
-        }
-      } catch (Exception e) {
-        LOG.error("Error in directory traversal: "
-                  + StringUtils.stringifyException(e));
-      } finally {
-        slots.release();
-      }
-    }
-  }
-
-  /**
-   * Return the next file.
-   * @throws IOException
-   */
-  public FileStatus getNextFile() throws IOException {
-    // Check if traversal is done.
-    while (!doneTraversal()) {
-      // If traversal is not done, check if the stack is not empty.
-      while (!stack.isEmpty()) {
-        // If the stack is not empty, look at the top node.
-        Node node = stack.peek();
-        // Check if the top node has an element.
-        if (node.hasNext()) {
-          FileStatus element = node.next();
-          // Is the next element a directory.
-          if (!element.isDir()) {
-            // It is a file, return it.
-            return element;
-          }
-          // Next element is a directory, push it on to the stack and
-          // continue
-          try {
-            pushNewNode(element);
-          } catch (FileNotFoundException e) {
-            // Ignore and move to the next element.
-          }
-          continue;
-        } else {
-          // Top node has no next element, pop it and continue.
-          stack.pop();
-          continue;
-        }
-      }
-      // If the stack is empty, do we have more paths?
-      while (!paths.isEmpty()) {
-        FileStatus next = paths.remove(0);
-        pathIdx++;
-        if (!next.isDir()) {
-          return next;
-        }
-        try {
-          pushNewNode(next);
-        } catch (FileNotFoundException e) {
-          continue;
-        }
-        break;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Gets the next directory in the tree. The algorithm returns deeper directories
-   * first.
-   * @return A FileStatus representing the directory.
-   * @throws IOException
-   */
-  public FileStatus getNextDirectory() throws IOException {
-    Node dirNode = getNextDirectoryNode();
-    if (dirNode != null) {
-      return dirNode.path;
-    }
-    return null;
-  }
-
-  private Node getNextDirectoryNode() throws IOException {
-    // Check if traversal is done.
-    while (!doneTraversal()) {
-      // If traversal is not done, check if the stack is not empty.
-      while (!stack.isEmpty()) {
-        // If the stack is not empty, look at the top node.
-        Node node = stack.peek();
-        // Check if the top node has an element.
-        if (node.hasNext()) {
-          FileStatus element = node.next();
-          // Is the next element a directory.
-          if (element.isDir()) {
-            // Next element is a directory, push it on to the stack and
-            // continue
-            try {
-              pushNewNode(element);
-            } catch (FileNotFoundException e) {
-              // Ignore and move to the next element.
-            }
-            continue;
-          }
-        } else {
-          stack.pop();
-          return node;
-        }
-      }
-      // If the stack is empty, do we have more paths?
-      while (!paths.isEmpty()) {
-        FileStatus next = paths.remove(0);
-        pathIdx++;
-        if (next.isDir()) {
-          try {
-            pushNewNode(next);
-          } catch (FileNotFoundException e) {
-            continue;
-          }
-          break;
-        }
-      }
-    }
-    return null;
-  }
-
-  private void pushNewNode(FileStatus stat) throws IOException {
-    if (!stat.isDir()) {
       return;
     }
-    Path p = stat.getPath();
-    FileStatus[] elements = fs.listStatus(p);
-    Node newNode = new Node(stat, (elements == null? new FileStatus[0]: elements));
-    stack.push(newNode);
+    for (int i = 0; i < processors.length; ++i) {
+      processors[i] = new Processor();
+      processors[i].setName(friendlyName + i);
+    }
+    for (int i = 0; i < processors.length; ++i) {
+      processors[i].start();
+    }
   }
 
-  public boolean doneTraversal() {
-    return paths.isEmpty() && stack.isEmpty();
+  /**
+   * Retrieves the next filtered element.
+   * Returns {@link FINISH_TOKEN} when traversal is done. Calling this after
+   * {@link FINISH_TOKEN} is returned is not allowed.
+   */
+  public FileStatus next() throws IOException {
+    if (finished) {
+      LOG.warn("Should not call next() after FINISH_TOKEN is obtained.");
+      return FINISH_TOKEN;
+    }
+    FileStatus f = null;
+    try {
+      f = output.take();
+    } catch (InterruptedException e) {
+      finished = true;
+      interruptProcessors();
+      throw new IOException(e);
+    }
+    if (f == FINISH_TOKEN) {
+      LOG.info("traversal is done. Returning FINISH_TOKEN");
+      finished = true;
+    }
+    return f;
+  }
+
+  private void interruptProcessors() {
+    for (Thread processor : processors) {
+      if (processor != null) {
+        processor.interrupt();
+      }
+    }
+  }
+
+  private class Processor extends Thread {
+    @Override
+    public void run() {
+      List<Path> subDirs = new ArrayList<Path>();
+      List<FileStatus> filtered = new ArrayList<FileStatus>();
+      try {
+        while (!finished && totalDirectories.get() > 0) {
+          Path dir = null;
+          try {
+            dir = directories.poll(1000L, TimeUnit.MILLISECONDS);
+          } catch (InterruptedException e) {
+            continue;
+          }
+          if (dir == null) {
+            continue;
+          }
+          try {
+            filterDirectory(dir, subDirs, filtered);
+          } catch (IOException ioe) {
+            LOG.info(getName() + " throws IOException. Skip " + dir, ioe);
+            totalDirectories.decrementAndGet();
+            continue;
+          }
+          int numOfDirectoriesChanged = -1 + subDirs.size();
+          if (totalDirectories.addAndGet(numOfDirectoriesChanged) == 0) {
+            interruptProcessors();
+          }
+          submitOutputs(filtered, subDirs);
+        }
+      } finally {
+        int active = activeThreads.decrementAndGet();
+        if (active == 0) {
+          while (true) {
+            try {
+              output.put(FINISH_TOKEN);
+              break;
+            } catch (InterruptedException e) {
+            }
+          }
+        }
+      }
+    }
+
+    private void filterDirectory(Path dir, List<Path> subDirs,
+        List<FileStatus> filtered) throws IOException {
+      subDirs.clear();
+      filtered.clear();
+      if (dir == null) {
+        return;
+      }
+      FileStatus[] elements = fs.listStatus(dir);
+      if (elements != null) {
+        for (FileStatus element : elements) {
+          if (filter.check(element)) {
+            filtered.add(element);
+          }
+          if (element.isDir()) {
+            subDirs.add(element.getPath());
+          }
+        }
+      }
+    }
+
+    /**
+     * Submit filtered result to output and directories. Will swallow interrupt
+     * unless {@link finished} is set to true.
+     */
+    private void submitOutputs(List<FileStatus> filtered, List<Path> subDirs) {
+      if (doShuffle) {
+        Collections.shuffle(subDirs);
+      }
+      for (Path subDir : subDirs) {
+        while (!finished) {
+          try {
+            directories.putFirst(subDir);
+            break;
+          } catch (InterruptedException e) {
+          }
+        }
+      }
+      for (FileStatus out : filtered) {
+        while (!finished) {
+          try {
+            output.put(out);
+            break;
+          } catch (InterruptedException e) {
+          }
+        }
+      }
+    }
+  }
+
+  public static DirectoryTraversal fileRetriever(
+      List<Path> roots, FileSystem fs, int numThreads, boolean doShuffle)
+      throws IOException {
+    Filter filter = new Filter() {
+      @Override
+      public boolean check(FileStatus f) throws IOException {
+        return !f.isDir();
+      }
+    };
+    return new DirectoryTraversal("File Retriever ", roots, fs, filter,
+      numThreads, doShuffle);
+  }
+
+  public static DirectoryTraversal directoryRetriever(
+      List<Path> roots, FileSystem fs, int numThreads, boolean doShuffle)
+      throws IOException {
+    Filter filter = new Filter() {
+      @Override
+      public boolean check(FileStatus f) throws IOException {
+        return f.isDir();
+      }
+    };
+    return new DirectoryTraversal("Directory Retriever ", roots, fs, filter,
+      numThreads, doShuffle);
+  }
+
+  public static DirectoryTraversal raidFileRetriever(
+      final PolicyInfo info, List<Path> roots, Collection<PolicyInfo> allInfos,
+      Configuration conf, int numThreads, boolean doShuffle)
+      throws IOException {
+    final RaidState.Checker checker = new RaidState.Checker(allInfos, conf);
+    Filter filter = new Filter() {
+      @Override
+      public boolean check(FileStatus f) throws IOException {
+        long now = RaidNode.now();
+        if (f.isDir()) {
+          return false;
+        }
+        RaidState state = checker.check(info, f, now, false);
+        LOG.debug(f.getPath().toUri().getPath() + " : " + state);
+        return state == RaidState.NOT_RAIDED_BUT_SHOULD;
+      }
+    };
+    FileSystem fs = new Path(Path.SEPARATOR).getFileSystem(conf);
+    return new DirectoryTraversal("Raid File Retriever ", roots, fs, filter,
+      numThreads, doShuffle);
   }
 }

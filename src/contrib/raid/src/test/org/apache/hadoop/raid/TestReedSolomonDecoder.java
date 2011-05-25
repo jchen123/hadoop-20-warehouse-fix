@@ -59,62 +59,6 @@ public class TestReedSolomonDecoder extends TestCase {
   FileSystem fileSys = null;
 
   public void testDecoder() throws Exception {
-    mySetup();
-    int stripeSize = 10;
-    int paritySize = 4;
-    long blockSize = 8192;
-    Path file1 = new Path("/user/raidtest/file1");
-    Path recoveredFile1 = new Path("/user/raidtest/file1.recovered");
-    Path parityFile1 = new Path("/rsraid/user/raidtest/file1");
-    long crc1 = TestRaidDfs.createTestFilePartialLastBlock(fileSys, file1,
-                                                          1, 25, blockSize);
-    FileStatus file1Stat = fileSys.getFileStatus(file1);
-
-    conf.setInt("raid.rsdecoder.bufsize", 512);
-    conf.setInt("raid.rsencoder.bufsize", 512);
-
-    try {
-      // First encode the file.
-      ReedSolomonEncoder encoder = new ReedSolomonEncoder(
-        conf, stripeSize, paritySize);
-      short parityRepl = 1;
-      encoder.encodeFile(fileSys, file1, fileSys, parityFile1, parityRepl,
-        Reporter.NULL);
-
-      // Ensure there are no corrupt files yet.
-      DistributedFileSystem dfs = (DistributedFileSystem)fileSys;
-      ClientProtocol namenode = dfs.getClient().namenode;
-      String[] corruptFiles = DFSUtil.getCorruptFiles(dfs);
-      assertEquals(corruptFiles.length, 0);
-
-      // Now corrupt the file.
-      long corruptOffset = blockSize * 5;
-      FileStatus srcStat = fileSys.getFileStatus(file1);
-      LocatedBlocks locations = getBlockLocations(file1, srcStat.getLen());
-      TestRaidDfs.corruptBlock(file1, locations.get(5).getBlock(),
-                               NUM_DATANODES, true); // Delete block.
-      TestRaidDfs.corruptBlock(file1, locations.get(6).getBlock(),
-                               NUM_DATANODES, 4096 - 256); // Corrupt block.
-      LocatedBlock[] toReport = new LocatedBlock[2];
-      toReport[0] = locations.get(5);
-      toReport[1] = locations.get(6);
-      namenode.reportBadBlocks(toReport);
-
-      // Ensure file is corrupted.
-      corruptFiles = DFSUtil.getCorruptFiles(dfs);
-      assertEquals(corruptFiles.length, 1);
-      assertEquals(corruptFiles[0], file1.toString());
-
-      // Fix the file.
-      ReedSolomonDecoder decoder = new ReedSolomonDecoder(
-        conf, stripeSize, paritySize);
-      decoder.decodeFile(fileSys, file1, fileSys, parityFile1,
-                corruptOffset, recoveredFile1);
-      assertTrue(TestRaidDfs.validateFile(
-                    fileSys, recoveredFile1, file1Stat.getLen(), crc1));
-    } finally {
-      myTearDown();
-    }
   }
 
   private void mySetup() throws Exception {

@@ -51,8 +51,6 @@ import org.apache.hadoop.hdfs.server.protocol.DatanodeRegistration;
 import org.apache.hadoop.hdfs.server.protocol.DisallowedDatanodeException;
 import org.apache.hadoop.hdfs.server.protocol.NamespaceInfo;
 import org.apache.hadoop.hdfs.server.protocol.UpgradeCommand;
-import org.apache.hadoop.hdfs.util.GSet;
-import org.apache.hadoop.hdfs.util.LightWeightGSet;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -76,7 +74,6 @@ import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
 import javax.security.auth.login.LoginException;
-import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -93,7 +90,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * 5)  LRU cache of updated-heartbeat machines
  * *************************************************
  */
-public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterStats {
+public class FSNamesystem extends ReconfigurableBase
+  implements FSConstants, FSNamesystemMBean, FSClusterStats {
   public static final Log LOG = LogFactory.getLog(FSNamesystem.class);
   public static int BLOCK_DELETION_INCREMENT = 1000;
   public static final String AUDIT_FORMAT =
@@ -111,18 +109,31 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
       }
     };
 
+  private static final ThreadLocal<StringBuilder> auditStringBuilder =
+    new ThreadLocal<StringBuilder>() {
+    protected StringBuilder initialValue() {
+      return new StringBuilder(AUDIT_FORMAT.length() * 4);
+    }
+  };
+
   private static final void logAuditEvent(UserGroupInformation ugi,
                                           InetAddress addr, String cmd, String src, String dst,
                                           HdfsFileStatus stat) {
-    final Formatter fmt = auditFormatter.get();
-    ((StringBuilder) fmt.out()).setLength(0);
-    auditLog.info(fmt.format(AUDIT_FORMAT, ugi, addr, cmd, src, dst,
-      (stat == null)
-        ? null
-        : stat.getOwner() + ':' + stat.getGroup() + ':' +
-        stat.getPermission()
-    ).toString());
-
+    final StringBuilder builder = auditStringBuilder.get();
+    builder.setLength(0);
+    builder.append("ugi=").append(ugi).append("\t").
+            append("ip=").append(addr).append("\t").
+            append("cmd=").append(cmd).append("\t").
+            append("src=").append(src).append("\t").
+            append("dst=").append(dst).append("\t").
+            append("perm=");
+    if (stat == null) {
+      builder.append("null").toString();
+    } else {
+      builder.append(stat.getOwner() + ':' + 
+          stat.getGroup() + ':' + stat.getPermission());
+    }
+    auditLog.info(builder.toString());
   }
 
   public static final Log auditLog = LogFactory.getLog(
@@ -257,8 +268,10 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
   private int defaultReplication;
   // How many entries are returned by getCorruptInodes()
   int maxCorruptFilesReturned;
+  // heartbeat interval from configuration
+  long heartbeatInterval;
   // heartbeatRecheckInterval is how often namenode checks for expired datanodes
-  private long heartbeatRecheckInterval;
+  long heartbeatRecheckInterval;
   // heartbeatExpireInterval is how long namenode waits for datanode to report
   // heartbeat
   private long heartbeatExpireInterval;
@@ -273,8 +286,6 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
    * Last block index used for replication work.
    */
   private int replIndex = 0;
-  volatile private long missingBlocksInCurIter = 0;
-  volatile private long missingBlocksInPrevIter = 0;
 
   public static FSNamesystem fsNamesystemObject;
   /**
@@ -329,8 +340,9 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
    * FSNamesystem constructor.
    */
   FSNamesystem(NameNode nn, Configuration conf) throws IOException {
+    super(conf);
     try {
-      initialize(nn, conf);
+      initialize(nn, getConf());
     } catch (IOException e) {
       LOG.error(getClass().getSimpleName() + " initialization failed.", e);
       close();
@@ -436,6 +448,7 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
    * is stored
    */
   FSNamesystem(FSImage fsImage, Configuration conf) throws IOException {
+    super(conf);
     this.fsLock = new ReentrantReadWriteLock();
     setConfigurationParameters(conf);
     this.dir = new FSDirectory(fsImage, this, conf);
@@ -471,6 +484,21 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
   boolean hasWriteLock() {
     return this.fsLock.isWriteLockedByCurrentThread();
   }
+
+  /**
+   * Set parameters derived from heartbeat interval.
+   */
+  private void setHeartbeatInterval(long heartbeatInterval,
+                                    long heartbeatRecheckInterval) {
+    this.heartbeatInterval = heartbeatInterval;
+    this.heartbeatRecheckInterval = heartbeatRecheckInterval;
+    this.heartbeatExpireInterval = 2 * heartbeatRecheckInterval +
+      10 * heartbeatInterval;
+    this.blockInvalidateLimit =
+      Math.max(this.blockInvalidateLimit, 
+               20 * (int) (heartbeatInterval/1000L));
+  }
+
 
   /**
    * Initializes some of the members from configuration
@@ -532,16 +560,13 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
     }
     this.maxReplicationStreams = conf.getInt("dfs.max-repl-streams", 2);
     long heartbeatInterval = conf.getLong("dfs.heartbeat.interval", 3) * 1000;
-    this.heartbeatRecheckInterval = conf.getInt(
+    long heartbeatRecheckInterval = conf.getInt(
       "heartbeat.recheck.interval", 5 * 60 * 1000); // 5 minutes
-    this.heartbeatExpireInterval = 2 * heartbeatRecheckInterval +
-      10 * heartbeatInterval;
+    setHeartbeatInterval(heartbeatInterval, heartbeatRecheckInterval);
     this.replicationRecheckInterval =
       conf.getInt("dfs.replication.interval", 3) * 1000L;
     this.defaultBlockSize = conf.getLong("dfs.block.size", DEFAULT_BLOCK_SIZE);
     this.maxFsObjects = conf.getLong("dfs.max.objects", 0);
-    this.blockInvalidateLimit = Math.max(this.blockInvalidateLimit,
-      20 * (int) (heartbeatInterval / 1000));
     this.accessTimePrecision = conf.getLong("dfs.access.time.precision", 0);
     this.supportAppends = conf.getBoolean("dfs.support.append", false);
 
@@ -980,6 +1005,11 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
       }  else { // second attempt is with  write lock
         writeLock(); // writelock is needed to set accesstime
       }
+
+      // if the namenode is in safemode, then do not update access time
+      if (isInSafeMode()) {
+        doAccessTime = false;
+      }
       try {
         long now = now();
         INodeFile inode = dir.getFileINode(src);
@@ -993,9 +1023,6 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
             if (attempt == 0) {
               continue;
             }
-          }
-          if (isInSafeMode()) {
-            throw new SafeModeException("Cannot set accesstimes  for " + src, safeMode);
           }
           dir.setTimes(src, inode, -1, now, false);
           doneSetTimes = true; // successful setTime call
@@ -1435,8 +1462,10 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
       }
 
       // Verify that the destination does not exist as a directory already.
-      boolean pathExists = dir.exists(src);
-      if (pathExists && dir.isDir(src)) {
+      INode inode = dir.getInode(src);
+      boolean pathExists = inode != null && 
+          (inode.isDirectory() || ((INodeFile)inode).getBlocks() != null);
+      if (pathExists && inode.isDirectory()) {
         throw new IOException("Cannot create file " + src + "; already exists as a directory.");
       }
 
@@ -1449,7 +1478,7 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
       }
 
       try {
-        INode myFile = dir.getFileINode(src);
+        INode myFile = (INodeFile) inode;
         if (myFile != null && myFile.isUnderConstruction()) {
           INodeFileUnderConstruction pendingFile = (INodeFileUnderConstruction) myFile;
           //
@@ -1732,6 +1761,10 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
       writeUnlock();
     }
 
+    if (getPersistBlocks()) {
+      getEditLog().logSyncIfNeeded(); // sync if too many transactions in buffer
+    }
+    
     // Create next block
     return new LocatedBlock(newBlock, targets, fileLength);
   }
@@ -2053,7 +2086,7 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
         if (countNodes(storedBlockInfo).liveReplicas() > inode.getReplication()) {
           // the block is over-replicated so invalidate the replicas immediately
           invalidateBlock(storedBlockInfo, node);
-        } else {
+        } else if (isPopulatingReplQueues()) {
           // add the block to neededReplication 
           updateNeededReplications(storedBlockInfo, -1, 0);
         }
@@ -2349,7 +2382,18 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
     if (isPermissionEnabled) {
       checkPermission(src, false, null, null, null, FsAction.READ_EXECUTE);
     }
-    return dir.getContentSummary(src);
+    readLock();
+    try {
+      if (auditLog.isInfoEnabled()) {
+        final HdfsFileStatus stat = dir.getHdfsFileInfo(src);
+        logAuditEvent(UserGroupInformation.getCurrentUGI(),
+          Server.getRemoteIp(),
+          "getContentSummary", src, null, stat);
+      }
+      return dir.getContentSummary(src);
+    } finally {
+      readUnlock();
+    }
   }
 
   /**
@@ -2916,8 +2960,8 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
 
         ArrayList<DatanodeCommand> cmds = new ArrayList<DatanodeCommand>(2);
         //check pending replication
-        cmd = nodeinfo.getReplicationCommand(
-          maxReplicationStreams - xmitsInProgress);
+        cmd = nodeinfo.getReplicationCommand(maxReplicationStreams -
+                                             xmitsInProgress);
         if (cmd != null) {
           cmds.add(cmd);
         }
@@ -3143,8 +3187,6 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
 
       synchronized (neededReplications) {
         if (neededReplications.size() == 0) {
-          missingBlocksInCurIter = 0;
-          missingBlocksInPrevIter = 0;
           return blocksToReplicate;
         }
 
@@ -3162,8 +3204,6 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
           if (!neededReplicationsIterator.hasNext()) {
             // start from the beginning
             replIndex = 0;
-            missingBlocksInPrevIter = missingBlocksInCurIter;
-            missingBlocksInCurIter = 0;
             blocksToProcess = Math.min(blocksToProcess, neededReplications.size());
             if (blkCnt >= blocksToProcess) {
               break;
@@ -3218,10 +3258,6 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
         containingNodes = new ArrayList<DatanodeDescriptor>();
         NumberReplicas numReplicas = new NumberReplicas();
         srcNode = chooseSourceDatanode(block, containingNodes, numReplicas);
-        if ((numReplicas.liveReplicas() + numReplicas.decommissionedReplicas())
-          <= 0) {
-          missingBlocksInCurIter++;
-        }
         if (srcNode == null) // block can not be replicated from any node
         {
           return false;
@@ -3580,6 +3616,10 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
    * effect causes more datanodes to be declared dead.
    */
   void heartbeatCheck() {
+    if (isInSafeMode()) {
+      // not to check dead nodes if in safemode 
+      return;
+    }
     boolean allAlive = false;
     while (!allAlive) {
       boolean foundDead = false;
@@ -3865,8 +3905,11 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
     int numCurrentReplica = 0;
     int numLiveReplicas = 0;
 
-    if (isInSafeMode()) {
-      // if we are in safemode, then use a cheaper method to count
+    boolean popReplQueuesBefore = isPopulatingReplQueues();
+
+    if (!popReplQueuesBefore) {
+      // if we haven't populated the replication queues
+      // then use a cheaper method to count
       // only live replicas, that's all we need.
       numLiveReplicas = countLiveNodes(storedBlock);
       numCurrentReplica = numLiveReplicas;
@@ -3879,6 +3922,15 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
 
     // check whether safe replication is reached for the block
     incrementSafeBlockCount(numCurrentReplica);
+
+    if (!popReplQueuesBefore && isPopulatingReplQueues()) {
+      // we have just initialized the repl queues
+      // must recompute num
+      num = countNodes(storedBlock);
+      numLiveReplicas = num.liveReplicas();
+      numCurrentReplica = numLiveReplicas +
+        pendingReplications.getNumReplicas(block);
+    }
 
     //
     // if file is being actively written to, then do not check 
@@ -4007,7 +4059,12 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
    */
   private void processOverReplicatedBlocksAsync() {
 
-    while (true) {
+    writeLock();
+    int size = Math.min(overReplicatedBlocks.size(), 1000);
+    NameNode.getNameNodeMetrics().numOverReplicatedBlocks.set(overReplicatedBlocks.size());
+    writeUnlock();
+
+    while (size-- > 0) {
       Block block;
       writeLock();
       try {
@@ -4391,7 +4448,7 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
 
   public long getMissingBlocksCount() {
     // not locking
-    return Math.max(missingBlocksInPrevIter, missingBlocksInCurIter);
+    return neededReplications.getCorruptBlocksCount();
   }
 
   long[] getStats() throws IOException {
@@ -4564,18 +4621,19 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
    * This will save current namespace into fsimage file and empty edits file.
    * Requires superuser privilege and safe mode.
    *
+   * @param force if true, then the namenode need not already be in safemode.
    * @throws AccessControlException if superuser privilege is violated.
    * @throws IOException            if
    */
-  void saveNamespace() throws AccessControlException, IOException {
+  void saveNamespace(boolean force, boolean uncompressed) throws AccessControlException, IOException {
     writeLock();
     try {
       checkSuperuserPrivilege();
-      if (!isInSafeMode()) {
+      if(!force && !isInSafeMode()) {
         throw new IOException("Safe mode should be turned ON " +
           "in order to create namespace image.");
       }
-      getFSImage().saveFSImage();
+      getFSImage().saveFSImage(uncompressed);
       LOG.info("New namespace image has been created.");
     } finally {
       writeUnlock();
@@ -4835,30 +4893,35 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
   /**
    * Check if a block on srcNode has reached its replication factor or not
    *
+   *@param status decomission status to update; null means no update
    * @param srcNode a datanode
    * @param block   a block
+   * @param addToNeeded if the block needs to add to needReplication queue
+   * @return block if not addToNeeded and the block needes to added later
    */
-  void isReplicationInProgress(DatanodeDescriptor srcNode, Block block) {
-    final DecommissioningStatus status = srcNode.decommissioningStatus;
-
+  Block isReplicationInProgress(final DecommissioningStatus status,
+      final DatanodeDescriptor srcNode, final Block block,
+      boolean addToNeeded) {
     INode fileINode = blocksMap.getINode(block);
     if (fileINode == null) {
-      return;
+      return null;
     }
     NumberReplicas num = countNodes(block);
     int curReplicas = num.liveReplicas();
     int curExpectedReplicas = getReplication(block);
     if (curExpectedReplicas > curReplicas) {
-      //Log info about one block for this node which needs replication
-      if (status.underReplicatedBlocks == 0) {
-        logBlockReplicationInfo(block, srcNode, num);
-      }
-      status.underReplicatedBlocks++;
-      if ((curReplicas == 0) && (num.decommissionedReplicas() > 0)) {
-        status.decommissionOnlyReplicas++;
-      }
-      if (fileINode.isUnderConstruction()) {
-        status.underReplicatedInOpenFiles++;
+      if (status!= null) {
+        //Log info about one block for this node which needs replication
+        if (status.underReplicatedBlocks == 0) {
+          logBlockReplicationInfo(block, srcNode, num);
+        }
+        status.underReplicatedBlocks++;
+        if ((curReplicas == 0) && (num.decommissionedReplicas() > 0)) {
+          status.decommissionOnlyReplicas++;
+        }
+        if (fileINode.isUnderConstruction()) {
+          status.underReplicatedInOpenFiles++;
+        }
       }
       if (!neededReplications.contains(block) &&
         pendingReplications.getNumReplicas(block) == 0) {
@@ -4867,12 +4930,17 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
         // after the startDecommission method has been executed. These
         // blocks were in flight when the decommissioning was started.
         //
-        neededReplications.add(block,
-          curReplicas,
-          num.decommissionedReplicas(),
-          curExpectedReplicas);
+        if (addToNeeded) {
+          neededReplications.add(block,
+              curReplicas,
+              num.decommissionedReplicas(),
+              curExpectedReplicas);
+        } else {
+          return block;
+        }
       }
     }
+    return null;
   }
 
   /**
@@ -4960,8 +5028,9 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
     if (inExcludedHostsList(nodeReg, ipAddr)) {
       DatanodeDescriptor node = getDatanode(nodeReg);
       if (node == null) {
-        throw new IOException("verifyNodeRegistration: unknown datanode " +
-          nodeReg.getName());
+        NameNode.stateChangeLog.info("Unknown datanode " + nodeReg.getName() +
+                " is not allowed to communicate with the namenode");
+        return false;
       }
       startDecommission(node);
     }
@@ -5809,6 +5878,13 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
   }
 
   /**
+   * Return number of under-replicatedBlocks excluding missing/corrupt blocks
+   */
+  public long getNonCorruptUnderReplicatedBlocks() {
+    return neededReplications.getNonCorruptUnderReplicatedBlocksCount();
+  }
+
+  /**
    * Returns number of blocks with corrupt replicas
    */
   public long getCorruptReplicaBlocks() {
@@ -5841,6 +5917,7 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
   }
 
   private ObjectName mbeanName;
+  private ObjectName versionBeanName;
 
   /**
    * Register the FSNamesystem MBean using the name
@@ -5852,6 +5929,7 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
     // package naming for mbeans and their impl.
     StandardMBean bean;
     try {
+      versionBeanName = VersionInfo.registerJMX("NameNode");
       myFSMetrics = new FSNamesystemMetrics(conf);
       bean = new StandardMBean(this, FSNamesystemMBean.class);
       mbeanName = MBeanUtil.registerMBean("NameNode", "FSNamesystemState", bean);
@@ -5875,6 +5953,9 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
   public void shutdown() {
     if (mbeanName != null) {
       MBeanUtil.unregisterMBean(mbeanName);
+    }
+    if (versionBeanName != null) {
+      MBeanUtil.unregisterMBean(versionBeanName);
     }
   }
 
@@ -6080,8 +6161,12 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
   synchronized Collection<CorruptFileBlockInfo> 
     listCorruptFileBlocks(String path,
                           String startBlockAfter)
-    throws AccessControlException, IOException {
-    
+    throws IOException {
+    if (!isPopulatingReplQueues()) {
+      throw new IOException("Cannot run listCorruptFileBlocks because " +
+                            "replication queues have not been initialized.");
+    }
+
     checkSuperuserPrivilege();
     long startBlockId = 0;
     // print a limited # of corrupt files per call
@@ -6096,7 +6181,7 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
     while (blkIterator.hasNext()) {
       Block blk = blkIterator.next();
       INode inode = blocksMap.getINode(blk);
-      if (inode != null && countNodes(blk).liveReplicas() == 0) {
+      if (inode != null) {
         String src = FSDirectory.getFullPathName(inode);
         if (((startBlockAfter == null) || (blk.getBlockId() > startBlockId))
             && (src.startsWith(path))) {
@@ -6125,5 +6210,126 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean, FSClusterSt
 
   boolean getPermissionAuditLog() {
     return permissionAuditOnly;
+  }
+
+  /**
+   * for debugging
+   */
+  String getBlockPlacementPolicyClassName() {
+    String name = replicator.getClass().getCanonicalName();
+    return name;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void reconfigurePropertyImpl(String property, String newVal) 
+    throws ReconfigurationException {
+    if (property.equals("dfs.block.replicator.classname")) {
+      try {
+        writeLock();
+        Configuration replConf = new Configuration(getConf());
+        if (newVal == null) {
+          replConf.unset(property);
+        } else {
+          replConf.set(property, newVal);
+        }
+        replicator =
+          BlockPlacementPolicy.getInstance(replConf, this, clusterMap);
+      } finally {
+        writeUnlock();
+      }
+      LOG.info("RECONFIGURE* changed block placement policy to " +
+               getBlockPlacementPolicyClassName());
+    } else if (property.equals("dfs.persist.blocks")) {
+      try {
+        writeLock();
+        if (newVal == null) {
+          // set to default
+          setPersistBlocks(false);
+        } else if (newVal.equals("true")) {
+          setPersistBlocks(true);
+        } else if (newVal.equals("false")) {
+          setPersistBlocks(false);
+        } else {
+          throw new ReconfigurationException(property, newVal,
+                                             getConf().get(property));
+        }
+        LOG.info("RECONFIGURE* changed persist blocks to " +
+                 getPersistBlocks());
+      } finally {
+        writeUnlock();
+      }
+    } else if (property.equals("dfs.permissions.audit.log")) {
+      try {
+        writeLock();
+        if (newVal == null) {
+          // set to default
+          setPermissionAuditLog(false);
+        } else if (newVal.equals("true")) {
+          setPermissionAuditLog(true);
+        } else if (newVal.equals("false")) {
+          setPermissionAuditLog(false);
+        } else {
+          throw new ReconfigurationException(property, newVal,
+                                             getConf().get(property));
+        }
+        LOG.info("RECONFIGURE* changed permission audit log to " +
+                 getPermissionAuditLog());
+      } finally {
+        writeUnlock();
+      }
+    } else if (property.equals("dfs.heartbeat.interval")) {
+      writeLock();
+      try {
+        if (newVal == null) {
+          // set to default
+          setHeartbeatInterval(3L * 1000L, this.heartbeatRecheckInterval);
+        } else {
+          setHeartbeatInterval(Long.valueOf(newVal) * 1000L, 
+                               this.heartbeatRecheckInterval);
+        }
+      } catch (NumberFormatException e) {
+        throw new ReconfigurationException(property, newVal,
+                                           getConf().get(property));
+      } finally {
+        writeUnlock();
+      }
+      LOG.info("RECONFIGURE* changed heartbeatInterval to " +
+               this.heartbeatInterval);
+    } else if (property.equals("heartbeat.recheck.interval")) {
+      try {
+        writeLock();
+        if (newVal == null) {
+          // set to default
+          setHeartbeatInterval(this.heartbeatInterval, 5 * 60 * 1000);
+        } else {
+          setHeartbeatInterval(this.heartbeatInterval, Integer.valueOf(newVal));
+        }
+      } catch (NumberFormatException e) {
+        throw new ReconfigurationException(property, newVal,
+                                           getConf().get(property));
+      } finally {
+        writeUnlock();
+      }
+      LOG.info("RECONFIGURE* changed heartbeatRecheckInterval to " +
+               this.heartbeatRecheckInterval);
+    } else {
+      throw new ReconfigurationException(property, newVal,
+                                         getConf().get(property));
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public List<String> getReconfigurableProperties() {
+    return Arrays.asList("dfs.block.replicator.classname",
+                         "dfs.persist.blocks",
+                         "dfs.permissions.audit.log",
+                         "dfs.heartbeat.interval",
+                         "heartbeat.recheck.interval");
   }
 }

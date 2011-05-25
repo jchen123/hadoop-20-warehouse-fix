@@ -64,6 +64,7 @@ interface JobSubmissionProtocol extends VersionedProtocol {
    *             individual task trackers.
    */
   public static final long versionID = 22L;
+  public static final String CAR  = "CAR";
 
   /**
    * Allocate a name for the job.

@@ -192,6 +192,12 @@ unset IFS
 if [ "$COMMAND" = "namenode" ] ; then
   CLASS='org.apache.hadoop.hdfs.server.namenode.NameNode'
   HADOOP_OPTS="$HADOOP_OPTS $HADOOP_GC_LOG_OPTS $HADOOP_NAMENODE_OPTS"
+elif [ "$COMMAND" = "avatarshell" ] ; then
+  CLASS='org.apache.hadoop.hdfs.AvatarShell'
+  HADOOP_OPTS="$HADOOP_OPTS $HADOOP_GC_LOG_OPTS $HADOOP_CLIENT_OPTS"
+elif [ "$COMMAND" = "avatarzk" ] ; then
+  CLASS='org.apache.hadoop.hdfs.AvatarZKShell'
+  HADOOP_OPTS="$HADOOP_OPTS $HADOOP_GC_LOG_OPTS $HADOOP_CLIENT_OPTS"
 elif [ "$COMMAND" = "avatarnode" ] ; then
   CLASS='org.apache.hadoop.hdfs.server.namenode.AvatarNode'
   HADOOP_OPTS="$HADOOP_OPTS $HADOOP_GC_LOG_OPTS $HADOOP_NAMENODE_OPTS"
@@ -233,9 +239,15 @@ elif [ "$COMMAND" = "jmxget" ] ; then
 elif [ "$COMMAND" = "jobtracker" ] ; then
   CLASS=org.apache.hadoop.mapred.JobTracker
   HADOOP_OPTS="$HADOOP_OPTS $HADOOP_GC_LOG_OPTS $HADOOP_JOBTRACKER_OPTS"
+  if [ -n "$HADOOP_INSTANCE" ] ; then
+    CMDLINE_OPTS="-instance $HADOOP_INSTANCE $CMDLINE_OPTS"
+  fi
 elif [ "$COMMAND" = "tasktracker" ] ; then
   CLASS=org.apache.hadoop.mapred.TaskTracker
   HADOOP_OPTS="$HADOOP_OPTS $HADOOP_GC_LOG_OPTS $HADOOP_TASKTRACKER_OPTS"
+  if [ -n "$HADOOP_INSTANCE" ] ; then
+    CMDLINE_OPTS="-instance $HADOOP_INSTANCE $CMDLINE_OPTS"
+  fi
 elif [ "$COMMAND" = "job" ] ; then
   CLASS=org.apache.hadoop.mapred.JobClient
 elif [ "$COMMAND" = "queue" ] ; then
@@ -261,6 +273,12 @@ elif [ "$COMMAND" = "archive" ] ; then
   HADOOP_OPTS="$HADOOP_OPTS $HADOOP_CLIENT_OPTS"
 elif [ "$COMMAND" = "sampler" ] ; then
   CLASS=org.apache.hadoop.mapred.lib.InputSampler
+  HADOOP_OPTS="$HADOOP_OPTS $HADOOP_CLIENT_OPTS"
+elif [ "$COMMAND" = "hourglass" ] ; then
+  CLASS=org.apache.hadoop.mapred.HourGlass
+  HADOOP_OPTS="$HADOOP_OPTS $HADOOP_CLIENT_OPTS"
+elif [ "$COMMAND" = "fairscheduler" ] ; then
+  CLASS=org.apache.hadoop.mapred.FairSchedulerShell
   HADOOP_OPTS="$HADOOP_OPTS $HADOOP_CLIENT_OPTS"
 else
   CLASS=$COMMAND

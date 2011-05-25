@@ -31,6 +31,7 @@ import org.apache.hadoop.hdfs.protocol.FSConstants.UpgradeAction;
 import org.apache.hadoop.hdfs.server.common.*;
 import org.apache.hadoop.hdfs.server.namenode.NotReplicatedYetException;
 import org.apache.hadoop.io.*;
+import org.apache.hadoop.ipc.ProtocolSignature;
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.hadoop.security.AccessControlException;
 
@@ -135,6 +136,11 @@ public class TestDFSClientRetries extends TestCase {
     {
       return versionID;
     }
+    public ProtocolSignature getProtocolSignature(String protocol,
+        long clientVersion, int clientMethodsHash) throws IOException {
+      return ProtocolSignature.getProtocolSignature(
+          this, protocol, clientVersion, clientMethodsHash);
+    }
 
     public LocatedBlock addBlock(String src, String clientName)
     throws IOException
@@ -211,6 +217,7 @@ public class TestDFSClientRetries extends TestCase {
     public boolean setSafeMode(FSConstants.SafeModeAction action) throws IOException { return false; }
 
     public void saveNamespace() throws IOException {}
+    public void saveNamespace(boolean force, boolean uncompressed) throws IOException {}
 
     public boolean restoreFailedStorage(String arg) throws AccessControlException { return false; }
 
@@ -248,6 +255,8 @@ public class TestDFSClientRetries extends TestCase {
       return null;
     }
 
+    @Override
+    public int getDataTransferProtocolVersion() {return -1;}
   }
   
   public void testNotYetReplicatedErrors() throws IOException

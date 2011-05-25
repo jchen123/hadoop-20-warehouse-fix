@@ -176,6 +176,12 @@ public class HighTideNode implements HighTideProtocol {
     }
   }
 
+  public ProtocolSignature getProtocolSignature(String protocol,
+      long clientVersion, int clientMethodsHash) throws IOException {
+    return ProtocolSignature.getProtocolSignature(
+        this, protocol, clientVersion, clientMethodsHash);
+  }
+
   /**
    * Wait for service to finish.
    * (Normally, it runs forever.)

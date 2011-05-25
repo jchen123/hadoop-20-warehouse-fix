@@ -18,15 +18,23 @@
 package org.apache.hadoop.mapred;
 
 /**
- * Used to describe the priority of the running job. 
- *
+ * Used to describe the priority of the running job.
  */
 public enum JobPriority {
 
-  VERY_HIGH,
-  HIGH,
-  NORMAL,
-  LOW,
-  VERY_LOW;
-  
+  VERY_HIGH (4.0),
+  HIGH      (2.0),
+  NORMAL    (1.0),
+  LOW       (0.5),
+  VERY_LOW  (0.25);
+
+  private final double factor;
+
+  JobPriority(double factor) {
+    this.factor = factor;
+  }
+
+  public double getFactor() {
+    return factor;
+  }
 }

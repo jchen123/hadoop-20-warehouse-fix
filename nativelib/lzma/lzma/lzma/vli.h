@@ -2,18 +2,25 @@
  * \file        lzma/vli.h
  * \brief       Variable-length integer handling
  *
- * \author      Copyright (C) 1999-2006 Igor Pavlov
- * \author      Copyright (C) 2007 Lasse Collin
+ * In the .xz format, most integers are encoded in a variable-length
+ * representation, which is sometimes called little endian base-128 encoding.
+ * This saves space when smaller values are more likely than bigger values.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * The encoding scheme encodes seven bits to every byte, using minimum
+ * number of bytes required to represent the given value. Encodings that use
+ * non-minimum number of bytes are invalid, thus every integer has exactly
+ * one encoded representation. The maximum number of bits in a VLI is 63,
+ * thus the vli argument must be less than or equal to UINT64_MAX / 2. You
+ * should use LZMA_VLI_MAX for clarity.
+ */
+
+/*
+ * Author: Lasse Collin
  *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * This file has been put into the public domain.
+ * You can do whatever you want with this file.
+ *
+ * See ../lzma.h for information about liblzma as a whole.
  */
 
 #ifndef LZMA_H_INTERNAL
@@ -22,20 +29,19 @@
 
 
 /**
- * \brief       Maximum supported value of variable-length integer
+ * \brief       Maximum supported value of a variable-length integer
  */
-#define LZMA_VLI_VALUE_MAX (UINT64_MAX / 2)
+#define LZMA_VLI_MAX (UINT64_MAX / 2)
 
 /**
  * \brief       VLI value to denote that the value is unknown
  */
-#define LZMA_VLI_VALUE_UNKNOWN UINT64_MAX
+#define LZMA_VLI_UNKNOWN UINT64_MAX
 
 /**
- * \brief       Maximum supported length of variable length integers
+ * \brief       Maximum supported encoded length of variable length integers
  */
 #define LZMA_VLI_BYTES_MAX 9
-
 
 /**
  * \brief       VLI constant suffix
@@ -46,20 +52,19 @@
 /**
  * \brief       Variable-length integer type
  *
- * This will always be unsigned integer. Valid VLI values are in the range
- * [0, LZMA_VLI_VALUE_MAX]. Unknown value is indicated with
- * LZMA_VLI_VALUE_UNKNOWN, which is the maximum value of the underlaying
- * integer type (this feature is useful in several situations).
+ * Valid VLI values are in the range [0, LZMA_VLI_MAX]. Unknown value is
+ * indicated with LZMA_VLI_UNKNOWN, which is the maximum value of the
+ * underlaying integer type.
  *
- * In future, even if lzma_vli is typdefined to something else than uint64_t,
- * it is guaranteed that 2 * LZMA_VLI_VALUE_MAX will not overflow lzma_vli.
- * This simplifies integer overflow detection.
+ * lzma_vli will be uint64_t for the foreseeable future. If a bigger size
+ * is needed in the future, it is guaranteed that 2 * LZMA_VLI_MAX will
+ * not overflow lzma_vli. This simplifies integer overflow detection.
  */
 typedef uint64_t lzma_vli;
 
 
 /**
- * \brief       Simple macro to validate variable-length integer
+ * \brief       Validate a variable-length integer
  *
  * This is useful to test that application has given acceptable values
  * for example in the uncompressed_size and compressed_size variables.
@@ -68,22 +73,11 @@ typedef uint64_t lzma_vli;
  *              indicates unknown value.
  */
 #define lzma_vli_is_valid(vli) \
-	((vli) <= LZMA_VLI_VALUE_MAX || (vli) == LZMA_VLI_VALUE_UNKNOWN)
+	((vli) <= LZMA_VLI_MAX || (vli) == LZMA_VLI_UNKNOWN)
 
 
 /**
- * \brief       Encodes variable-length integer
- *
- * In the .lzma format, most integers are encoded in variable-length
- * representation. This saves space when smaller values are more likely
- * than bigger values.
- *
- * The encoding scheme encodes seven bits to every byte, using minimum
- * number of bytes required to represent the given value. Encodings that use
- * non-minimum number of bytes are invalid, thus every integer has exactly
- * one encoded representation. The maximum number of bits in a VLI is 63,
- * thus the vli argument must be at maximum of UINT64_MAX / 2. You should
- * use LZMA_VLI_VALUE_MAX for clarity.
+ * \brief       Encode a variable-length integer
  *
  * This function has two modes: single-call and multi-call. Single-call mode
  * encodes the whole integer at once; it is an error if the output buffer is
@@ -93,9 +87,9 @@ typedef uint64_t lzma_vli;
  *
  * \param       vli       Integer to be encoded
  * \param       vli_pos   How many VLI-encoded bytes have already been written
- *                        out. When starting to encode a new integer, *vli_pos
- *                        must be set to zero. To use single-call encoding,
- *                        set vli_pos to NULL.
+ *                        out. When starting to encode a new integer in
+ *                        multi-call mode, *vli_pos must be set to zero.
+ *                        To use single-call encoding, set vli_pos to NULL.
  * \param       out       Beginning of the output buffer
  * \param       out_pos   The next byte will be written to out[*out_pos].
  * \param       out_size  Size of the out buffer; the first byte into
@@ -118,14 +112,12 @@ typedef uint64_t lzma_vli;
  *              - LZMA_BUF_ERROR: No output space was provided.
  *              - LZMA_PROG_ERROR: Arguments are not sane.
  */
-extern lzma_ret lzma_vli_encode(
-		lzma_vli vli, size_t *lzma_restrict vli_pos,
-		uint8_t *lzma_restrict out, size_t *lzma_restrict out_pos,
-		size_t out_size);
+extern LZMA_API(lzma_ret) lzma_vli_encode(lzma_vli vli, size_t *vli_pos,
+		uint8_t *out, size_t *out_pos, size_t out_size) lzma_nothrow;
 
 
 /**
- * \brief       Decodes variable-length integer
+ * \brief       Decode a variable-length integer
  *
  * Like lzma_vli_encode(), this function has single-call and multi-call modes.
  *
@@ -133,9 +125,9 @@ extern lzma_ret lzma_vli_encode(
  *                        initialize it to zero when *vli_pos == 0, so
  *                        application isn't required to initialize *vli.
  * \param       vli_pos   How many bytes have already been decoded. When
- *                        starting to decode a new integer, *vli_pos must
- *                        be initialized to zero. To use single-call decoding,
- *                        set this to NULL.
+ *                        starting to decode a new integer in multi-call
+ *                        mode, *vli_pos must be initialized to zero. To
+ *                        use single-call decoding, set vli_pos to NULL.
  * \param       in        Beginning of the input buffer
  * \param       in_pos    The next byte will be read from in[*in_pos].
  * \param       in_size   Size of the input buffer; the first byte that
@@ -159,16 +151,16 @@ extern lzma_ret lzma_vli_encode(
  *              - LZMA_BUF_ERROR: No input was provided.
  *              - LZMA_PROG_ERROR: Arguments are not sane.
  */
-extern lzma_ret lzma_vli_decode(lzma_vli *lzma_restrict vli,
-		size_t *lzma_restrict vli_pos, const uint8_t *lzma_restrict in,
-		size_t *lzma_restrict in_pos, size_t in_size);
+extern LZMA_API(lzma_ret) lzma_vli_decode(lzma_vli *vli, size_t *vli_pos,
+		const uint8_t *in, size_t *in_pos, size_t in_size)
+		lzma_nothrow;
 
 
 /**
- * \brief       Gets the number of bytes required to encode vli
+ * \brief       Get the number of bytes required to encode a VLI
  *
  * \return      Number of bytes on success (1-9). If vli isn't valid,
  *              zero is returned.
  */
-extern uint32_t lzma_vli_size(lzma_vli vli)
-		lzma_attr_pure;
+extern LZMA_API(uint32_t) lzma_vli_size(lzma_vli vli)
+		lzma_nothrow lzma_attr_pure;

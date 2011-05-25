@@ -29,6 +29,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.util.Progressable;
 
 public class XORDecoder extends Decoder {
   public static final Log LOG = LogFactory.getLog(
@@ -40,38 +41,68 @@ public class XORDecoder extends Decoder {
   }
 
   @Override
-  protected void fixErasedBlock(
+  protected void fixErasedBlockImpl(
       FileSystem fs, Path srcFile, FileSystem parityFs, Path parityFile,
-      long blockSize, long errorOffset, long bytesToSkip, long limit,
-      OutputStream out) throws IOException {
+      long blockSize, long errorOffset, long limit,
+      OutputStream out, Progressable reporter) throws IOException {
     LOG.info("Fixing block at " + srcFile + ":" + errorOffset +
-             ", skipping " + bytesToSkip + ", limit " + limit);
+             ", limit " + limit);
     FileStatus srcStat = fs.getFileStatus(srcFile);
-    ArrayList<FSDataInputStream> xorinputs = new ArrayList<FSDataInputStream>();
+    FSDataInputStream[] inputs = new FSDataInputStream[stripeSize + paritySize];
 
-    FSDataInputStream parityFileIn = parityFs.open(parityFile);
-    parityFileIn.seek(parityOffset(errorOffset, blockSize));
-    xorinputs.add(parityFileIn);
-
-    long errorBlockOffset = (errorOffset / blockSize) * blockSize;
-    long[] srcOffsets = stripeOffsets(errorOffset, blockSize);
-    for (int i = 0; i < srcOffsets.length; i++) {
-      if (srcOffsets[i] == errorBlockOffset) {
-        LOG.info("Skipping block at " + srcFile + ":" + errorBlockOffset);
-        continue;
+    try {
+      long errorBlockOffset = (errorOffset / blockSize) * blockSize;
+      long[] srcOffsets = stripeOffsets(errorOffset, blockSize);
+      for (int i = 0; i < srcOffsets.length; i++) {
+        if (srcOffsets[i] == errorBlockOffset) {
+          inputs[i] = new FSDataInputStream(
+            new RaidUtils.ZeroInputStream(blockSize));
+          LOG.info("Using zeros at " + srcFile + ":" + errorBlockOffset);
+          continue;
+        }
+        if (srcOffsets[i] < srcStat.getLen()) {
+          FSDataInputStream in = fs.open(srcFile);
+          in.seek(srcOffsets[i]);
+          inputs[i] = in;
+        } else {
+          inputs[i] = new FSDataInputStream(
+            new RaidUtils.ZeroInputStream(blockSize));
+          LOG.info("Using zeros at " + srcFile + ":" + errorBlockOffset);
+        }
       }
-      if (srcOffsets[i] < srcStat.getLen()) {
-        FSDataInputStream in = fs.open(srcFile);
-        in.seek(srcOffsets[i]);
-        xorinputs.add(in);
-      }
+      FSDataInputStream parityFileIn = parityFs.open(parityFile);
+      parityFileIn.seek(parityOffset(errorOffset, blockSize));
+      inputs[inputs.length - 1] = parityFileIn;
+    } catch (IOException e) {
+      RaidUtils.closeStreams(inputs);
+      throw e;
     }
-    FSDataInputStream[] inputs = xorinputs.toArray(
-                                    new FSDataInputStream[]{null});
-    ParityInputStream recovered =
-      new ParityInputStream(inputs, limit, readBufs[0], writeBufs[0]);
-    recovered.skip(bytesToSkip);
-    recovered.drain(out, null);
+
+    int boundedBufferCapacity = 1;
+    ParallelStreamReader parallelReader = new ParallelStreamReader(
+      reporter, inputs, bufSize, parallelism, boundedBufferCapacity);
+    parallelReader.start();
+    try {
+      // Loop while the number of skipped + written bytes is less than the max.
+      for (long written = 0; written < limit; ) {
+        ParallelStreamReader.ReadResult readResult;
+        try {
+          readResult = parallelReader.getReadResult();
+        } catch (InterruptedException e) {
+          throw new IOException("Interrupted while waiting for read result");
+        }
+
+        int toWrite = (int)Math.min((long)bufSize, limit - written);
+
+        XOREncoder1.xor(readResult.readBufs, writeBufs[0]);
+
+        out.write(writeBufs[0], 0, toWrite);
+        written += toWrite;
+      }
+    } finally {
+      // Inputs will be closed by parallelReader.shutdown().
+      parallelReader.shutdown();
+    }
   }
 
   protected long[] stripeOffsets(long errorOffset, long blockSize) {

@@ -1089,7 +1089,7 @@ public class JobClient extends Configured implements MRConstants, Tool  {
     JobID jobId = jobSubmitClient.getNewJobId();
     Path submitJobDir = new Path(getSystemDir(), jobId.toString());
     Path sharedFilesDir =
-      new Path(getSystemDir(), "CAR");
+      new Path(getSystemDir(), jobSubmitClient.CAR);
     Path submitSplitFile = new Path(submitJobDir, "job.split");
 
     configureCommandLineOptions(job,
@@ -1154,10 +1154,10 @@ public class JobClient extends Configured implements MRConstants, Tool  {
     // to the user. Here we check only the number of mappers whereas the
     // JobTrcker applies this limit against the sum of mappers and reducers.
     int maxTasks = job.getInt("mapred.jobtracker.maxtasks.per.job", -1);
-    if (maxTasks!= -1 && splits.length > maxTasks) {
+    if (maxTasks!= -1 && splits.length + job.getNumReduceTasks() > maxTasks) {
       throw new IOException(
                 "The number of tasks for this job " +
-                splits.length +
+                (splits.length + job.getNumReduceTasks()) +
                 " exceeds the configured limit " + maxTasks);
     }
 

@@ -20,6 +20,7 @@ package org.apache.hadoop.hdfs.server.datanode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.File;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Random;
@@ -658,5 +659,9 @@ public class SimulatedFSDataset  implements FSConstants, FSDatasetInterface, Con
   
   public boolean hasEnoughResource() {
     return true;
+  }
+
+  public File getBlockFile(Block blk) throws IOException {
+    throw new IOException("getBlockFile not supported.");
   }
 }

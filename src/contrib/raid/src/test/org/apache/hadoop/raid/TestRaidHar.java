@@ -236,7 +236,9 @@ public class TestRaidHar extends TestCase {
           }
           if (count == 1  && listPaths.length == 1) {
             Path partfile = new Path(harPath, "part-0");
-            assertEquals(fileSys.getFileStatus(partfile).getReplication(), targetReplication);
+            FileStatus partStat = fileSys.getFileStatus(partfile);
+            assertEquals(partStat.getReplication(), targetReplication);
+            assertEquals(blockSize, partStat.getBlockSize());
             break;
           }
         } catch (FileNotFoundException e) {

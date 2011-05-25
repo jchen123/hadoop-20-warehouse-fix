@@ -410,8 +410,8 @@ class DataBlockScanner implements Runnable {
     throttler.setBandwidth(Math.min(bw, MAX_SCAN_RATE));
   }
   
-  private void verifyBlock(Block block) {
-    
+  private void verifyBlock(BlockScanInfo blockinfo) {
+    Block block = blockinfo.block;
     BlockSender blockSender = null;
 
     /* In case of failure, attempt to read second time to reduce
@@ -450,7 +450,7 @@ class DataBlockScanner implements Runnable {
         if ( dataset.getFile(block) == null ) {
           LOG.info("Verification failed for " + block + ". Its ok since " +
           "it not in datanode dataset anymore.");
-          deleteBlock(block);
+          delBlockInfo(blockinfo);
           return;
         }
 
@@ -482,10 +482,10 @@ class DataBlockScanner implements Runnable {
   
   // Picks one block and verifies it
   private void verifyFirstBlock() {
-    Block block = null;
+    BlockScanInfo block = null;
     synchronized (this) {
       if ( blockInfoSet.size() > 0 ) {
-        block = blockInfoSet.first().block;
+        block = blockInfoSet.first();
       }
     }
     

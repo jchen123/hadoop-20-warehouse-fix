@@ -20,6 +20,7 @@ package org.apache.hadoop.mapred;
 import java.io.IOException;
 
 import junit.extensions.TestSetup;
+import junit.framework.Assert;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -85,6 +86,8 @@ public class TestSpeculativeExecution extends TestCase {
     conf.setNumMapTasks(3);
     conf.setNumReduceTasks(3);
     conf.setFloat(JobInProgress.SPECULATIVE_SLOWTASK_THRESHOLD, 0.5f);
+    conf.setFloat(JobInProgress.SPECULATIVE_MAP_UNFINISHED_THRESHOLD_KEY, 0);
+    conf.setFloat(JobInProgress.SPECULATIVE_REDUCE_UNFINISHED_THRESHOLD_KEY, 0);
     FakeJobInProgress job = new FakeJobInProgress(conf, jobTracker);
     job.initTasks();
 
@@ -146,6 +149,8 @@ public class TestSpeculativeExecution extends TestCase {
     conf.setSpeculativeExecution(true);
     conf.setNumMapTasks(10);
     conf.setNumReduceTasks(0);
+    conf.setFloat(JobInProgress.SPECULATIVE_MAP_UNFINISHED_THRESHOLD_KEY, 0);
+    conf.setFloat(JobInProgress.SPECULATIVE_REDUCE_UNFINISHED_THRESHOLD_KEY, 0);
     FakeJobInProgress job = new FakeJobInProgress(conf, jobTracker);    
     job.initTasks();
     //schedule some tasks
@@ -187,6 +192,8 @@ public class TestSpeculativeExecution extends TestCase {
     conf.setNumReduceTasks(5);
     conf.setFloat(JobInProgress.SPECULATIVE_SLOWNODE_THRESHOLD, 100f);
     conf.setFloat(JobInProgress.SPECULATIVE_SLOWTASK_THRESHOLD, 0.5f);
+    conf.setFloat(JobInProgress.SPECULATIVE_MAP_UNFINISHED_THRESHOLD_KEY, 0);
+    conf.setFloat(JobInProgress.SPECULATIVE_REDUCE_UNFINISHED_THRESHOLD_KEY, 0);
     FakeJobInProgress job = new FakeJobInProgress(conf, jobTracker);    
     job.initTasks();
     //schedule maps
@@ -210,7 +217,61 @@ public class TestSpeculativeExecution extends TestCase {
     taskAttemptID[5] = job.findReduceTask(trackers[4]);
     assertEquals(taskAttemptID[5].getTaskID().getId(),3);
   }
-  
+
+  /**
+   * tests that a task that has a remaining time less than duration
+   * time 
+   */
+  public void testTaskSpeculationStddevCap() throws IOException {
+    TaskAttemptID[] taskAttemptID = new TaskAttemptID[8];
+    JobConf conf = new JobConf();
+    conf.setSpeculativeExecution(true);
+    conf.setFloat(JobInProgress.SPECULATIVE_STDDEVMEANRATIO_MAX, 0.33f);
+    conf.setNumMapTasks(7);
+    conf.setNumReduceTasks(0);
+    conf.setFloat(JobInProgress.SPECULATIVE_MAP_UNFINISHED_THRESHOLD_KEY, 0);
+    conf.setFloat(JobInProgress.SPECULATIVE_REDUCE_UNFINISHED_THRESHOLD_KEY, 0);
+    FakeJobInProgress job = new FakeJobInProgress(conf, jobTracker);
+    job.initTasks();
+
+    // all but one tasks start off
+    taskAttemptID[0] = job.findMapTask(trackers[0]);
+    taskAttemptID[1] = job.findMapTask(trackers[1]);
+    taskAttemptID[2] = job.findMapTask(trackers[2]);
+    taskAttemptID[3] = job.findMapTask(trackers[0]);
+    taskAttemptID[4] = job.findMapTask(trackers[1]);
+    taskAttemptID[5] = job.findMapTask(trackers[2]);
+
+    // 3 tasks finish really fast in 15s
+    clock.advance (15 * 1000);
+    job.finishTask(taskAttemptID[0]);
+    job.finishTask(taskAttemptID[1]);
+    job.finishTask(taskAttemptID[2]);
+
+    // advance to 600s and schedule last mapper
+    clock.advance (585 * 1000);
+    taskAttemptID[6] = job.findMapTask(trackers[0]);
+
+    // advance to 700s and report progress
+    clock.advance (10 * 60 * 1000);
+
+    // set progress rates
+    job.progressMade(taskAttemptID[3], 0.2f);
+    job.progressMade(taskAttemptID[4], 0.5f);
+    job.progressMade(taskAttemptID[5], 0.6f);
+    job.progressMade(taskAttemptID[6], 0.02f);
+
+    // the progress has been set in such a way that
+    // stddev > mean. now we depend on stddev capping
+    // for speculation.
+
+    taskAttemptID[7] = job.findMapTask(trackers[1]);
+
+    // no new map task should be found
+    if(taskAttemptID[7] ==  null)
+      assertEquals ("true", "false");
+  }
+
   /*
    * Tests the fact that we choose tasks with lesser progress
    * among the possible candidates for speculation
@@ -221,6 +282,8 @@ public class TestSpeculativeExecution extends TestCase {
     conf.setSpeculativeExecution(true);
     conf.setNumMapTasks(5);
     conf.setNumReduceTasks(0);
+    conf.setFloat(JobInProgress.SPECULATIVE_MAP_UNFINISHED_THRESHOLD_KEY, 0);
+    conf.setFloat(JobInProgress.SPECULATIVE_REDUCE_UNFINISHED_THRESHOLD_KEY, 0);
     conf.setFloat(JobInProgress.SPECULATIVE_SLOWTASK_THRESHOLD, 0.5f);
     FakeJobInProgress job = new FakeJobInProgress(conf, jobTracker);
     job.initTasks();
@@ -258,6 +321,8 @@ public class TestSpeculativeExecution extends TestCase {
     conf.setSpeculativeExecution(true);
     conf.setNumMapTasks(2);
     conf.setNumReduceTasks(0);
+    conf.setFloat(JobInProgress.SPECULATIVE_MAP_UNFINISHED_THRESHOLD_KEY, 0);
+    conf.setFloat(JobInProgress.SPECULATIVE_REDUCE_UNFINISHED_THRESHOLD_KEY, 0);
     conf.setFloat(JobInProgress.SPECULATIVE_SLOWTASK_THRESHOLD, 0.5f);
     conf.setMapSpeculativeDuration(300L);
     FakeJobInProgress job = new FakeJobInProgress(conf, jobTracker);
@@ -338,4 +403,45 @@ public class TestSpeculativeExecution extends TestCase {
     }
     return i;
   }
+
+  public void testSpeculateLastTask() throws Exception {
+    TaskAttemptID[] taskAttemptID = new TaskAttemptID[8];
+    JobConf conf = new JobConf();
+    conf.setSpeculativeExecution(true);
+    conf.setNumMapTasks(3);
+    conf.setNumReduceTasks(3);
+    FakeJobInProgress job = new FakeJobInProgress(conf, jobTracker);
+    job.initTasks();
+
+    taskAttemptID[0] = job.findMapTask(trackers[0]);
+    taskAttemptID[1] = job.findMapTask(trackers[1]);
+    taskAttemptID[2] = job.findMapTask(trackers[2]);
+
+    clock.advanceBySpeculativeLag();
+    job.finishTask(taskAttemptID[0]);
+    job.finishTask(taskAttemptID[1]);
+
+    // Speculative last unfinised task
+    taskAttemptID[3] = job.findMapTask(trackers[3]);
+    Assert.assertNotNull(taskAttemptID[3]);
+
+    job.finishTask(taskAttemptID[2]);
+    job.finishTask(taskAttemptID[3]);
+
+    taskAttemptID[4] = job.findReduceTask(trackers[0]);
+    taskAttemptID[5] = job.findReduceTask(trackers[1]);
+    taskAttemptID[6] = job.findReduceTask(trackers[2]);
+
+    clock.advanceBySpeculativeLag();
+    job.finishTask(taskAttemptID[4]);
+    job.finishTask(taskAttemptID[5]);
+
+    // Speculative last unfinised task
+    taskAttemptID[7] = job.findReduceTask(trackers[3]);
+    Assert.assertNotNull(taskAttemptID[7]);
+
+    job.finishTask(taskAttemptID[6]);
+    job.finishTask(taskAttemptID[7]);
+  }
+
 }

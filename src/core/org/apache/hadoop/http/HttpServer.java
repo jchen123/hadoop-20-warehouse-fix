@@ -530,6 +530,8 @@ public class HttpServer implements FilterContainer {
    */
   public void stop() throws Exception {
     listener.close();
+    webAppContext.clearAttributes();
+    webServer.removeHandler(webAppContext);
     webServer.stop();
   }
 

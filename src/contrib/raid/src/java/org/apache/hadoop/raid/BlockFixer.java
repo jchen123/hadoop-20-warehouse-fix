@@ -26,31 +26,29 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.regex.Pattern;
-import java.util.Random;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.channels.SocketChannel;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Random;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
-
-import org.apache.hadoop.util.DataChecksum;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
-import org.apache.hadoop.hdfs.DFSClient.DFSInputStream;
 import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.DataTransferProtocol;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
@@ -62,21 +60,11 @@ import org.apache.hadoop.hdfs.server.common.HdfsConstants;
 import org.apache.hadoop.hdfs.server.datanode.BlockSender;
 import org.apache.hadoop.hdfs.server.datanode.FSDataset;
 import org.apache.hadoop.io.Text;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.BlockMissingException;
-import org.apache.hadoop.fs.ChecksumException;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.util.StringUtils;
-import org.apache.hadoop.util.Progressable;
+import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.net.NetUtils;
-
-import org.apache.hadoop.raid.RaidNode;
-import org.apache.hadoop.raid.RaidUtils;
-import org.apache.hadoop.raid.protocol.PolicyInfo.ErasureCodeType;
+import org.apache.hadoop.util.DataChecksum;
+import org.apache.hadoop.util.Progressable;
+import org.apache.hadoop.util.StringUtils;
 
 
 /**
@@ -88,8 +76,6 @@ import org.apache.hadoop.raid.protocol.PolicyInfo.ErasureCodeType;
  *
  * raid.blockfix.interval          - interval between checks for corrupt files
  *
- * raid.blockfix.history.interval  - interval before fixing same file again
- *
  * raid.blockfix.read.timeout      - read time out
  *
  * raid.blockfix.write.timeout     - write time out
@@ -98,16 +84,12 @@ public abstract class BlockFixer extends Configured implements Runnable {
 
   public static final String BLOCKFIX_CLASSNAME = "raid.blockfix.classname";
   public static final String BLOCKFIX_INTERVAL = "raid.blockfix.interval";
-  public static final String BLOCKFIX_HISTORY_INTERVAL = 
-    "raid.blockfix.history.interval";
   public static final String BLOCKFIX_READ_TIMEOUT = 
     "raid.blockfix.read.timeout";
   public static final String BLOCKFIX_WRITE_TIMEOUT = 
     "raid.blockfix.write.timeout";
 
   public static final long DEFAULT_BLOCKFIX_INTERVAL = 60 * 1000; // 1 min
-  public static final long DEFAULT_BLOCKFIX_HISTORY_INTERVAL =
-    60 * 60 * 1000; // 60 mins
 
   public static BlockFixer createBlockFixer(Configuration conf)
     throws ClassNotFoundException {
@@ -133,27 +115,44 @@ public abstract class BlockFixer extends Configured implements Runnable {
   }
 
   private long numFilesFixed = 0;
+  private long numFileFixFailures = 0;
 
   public volatile boolean running = true;
 
   // interval between checks for corrupt files
   protected long blockFixInterval;
 
-  // interval before fixing same file again
-  protected long historyInterval;
-
   public BlockFixer(Configuration conf) {
     super(conf);
     blockFixInterval =
       getConf().getLong(BLOCKFIX_INTERVAL, DEFAULT_BLOCKFIX_INTERVAL);
-    historyInterval =
-      getConf().getLong(BLOCKFIX_HISTORY_INTERVAL,
-                        DEFAULT_BLOCKFIX_HISTORY_INTERVAL);
   }
 
   @Override
   public abstract void run();
 
+  /**
+   * Returns the number of file fix failures.
+   */
+  public synchronized long fileFixFailures() {
+    return numFileFixFailures;
+  }
+
+  /**
+   * increments the number of failures that have been encountered.
+   */
+  protected synchronized void incrFileFixFailures() {
+    RaidNodeMetrics.getInstance().fileFixFailures.inc();
+    numFileFixFailures++;
+  }
+
+  /**
+   * increments the number of failures that have been encountered.
+   */
+  protected synchronized void incrFileFixFailures(long incr) {
+    RaidNodeMetrics.getInstance().fileFixFailures.inc(incr);
+    numFileFixFailures += incr;
+  }
   /**
    * returns the number of files that have been fixed by this block fixer
    */
@@ -182,17 +181,16 @@ public abstract class BlockFixer extends Configured implements Runnable {
     numFilesFixed += incr;
   }
 
-  static boolean isSourceFile(Path p, String[] destPrefixes) {
-    String pathStr = p.toUri().getPath();
+  static boolean isSourceFile(String p, String[] destPrefixes) {
     for (String destPrefix: destPrefixes) {
-      if (pathStr.startsWith(destPrefix)) {
+      if (p.startsWith(destPrefix)) {
         return false;
       }
     }
     return true;
   }
 
-  void filterUnfixableSourceFiles(Iterator<Path> it) throws IOException {
+  String[] destPrefixes() throws IOException {
     String xorPrefix = RaidNode.xorDestinationPath(getConf()).toUri().getPath();
     if (!xorPrefix.endsWith(Path.SEPARATOR)) {
       xorPrefix += Path.SEPARATOR;
@@ -201,13 +199,39 @@ public abstract class BlockFixer extends Configured implements Runnable {
     if (!rsPrefix.endsWith(Path.SEPARATOR)) {
       rsPrefix += Path.SEPARATOR;
     }
-    String[] destPrefixes = new String[]{xorPrefix, rsPrefix};
+    return new String[]{xorPrefix, rsPrefix};
+  }
+
+  static boolean doesParityDirExist(
+      FileSystem parityFs, String path, String[] destPrefixes)
+      throws IOException {
+    // Check if it is impossible to have a parity file. We check if the
+    // parent directory of the corrupt file exists under a parity path.
+    // If the directory does not exist, the parity file cannot exist.
+    String parentUriPath = new Path(path).getParent().toUri().getPath();
+    // Remove leading '/', if any.
+    if (parentUriPath.startsWith(Path.SEPARATOR)) {
+      parentUriPath = parentUriPath.substring(1);
+    }
+    boolean parityCanExist = false;
+    for (String destPrefix: destPrefixes) {
+      Path parityDir = new Path(destPrefix, parentUriPath);
+      if (parityFs.exists(parityDir)) {
+        parityCanExist = true;
+        break;
+      }
+    }
+    return parityCanExist;
+  }
+
+  void filterUnfixableSourceFiles(FileSystem parityFs, Iterator<String> it)
+      throws IOException {
+    String[] destPrefixes = destPrefixes();
     while (it.hasNext()) {
-      Path p = it.next();
+      String p = it.next();
       if (isSourceFile(p, destPrefixes) &&
-          RaidNode.xorParityForSource(p, getConf()) == null &&
-          RaidNode.rsParityForSource(p, getConf()) == null) {
-        it.remove();
+          !doesParityDirExist(parityFs, p, destPrefixes)) {
+          it.remove();
       }
     }
   }
@@ -224,7 +248,7 @@ public abstract class BlockFixer extends Configured implements Runnable {
 
     private String xorPrefix;
     private String rsPrefix;
-    private XOREncoder xorEncoder;
+    private XOREncoder1 xorEncoder;
     private XORDecoder xorDecoder;
     private ReedSolomonEncoder rsEncoder;
     private ReedSolomonDecoder rsDecoder;
@@ -241,7 +265,7 @@ public abstract class BlockFixer extends Configured implements Runnable {
         rsPrefix += Path.SEPARATOR;
       }
       int stripeLength = RaidNode.getStripeLength(getConf());
-      xorEncoder = new XOREncoder(getConf(), stripeLength);
+      xorEncoder = new XOREncoder1(getConf(), stripeLength);
       xorDecoder = new XORDecoder(getConf(), stripeLength);
       int parityLength = RaidNode.rsParityLength(getConf());
       rsEncoder = new ReedSolomonEncoder(getConf(), stripeLength, parityLength);
@@ -254,6 +278,10 @@ public abstract class BlockFixer extends Configured implements Runnable {
      */
     boolean isXorParityFile(Path p) {
       String pathStr = p.toUri().getPath();
+      return isXorParityFile(pathStr);
+    }
+
+    boolean isXorParityFile(String pathStr) {
       if (pathStr.contains(RaidNode.HAR_SUFFIX)) {
         return false;
       }
@@ -265,20 +293,14 @@ public abstract class BlockFixer extends Configured implements Runnable {
      */
     boolean isRsParityFile(Path p) {
       String pathStr = p.toUri().getPath();
+      return isRsParityFile(pathStr);
+    }
+
+    boolean isRsParityFile(String pathStr) {
       if (pathStr.contains(RaidNode.HAR_SUFFIX)) {
         return false;
       }
       return pathStr.startsWith(rsPrefix);
-    }
-
-    /**
-     * Fix a file, do not report progess.
-     *
-     * @return true if file has been fixed, false if no fixing 
-     * was necessary or possible.
-     */
-    boolean fixFile(Path srcPath) throws IOException {
-      return fixFile(srcPath, new RaidUtils.DummyProgressable());
     }
 
     /**
@@ -288,7 +310,6 @@ public abstract class BlockFixer extends Configured implements Runnable {
      * was necessary or possible.
      */
     boolean fixFile(Path srcPath, Progressable progress) throws IOException {
-      RaidNode.FileStatusCache.clear();
 
       if (RaidNode.isParityHarPartFile(srcPath)) {
         return processCorruptParityHarPartFile(srcPath, progress);
@@ -305,13 +326,14 @@ public abstract class BlockFixer extends Configured implements Runnable {
       }
 
       // The corrupted file is a source file
-      RaidNode.ParityFilePair ppair =
-        RaidNode.xorParityForSource(srcPath, getConf());
+      ParityFilePair ppair = ParityFilePair.getParityFile(
+          ErasureCodeType.XOR, srcPath, getConf());
       Decoder decoder = null;
       if (ppair != null) {
         decoder = xorDecoder;
       } else  {
-        ppair = RaidNode.rsParityForSource(srcPath, getConf());
+        ppair = ParityFilePair.getParityFile(
+            ErasureCodeType.RS, srcPath, getConf());
         if (ppair != null) {
           decoder = rsDecoder;
         }
@@ -329,10 +351,10 @@ public abstract class BlockFixer extends Configured implements Runnable {
     /**
      * Sorts source files ahead of parity files.
      */
-    void sortCorruptFiles(List<Path> files) {
+    void sortCorruptFiles(List<String> files) {
       // TODO: We should first fix the files that lose more blocks
-      Comparator<Path> comp = new Comparator<Path>() {
-        public int compare(Path p1, Path p2) {
+      Comparator<String> comp = new Comparator<String>() {
+        public int compare(String p1, String p2) {
           if (isXorParityFile(p2) || isRsParityFile(p2)) {
             // If p2 is a parity file, p1 is smaller.
             return -1;
@@ -362,7 +384,7 @@ public abstract class BlockFixer extends Configured implements Runnable {
      * @return true if file has been fixed, false if no fixing 
      * was necessary or possible.
      */
-    boolean processCorruptFile(Path srcPath, RaidNode.ParityFilePair parityPair,
+    boolean processCorruptFile(Path srcPath, ParityFilePair parityPair,
                                Decoder decoder, Progressable progress)
       throws IOException {
       LOG.info("Processing corrupt file " + srcPath);
@@ -393,9 +415,9 @@ public abstract class BlockFixer extends Configured implements Runnable {
 
         try {
           decoder.recoverBlockToFile(srcFs, srcPath, parityPair.getFileSystem(),
-                                     parityPair.getPath(), blockSize, 
+                                     parityPair.getPath(), blockSize,
                                      corruptOffset, localBlockFile,
-                                     blockContentsSize);
+                                     blockContentsSize, progress);
 
           // We have a the contents of the block, send them.
           String datanode = chooseDatanode(lb.getLocations());
@@ -432,7 +454,6 @@ public abstract class BlockFixer extends Configured implements Runnable {
       DistributedFileSystem parityFs = getDFS(parityPath);
       FileStatus parityStat = parityFs.getFileStatus(parityPath);
       long blockSize = parityStat.getBlockSize();
-      long parityFileSize = parityStat.getLen();
       FileStatus srcStat = getDFS(srcPath).getFileStatus(srcPath);
       long srcFileSize = srcStat.getLen();
 
@@ -464,7 +485,7 @@ public abstract class BlockFixer extends Configured implements Runnable {
         try {
           encoder.recoverParityBlockToFile(parityFs, srcPath, srcFileSize,
                                            blockSize, parityPath, 
-                                           corruptOffset, localBlockFile);
+                                           corruptOffset, localBlockFile, progress);
           // We have a the contents of the block, send them.
           String datanode = chooseDatanode(lb.getLocations());
           computeMetdataAndSendFixedBlock(
@@ -495,21 +516,14 @@ public abstract class BlockFixer extends Configured implements Runnable {
       // Get some basic information.
       DistributedFileSystem dfs = getDFS(partFile);
       FileStatus partFileStat = dfs.getFileStatus(partFile);
-      long partFileSize = partFileStat.getLen();
       long partFileBlockSize = partFileStat.getBlockSize();
       LOG.info(partFile + " has block size " + partFileBlockSize);
 
       // Find the path to the index file.
       // Parity file HARs are only one level deep, so the index files is at the
       // same level as the part file.
-      String harDirectory = partFile.toUri().getPath(); // Temporarily.
-      harDirectory =
-        harDirectory.substring(0, harDirectory.lastIndexOf(Path.SEPARATOR));
-      Path indexFile = new Path(harDirectory + "/_index");
-      FileStatus indexStat = dfs.getFileStatus(indexFile);
       // Parses through the HAR index file.
-      HarIndex harIndex = new HarIndex(dfs.open(indexFile), indexStat.getLen());
-
+      HarIndex harIndex = HarIndex.getHarIndex(dfs, partFile);
       String uriPath = partFile.toUri().getPath();
       int numBlocksFixed = 0;
       List<LocatedBlock> corrupt = corruptBlocksInFile(dfs, uriPath, 
@@ -601,7 +615,7 @@ public abstract class BlockFixer extends Configured implements Runnable {
                    " and will be recovered from " + srcFile);
           encoder.recoverParityBlockToStream(dfs, srcFile, srcStat.getLen(),
                                              srcStat.getBlockSize(), parityFile,
-                                             corruptOffsetInParity, out);
+                                             corruptOffsetInParity, out, progress);
           // Finished recovery of one parity block. Since a parity block has the
           // same size as a source block, we can move offset by source block 
           // size.
@@ -812,6 +826,7 @@ public abstract class BlockFixer extends Configured implements Runnable {
 
         LOG.info("Sent block " + block + " to " + datanode);
       } finally {
+        sock.close();
         out.close();
       }
     }
@@ -836,7 +851,7 @@ public abstract class BlockFixer extends Configured implements Runnable {
     /**
      * Returns the corrupt blocks in a file.
      */
-    List<LocatedBlock> corruptBlocksInFile(DistributedFileSystem fs,
+    static List<LocatedBlock> corruptBlocksInFile(DistributedFileSystem fs,
                                            String uriPath, FileStatus stat)
       throws IOException {
       List<LocatedBlock> corrupt = new LinkedList<LocatedBlock>();
@@ -850,7 +865,117 @@ public abstract class BlockFixer extends Configured implements Runnable {
       }
       return corrupt;
     }
+
+    static int numCorruptBlocksInFile(DistributedFileSystem fs,
+                                         String uriPath, FileStatus stat)
+        throws IOException {
+      int num = 0;
+      LocatedBlocks locatedBlocks =
+        fs.getClient().namenode.getBlockLocations(uriPath, 0, stat.getLen());
+      for (LocatedBlock b: locatedBlocks.getLocatedBlocks()) {
+        if (b.isCorrupt() ||
+            (b.getLocations().length == 0 && b.getBlockSize() > 0)) {
+          num++;
+        }
+      }
+      return num;
+    }
+
   }
 
+  public abstract Status getStatus();
+
+  public static class Status {
+    final int highPriorityFiles;
+    final int lowPriorityFiles;
+    final List<JobStatus> jobs;
+    final List<String> highPriorityFileNames;
+    final long lastUpdateTime;
+
+    protected Status(int highPriorityFiles, int lowPriorityFiles,
+        List<JobStatus> jobs, List<String> highPriorityFileNames) {
+      this.highPriorityFiles = highPriorityFiles;
+      this.lowPriorityFiles = lowPriorityFiles;
+      this.jobs = jobs;
+      this.highPriorityFileNames = highPriorityFileNames;
+      this.lastUpdateTime = RaidNode.now();
+    }
+
+    @Override
+    public String toString() {
+      String result = BlockFixer.class.getSimpleName() + " Status:";
+      result += " HighPriorityFiles:" + highPriorityFiles;
+      result += " LowPriorityFiles:" + lowPriorityFiles;
+      result += " Jobs:" + jobs.size();
+      return result;
+    }
+
+    public String toHtml(boolean details) {
+      long now = RaidNode.now();
+      String html = "";
+      html += tr(td("High Priority Corrupted Files") + td(":") +
+                 td(StringUtils.humanReadableInt(highPriorityFiles)));
+      html += tr(td("Low Priority Corrupted Files") + td(":") +
+                 td(StringUtils.humanReadableInt(lowPriorityFiles)));
+      html += tr(td("Running Jobs") + td(":") +
+                 td(jobs.size() + ""));
+      html += tr(td("Last Update") + td(":") +
+                 td(StringUtils.formatTime(now - lastUpdateTime) + " ago"));
+      html = JspUtils.tableSimple(html);
+      if (!details) {
+        return html;
+      }
+
+      if (jobs.size() > 0) {
+        String jobTable = tr(JobStatus.htmlRowHeader());
+        for (JobStatus job : jobs) {
+          jobTable += tr(job.htmlRow());
+        }
+        jobTable = JspUtils.table(jobTable);
+        html += "<br>" + jobTable;
+      }
+
+      if (highPriorityFileNames.size() > 0) {
+        String highPriFilesTable = "";
+        highPriFilesTable += tr(td("High Priority Corrupted Files") +
+                                td(":") + td(highPriorityFileNames.get(0)));
+        for (int i = 1; i < highPriorityFileNames.size(); ++i) {
+          highPriFilesTable += tr(td("") + td(":") +
+                                  td(highPriorityFileNames.get(i)));
+        }
+        highPriFilesTable = JspUtils.tableSimple(highPriFilesTable);
+        html += "<br>" + highPriFilesTable;
+      }
+
+      return html;
+    }
+  }
+
+  public static class JobStatus {
+    final String id;
+    final String name;
+    final String url;
+    JobStatus(JobID id, String name, String url) {
+      this.id = id == null ? "" : id.toString();
+      this.name = name == null ? "" : name;
+      this.url = url == null ? "" : url;
+    }
+    @Override
+    public String toString() {
+      return "id:" + id + " name:" + name + " url:" + url;
+    }
+    public static String htmlRowHeader() {
+      return td("JobID") + td("JobName");
+    }
+    public String htmlRow() {
+      return td(JspUtils.link(id, url)) + td(name);
+    }
+  }
+  private static String td(String s) {
+    return JspUtils.td(s);
+  }
+  private static String tr(String s) {
+    return JspUtils.tr(s);
+  }
 }
 

@@ -69,6 +69,7 @@ public class AvatarShell extends Configured implements Tool {
   static {
     Configuration.addDefaultResource("hdfs-default.xml");
     Configuration.addDefaultResource("hdfs-site.xml");
+    Configuration.addDefaultResource("avatar-site.xml");
   }
 
   public AvatarProtocol avatarnode;
@@ -163,14 +164,7 @@ public class AvatarShell extends Configured implements Tool {
         rpcAvatarnode, methodNameToPolicyMap);
   }
 
-  private void checkOpen() throws IOException {
-    if (!clientRunning) {
-      IOException result = new IOException("AvatarNode closed");
-      throw result;
-    }
-  }
-
-  /**
+    /**
    * Close the connection to the avatarNode.
    */
   public synchronized void close() throws IOException {
@@ -184,19 +178,12 @@ public class AvatarShell extends Configured implements Tool {
    * Displays format of commands.
    */
   private static void printUsage(String cmd) {
-    String prefix = "Usage: java " + AvatarShell.class.getSimpleName();
     if ("-showAvatar".equals(cmd)) {
       System.err.println("Usage: java AvatarShell"
           + " [-{zero|one} -showAvatar]");
     } else if ("-setAvatar".equals(cmd)) {
       System.err.println("Usage: java AvatarShell"
           + " [-{zero|one} -setAvatar {primary|standby}]");
-    } else if ("-updateZK".equals(cmd)) {
-      System.err.println("Usage: java AvatarShell" +
-          " [-{zero|one} -updateZK]");
-    } else if ("-clearZK".equals(cmd)) {
-      System.err.println("Usage: java AvatarShell" +
-          " [-{zero|one} -clearZK]");
     } else if ("-shutdownAvatar".equals(cmd)) {
       System.err.println("Usage: java AvatarShell" +
           " [-{zero|one} -shutdownAvatar]");
@@ -204,8 +191,6 @@ public class AvatarShell extends Configured implements Tool {
       System.err.println("Usage: java AvatarShell");
       System.err.println("           [-{zero|one} -showAvatar ]");
       System.err.println("           [-{zero|one} -setAvatar {primary|standby}]");
-      System.err.println("           [-{zero|one} -updateZK]");
-      System.err.println("           [-{zero|one} -clearZK]");
       System.err.println("           [-{zero|one} -shutdownAvatar]");
       System.err.println();
       ToolRunner.printGenericCommandUsage(System.err);
@@ -256,16 +241,6 @@ public class AvatarShell extends Configured implements Tool {
         printUsage(cmd);
         return exitCode;
       }
-    } else if ("-updateZK".equals(cmd)) {
-      if (argv.length < 2) {
-        printUsage(cmd);
-        return exitCode;
-      }
-    } else if ("-clearZK".equals(cmd)) {
-      if (argv.length < 2) {
-        printUsage(cmd);
-        return exitCode;
-      }
     } else if ("-shutdownAvatar".equals(cmd)) {
       if (argv.length < 2) {
         printUsage(cmd);
@@ -278,11 +253,6 @@ public class AvatarShell extends Configured implements Tool {
         exitCode = showAvatar(cmd, argv, i);
       } else if ("-setAvatar".equals(cmd)) {
         exitCode = setAvatar(cmd, argv, i);
-      } else if ("-updateZK".equals(cmd)) {
-        updateZooKeeper();
-        
-      } else if ("-clearZK".equals(cmd)) {
-        clearZooKeeper();
       } else if ("-shutdownAvatar".equals(cmd)) {
         shutdownAvatar();
       } else {
@@ -304,7 +274,6 @@ public class AvatarShell extends Configured implements Tool {
         String[] content;
         content = e.getLocalizedMessage().split("\n");
         System.err.println(cmd.substring(1) + ": " + content[0]);
-        e.printStackTrace();
       } catch (Exception ex) {
         System.err.println(cmd.substring(1) + ": " + ex.getLocalizedMessage());
       }
@@ -313,11 +282,9 @@ public class AvatarShell extends Configured implements Tool {
       // IO exception encountered locally.
       // 
       exitCode = -1;
-      e.printStackTrace();
       System.err.println(cmd.substring(1) + ": " + e.getLocalizedMessage());
     } catch (Throwable re) {
       exitCode = -1;
-      re.printStackTrace();
       System.err.println(cmd.substring(1) + ": " + re.getLocalizedMessage());
     } finally {
     }
@@ -342,13 +309,13 @@ public class AvatarShell extends Configured implements Tool {
    */
   public int setAvatar(String cmd, String argv[], int startindex)
       throws IOException {
-    int exitCode = 0;
     String input = argv[startindex];
     Avatar dest;
     if (Avatar.ACTIVE.toString().equalsIgnoreCase(input)) {
       dest = Avatar.ACTIVE;
     } else if (Avatar.STANDBY.toString().equalsIgnoreCase(input)) {
-      dest = Avatar.STANDBY;
+      throw new IOException("setAvatar Command only works to switch avatar" +
+      		" from Standby to Primary");
     } else {
       throw new IOException("Unknown avatar type " + input);
     }
@@ -371,7 +338,7 @@ public class AvatarShell extends Configured implements Tool {
     Avatar avatar = avatarnode.getAvatar();
     if (avatar != Avatar.ACTIVE) {
       throw new IOException("Cannot clear zookeeper because the node " +
-      		" provided is not Active");
+      		" provided is not Primary");
     }
     String connection = conf.get("fs.ha.zookeeper.quorum");
     if (connection == null)

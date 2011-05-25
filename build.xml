@@ -365,21 +365,6 @@
   </target>
 
   <target name="compile-mapred-classes" depends="compile-core-classes">
-    <!-- Compile Java files (excluding JSPs) checking warnings -->
-    <javac
-     encoding="${build.encoding}"
-     srcdir="${mapred.src.dir}"
-     includes="org/apache/hadoop/**/*.java"
-     destdir="${build.classes}"
-     debug="${javac.debug}"
-     optimize="${javac.optimize}"
-     target="${javac.version}"
-     source="${javac.version}"
-     deprecation="${javac.deprecation}">
-      <compilerarg line="${javac.args} ${javac.args.warnings}" />
-      <classpath refid="classpath"/>
-    </javac>
-
     <jsp-compile
      uriroot="${src.webapps}/task"
      outputdir="${build.src}"
@@ -394,14 +379,10 @@
      webxml="${build.webapps}/job/WEB-INF/web.xml">
     </jsp-compile>
 
-   <subant target="compile">
-      <property name="version" value="${version}"/>
-      <fileset file="${contrib.dir}/fairscheduler/build.xml"/>
-   </subant>
-
+    <!-- Compile Java files (excluding JSPs) checking warnings -->
     <javac
      encoding="${build.encoding}"
-     srcdir="${build.src}"
+     srcdir="${mapred.src.dir};${build.src}"
      includes="org/apache/hadoop/**/*.java"
      destdir="${build.classes}"
      debug="${javac.debug}"
@@ -410,10 +391,7 @@
      source="${javac.version}"
      deprecation="${javac.deprecation}">
       <compilerarg line="${javac.args} ${javac.args.warnings}" />
-      <classpath>
-         <path location="${build.dir}/contrib/fairscheduler/classes"/>
-         <path refid="classpath"/>
-      </classpath>
+      <classpath refid="classpath"/>
     </javac>
 
     <copy todir="${build.classes}">
@@ -494,45 +472,50 @@
     <mkdir dir="${build.native}/src/org/apache/hadoop/io/compress/zlib"/>
     <mkdir dir="${build.native}/src/org/apache/hadoop/io/compress/lzma"/>
 
-  	<javah
-  	  classpath="${build.classes}"
-  	  destdir="${build.native}/src/org/apache/hadoop/io/compress/zlib"
+    <javah
+      classpath="${build.classes}"
+      destdir="${build.native}/src/org/apache/hadoop/io/compress/zlib"
       force="yes"
-  	  verbose="yes"
-  	  >
-  	  <class name="org.apache.hadoop.io.compress.zlib.ZlibCompressor" />
+      verbose="yes"
+      >
+      <class name="org.apache.hadoop.io.compress.zlib.ZlibCompressor" />
       <class name="org.apache.hadoop.io.compress.zlib.ZlibDecompressor" />
-  	</javah>
+    </javah>
 
-        <javah
-          classpath="${build.classes}"
-          destdir="${build.native}/src/org/apache/hadoop/io/compress/lzma"
+    <javah
+      classpath="${build.classes}"
+      destdir="${build.native}/src/org/apache/hadoop/io/compress/lzma"
       force="yes"
-          verbose="yes"
-          >
-          <class name="org.apache.hadoop.io.compress.lzma.LzmaCompressor" />
+      verbose="yes"
+      >
+      <class name="org.apache.hadoop.io.compress.lzma.LzmaCompressor" />
       <class name="org.apache.hadoop.io.compress.lzma.LzmaDecompressor" />
-        </javah>
+    </javah>
 
-	<exec dir="${build.native}" executable="sh" failonerror="true">
-	  <env key="OS_NAME" value="${os.name}"/>
-	  <env key="OS_ARCH" value="${os.arch}"/>
-	  <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
-	  <env key="HADOOP_NATIVE_SRCDIR" value="${native.src.dir}"/>
-	  <arg line="${native.src.dir}/configure LDFLAGS='-L${basedir}/nativelib/lzma' CPPFLAGS='-I${basedir}/nativelib/lzma'"/>
+    <exec dir="${build.native}" executable="sh" failonerror="true">
+      <env key="OS_NAME" value="${os.name}"/>
+      <env key="OS_ARCH" value="${os.arch}"/>
+      <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
+      <env key="HADOOP_NATIVE_SRCDIR" value="${native.src.dir}"/>
+      <arg line="${native.src.dir}/configure LDFLAGS='-L${basedir}/nativelib/lzma' CPPFLAGS='-I${basedir}/nativelib/lzma'"/>
     </exec>
 
     <exec dir="${build.native}" executable="${make.cmd}" failonerror="true">
       <env key="OS_NAME" value="${os.name}"/>
       <env key="OS_ARCH" value="${os.arch}"/>
-  	  <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
-  	  <env key="HADOOP_NATIVE_SRCDIR" value="${native.src.dir}"/>
+      <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
+      <env key="HADOOP_NATIVE_SRCDIR" value="${native.src.dir}"/>
     </exec>
 
-	<exec dir="${build.native}" executable="sh" failonerror="true">
-	  <arg line="${build.native}/libtool --mode=install cp ${build.native}/lib/libhadoop.la ${build.native}/lib"/>
+    <exec dir="${build.native}" executable="sh" failonerror="true">
+      <arg line="${build.native}/libtool --mode=install cp ${build.native}/lib/libhadoop.la ${build.native}/lib"/>
     </exec>
-    <copy file="${basedir}/nativelib/lzma/liblzma.so" todir="${build.native}/lib"/>
+    <delete>
+      <fileset dir="${build.native}/lib" includes="liblzma.so*"/>
+    </delete>
+    <copy file="${basedir}/nativelib/lzma/liblzma.so" tofile="${build.native}/lib/liblzma.so"/>
+    <copy file="${basedir}/nativelib/lzma/liblzma.so" tofile="${build.native}/lib/liblzma.so.0"/>
+    <copy file="${basedir}/nativelib/lzma/liblzma.so" tofile="${build.native}/lib/liblzma.so.5"/>
   </target>
 
   <target name="compile-core"
@@ -722,7 +705,7 @@
     <copy file="${test.src.dir}/org/apache/hadoop/mapred/sharedTest1/sharedTest.txt" tofile="${test.cache.data}/sharedTest1/sharedTest2.txt"/>
     <copy file="${test.src.dir}/org/apache/hadoop/mapred/sharedTest2/sharedTest.txt" todir="${test.cache.data}/sharedTest2"/>
     <copy file="${test.src.dir}/org/apache/hadoop/mapred/sharedTest1/sharedTest.zip" todir="${test.cache.data}/sharedTest1"/>
-    <copy file="${test.src.dir}/org/apache/hadoop/hdfs/hadoop-14-dfs-dir.tgz" todir="${test.cache.data}"/>
+    <copy file="${test.src.dir}/org/apache/hadoop/hdfs/hadoop-26-dfs-dir.tgz" todir="${test.cache.data}"/>
     <copy file="${test.src.dir}/org/apache/hadoop/hdfs/hadoop-dfs-dir.txt" todir="${test.cache.data}"/>
     <copy file="${test.src.dir}/org/apache/hadoop/cli/testConf.xml" todir="${test.cache.data}"/>
     <copy file="${test.src.dir}/org/apache/hadoop/cli/clitest_data/data15bytes" todir="${test.cache.data}"/>
@@ -784,6 +767,7 @@
        value="${build.native}/lib:${lib.dir}/native/${build.platform}"/>
       <sysproperty key="install.c++.examples" value="${install.c++.examples}"/>
       <sysproperty key="user.home" value="${test.user.home}"/>
+      <env key="LD_LIBRARY_PATH" value="${build.native}/lib${path.separator}${env.LD_LIBRARY_PATH}"/>
       <!-- set io.compression.codec.lzo.class in the child jvm only if it is set -->
 	  <syspropertyset dynamic="no">
 		  <propertyref name="io.compression.codec.lzo.class"/>
@@ -1297,6 +1281,14 @@
     <delete dir="${build.dir}"/>
     <delete dir="${docs.src}/build"/>
     <delete file="${jdiff.xml.dir}/hadoop_${version}.xml"/>
+    <delete file="${conf.dir}/hdfs-site.xml"/>
+    <delete file="${conf.dir}/core-site.xml"/>
+    <delete file="${conf.dir}/hadoop-policy.xml"/>
+    <delete file="${conf.dir}/capacity-scheduler.xml"/>
+    <delete file="${conf.dir}/mapred-site.xml"/>
+    <delete file="${conf.dir}/mapred-queue-acls.xml"/>
+    <delete file="${conf.dir}/slaves"/>
+    <delete file="${conf.dir}/masters"/>
   </target>
 
   <!-- ================================================================== -->

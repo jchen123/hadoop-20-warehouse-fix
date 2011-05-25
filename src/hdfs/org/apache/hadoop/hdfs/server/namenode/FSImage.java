@@ -36,6 +36,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -125,7 +126,20 @@ public class FSImage extends Storage {
   private boolean isUpgradeFinalized = false;
   MD5Hash imageDigest = null;
   MD5Hash checkpointImageDigest = null;
+
+  /**
+   * flag that controls if we try to restore failed storages
+   */
+  private boolean restoreFailedStorage = false;
+  public void setRestoreFailedStorage(boolean val) {
+    LOG.info("enabled failed storage replicas restore");
+    restoreFailedStorage=val;
+  }
   
+  public boolean getRestoreFailedStorage() {
+    return restoreFailedStorage;
+  }
+
   /**
    * list of failed (and thus removed) storages
    */
@@ -143,6 +157,7 @@ public class FSImage extends Storage {
   private boolean compressImage = false;  // if image should be compressed
   private CompressionCodec saveCodec;     // the compression codec
   private CompressionCodecFactory codecFac;  // all the supported codecs
+  private boolean saveOnStartup; // Should the namenode save image on startup or not
 
   DataTransferThrottler imageTransferThrottler = null; // throttle image transfer
   
@@ -163,6 +178,15 @@ public class FSImage extends Storage {
                             };
   static private final byte[] PATH_SEPARATOR = DFSUtil.string2Bytes(Path.SEPARATOR);
 
+  /* 
+   * stores a temporary string used to serailize/deserialize objects to fsimage
+   */
+  private static final ThreadLocal<UTF8> U_STR = new ThreadLocal<UTF8>() {
+    protected synchronized UTF8 initialValue() {
+      return new UTF8();
+    }
+  };
+
   /**
    */
   FSImage() {
@@ -182,6 +206,9 @@ public class FSImage extends Storage {
         HdfsConstants.DFS_IMAGE_COMPRESS_KEY,
         HdfsConstants.DFS_IMAGE_COMPRESS_DEFAULT);
     this.codecFac = new CompressionCodecFactory(conf);
+    this.saveOnStartup = conf.getBoolean(
+        HdfsConstants.DFS_IMAGE_SAVE_ON_START_KEY,
+        HdfsConstants.DFS_IMAGE_SAVE_ON_START_DEFAULT);
     if (this.compressImage) {
       String codecClassName = conf.get(
           HdfsConstants.DFS_IMAGE_COMPRESSION_CODEC_KEY,
@@ -710,12 +737,13 @@ public class FSImage extends Storage {
         writeCheckpointTime(sd);
       } catch(IOException e) {
         // Close any edits stream associated with this dir and remove directory
-     if (sd.getStorageDirType().isOfType(NameNodeDirType.EDITS))
-       editLog.processIOError(sd);
-     
-   //add storage to the removed list
-     removedStorageDirs.add(sd);
-     it.remove();
+        LOG.warn("incrementCheckpointTime failed on " + sd.getRoot().getPath() + ";type="+sd.getStorageDirType());
+        if (sd.getStorageDirType().isOfType(NameNodeDirType.EDITS))
+          editLog.processIOError(sd);
+
+        //add storage to the removed list
+        removedStorageDirs.add(sd);
+        it.remove();
       }
     }
   }
@@ -723,16 +751,48 @@ public class FSImage extends Storage {
   /**
    * Remove storage directory given directory
    */
-  
   void processIOError(File dirName) {
     for (Iterator<StorageDirectory> it = 
       dirIterator(); it.hasNext();) {
       StorageDirectory sd = it.next();
       if (sd.getRoot().getPath().equals(dirName.getPath())) {
         //add storage to the removed list
-        LOG.info(" removing " + dirName.getPath());
+        LOG.warn("FSImage:processIOError: removing storage: " + dirName.getPath());
+        try {
+          sd.unlock(); //try to unlock before removing (in case it is restored)
+        } catch (Exception e) {
+          LOG.info("Unable to unlock bad storage directory : " +  dirName.getPath());
+        }
         removedStorageDirs.add(sd);
         it.remove();
+      }
+    }
+  }
+
+  /**
+   * @param sds - array of SDs to process
+   */
+  void processIOError(List<StorageDirectory> sds) {
+    ArrayList<EditLogOutputStream> al = null;
+    synchronized (sds) {
+      for (StorageDirectory sd : sds) {
+        for (Iterator<StorageDirectory> it = dirIterator(); it.hasNext();) {
+          StorageDirectory sd1 = it.next();
+          if (sd.equals(sd1)) {
+            // add storage to the removed list
+            LOG.warn("FSImage:processIOError: removing storage: "
+                + sd.getRoot().getPath());
+            try {
+              sd1.unlock(); // unlock before removing (in case it will be
+                            // restored)
+            } catch (Exception e) {
+              LOG.info("Unable to unlock bad storage directory : " +  sd.getRoot().getPath());
+            }
+            removedStorageDirs.add(sd1);
+            it.remove();
+            break;
+          }
+        }
       }
     }
   }
@@ -844,9 +904,10 @@ public class FSImage extends Storage {
       }
       
       checkpointTime = readCheckpointTime(sd);
-      if ((checkpointTime != Long.MIN_VALUE) && 
-          ((checkpointTime != latestNameCheckpointTime) || 
-           (checkpointTime != latestEditsCheckpointTime))) {
+      if ((checkpointTime != latestNameCheckpointTime &&
+            latestNameCheckpointTime != Long.MIN_VALUE) || 
+           (checkpointTime != latestEditsCheckpointTime &&
+            latestEditsCheckpointTime != Long.MIN_VALUE)) {
         // Force saving of new image if checkpoint time
         // is not same in all of the storage directories.
         needToSave |= true;
@@ -886,9 +947,9 @@ public class FSImage extends Storage {
     //
     latestNameSD.read();
     needToSave |= loadFSImage(getImageFile(latestNameSD, NameNodeFile.IMAGE));
-    
+
     // Load latest edits
-    needToSave |= (loadFSEdits(latestEditsSD) > 0);
+    needToSave |= ((loadFSEdits(latestEditsSD) > 0));
     
     return needToSave;
   }
@@ -975,7 +1036,12 @@ public class FSImage extends Storage {
       byte[][] pathComponents;
       byte[][] parentPath = {{}};      
       INodeDirectory parentINode = fsDir.rootDir;
+      int percentDone = 0;
       for (long i = 0; i < numFiles; i++) {
+        if (i * 100 / numFiles > percentDone) {
+          percentDone = (int)(i * 100 / numFiles);
+          LOG.info("Loaded " + percentDone + "% of the image");
+        }
         long modificationTime = 0;
         long atime = 0;
         long blockSize = 0;
@@ -1060,6 +1126,9 @@ public class FSImage extends Storage {
       // load Files Under Construction
       this.loadFilesUnderConstruction(imgVersion, in, fsNamesys);
       
+       // make sure to read to the end of file
+       int eof = in.read();
+       assert eof == -1 : "Should have reached the end of image file " + curFile;
     } finally {
       in.close();
     }
@@ -1139,6 +1208,15 @@ public class FSImage extends Storage {
    * Save the contents of the FS image to the file.
    */
   void saveFSImage(File newFile) throws IOException {
+    saveFSImage(newFile, false);
+  }
+  
+  /**
+   * Save the contents of the FS image to the file.
+   * If forceUncompressed, the image will be saved uncompressed regardless of
+   * the fsimage compression configuration.
+   */
+  void saveFSImage(File newFile, boolean forceUncompressed) throws IOException {
     FSNamesystem fsNamesys = FSNamesystem.getFSNamesystem();
     FSDirectory fsDir = fsNamesys.dir;
     long startTime = FSNamesystem.now();
@@ -1149,15 +1227,18 @@ public class FSImage extends Storage {
     MessageDigest digester = MD5Hash.getDigester();
     DigestOutputStream fout = new DigestOutputStream(fstream, digester);
     DataOutputStream out = new DataOutputStream(fout);
-    long numOfBytesWritten = 0;
     try {
       out.writeInt(FSConstants.LAYOUT_VERSION);
       out.writeInt(namespaceID);
       out.writeLong(fsDir.rootDir.numItemsInTree());
       out.writeLong(fsNamesys.getGenerationStamp());
       
-      out.writeBoolean(compressImage);
-      if (compressImage) {
+      if (forceUncompressed) {
+        out.writeBoolean(false);
+      } else {
+        out.writeBoolean(compressImage);
+      }
+      if (!forceUncompressed && compressImage) {
         String codecClassName = saveCodec.getClass().getCanonicalName();
         Text.writeString(out, codecClassName);
         out = new DataOutputStream(saveCodec.createOutputStream(fout));
@@ -1178,27 +1259,27 @@ public class FSImage extends Storage {
       
       out.flush();
       fstream.getChannel().force(true);
-      numOfBytesWritten = fstream.getChannel().position();
     } finally {
       out.close();
     }
     // set md5 of the saved image
     imageDigest = new MD5Hash(digester.digest());
 
-    long imageFileLen = newFile.length();
-    if (numOfBytesWritten != imageFileLen) {
-      throw new IOException("Something is wrong: write " + numOfBytesWritten +
-          " bytes but the image file length is " + imageFileLen);
-    }
-    LOG.info("Image file of size " + imageFileLen + " saved in " 
+    LOG.info("Image file of size " + newFile.length() + " saved in " 
         + (FSNamesystem.now() - startTime)/1000 + " seconds.");
   }
   
   private class FSImageSaver implements Runnable {
+    private StorageDirectory sd;
     private File imageFile;
+    private List<StorageDirectory> errorSDs;
+    private boolean forceUncompressed;
     
-    FSImageSaver(File imageFile) {
-      this.imageFile = imageFile;
+    FSImageSaver(StorageDirectory sd, List<StorageDirectory> errorSDs,boolean forceUncompressed) {
+      this.sd = sd;
+      this.errorSDs = errorSDs;
+      this.imageFile = getImageFile(sd, NameNodeFile.IMAGE_NEW);
+      this.forceUncompressed = forceUncompressed;
     }
     
     public String toString() {
@@ -1207,9 +1288,10 @@ public class FSImage extends Storage {
     
     public void run() {
       try {
-        saveFSImage(imageFile);
+        saveFSImage(imageFile, forceUncompressed);
       } catch (IOException ex) {
         LOG.error("Unable to write image to " + imageFile.getAbsolutePath());
+        errorSDs.add(sd);
       }
     }
   }
@@ -1219,15 +1301,33 @@ public class FSImage extends Storage {
    * and create empty edits.
    */
   public void saveFSImage() throws IOException {
+    saveFSImage(false);
+  }
+  
+  /**
+   * Save the contents of the FS image
+   * and create empty edits.
+   * If forceUncompressed, the image will be saved uncompressed regardless of
+   * the fsimage compression configuration.
+   */
+  public void saveFSImage(boolean forUncompressed) throws IOException {
+
+    // try to restore all failed edit logs here
+    assert editLog != null : "editLog must be initialized";
+    attemptRestoreRemovedStorage(true);
+
+   List<StorageDirectory> errorSDs =
+      Collections.synchronizedList(new ArrayList<StorageDirectory>());
+
     editLog.createNewIfMissing();
+    editLog.close(); // close all open streams before truncating
     List<Thread> savers = new ArrayList<Thread>();
     for (Iterator<StorageDirectory> it = 
                            dirIterator(); it.hasNext();) {
       StorageDirectory sd = it.next();
       NameNodeDirType dirType = (NameNodeDirType)sd.getStorageDirType();
       if (dirType.isOfType(NameNodeDirType.IMAGE)) {
-        FSImageSaver saver = new FSImageSaver(
-            getImageFile(sd, NameNodeFile.IMAGE_NEW));
+        FSImageSaver saver = new FSImageSaver(sd, errorSDs, forUncompressed);
         Thread saverThread = new Thread(saver, saver.toString());
         savers.add(saverThread);
         saverThread.start();
@@ -1250,6 +1350,7 @@ public class FSImage extends Storage {
         }
       } 
     }
+    processIOError(errorSDs);
     ckptState = CheckpointStates.UPLOAD_DONE;
     rollFSImage(imageDigest);
   }
@@ -1514,7 +1615,7 @@ public class FSImage extends Storage {
       }
     }
     editLog.purgeEditLog(); // renamed edits.new to edits
-
+    LOG.debug("rollFSImage after purgeEditLog: storageList=" + listStorageDirectories());
     //
     // Renames new image
     //
@@ -1525,13 +1626,18 @@ public class FSImage extends Storage {
       File curFile = getImageFile(sd, NameNodeFile.IMAGE);
       // renameTo fails on Windows if the destination file 
       // already exists.
+      LOG.debug("renaming  " + ckpt.getAbsolutePath() + " to "  + curFile.getAbsolutePath());
       if (!ckpt.renameTo(curFile)) {
         curFile.delete();
         if (!ckpt.renameTo(curFile)) {
+          LOG.warn("renaming  " + ckpt.getAbsolutePath() + " to "  + 
+              curFile.getAbsolutePath() + " FAILED");
+          
           // Close edit stream, if this directory is also used for edits
           if (sd.getStorageDirType().isOfType(NameNodeDirType.EDITS))
             editLog.processIOError(sd);
-        // add storage to the removed list
+          
+          // add storage to the removed list
           removedStorageDirs.add(sd);
           it.remove();
         }
@@ -1626,6 +1732,44 @@ public class FSImage extends Storage {
   return getImageFile(sd, NameNodeFile.IMAGE); 
   }
 
+  /**
+   * See if any of removed storages iw "writable" again, and can be returned 
+   * into service
+   */
+  void attemptRestoreRemovedStorage(boolean saveNamespace) {   
+    // if directory is "alive" - copy the images there...
+    if(!restoreFailedStorage || removedStorageDirs.size() == 0) 
+      return; //nothing to restore
+    
+    LOG.info("FSImage.attemptRestoreRemovedStorage: check removed(failed) " +
+    		"storarge. removedStorages size = " + removedStorageDirs.size());
+    for(Iterator<StorageDirectory> it = this.removedStorageDirs.iterator(); it.hasNext();) {
+      StorageDirectory sd = it.next();
+      File root = sd.getRoot();
+      LOG.info("currently disabled dir " + root.getAbsolutePath() + 
+          "; type="+sd.getStorageDirType() + ";canwrite="+root.canWrite());
+      try {
+        
+        if(root.exists() && root.canWrite()) { 
+          /** If this call is being made from savenamespace command, then no
+           * need to format, the savenamespace command will format and write
+           * the new image to this directory anyways.
+           */
+          if (saveNamespace) {
+            sd.clearDirectory();
+          } else {
+            format(sd);
+          }
+          LOG.info("restoring dir " + sd.getRoot().getAbsolutePath());
+          this.addStorageDir(sd); // restore
+          it.remove();
+        }
+      } catch(IOException e) {
+        LOG.warn("failed to restore " + sd.getRoot().getAbsolutePath(), e);
+      }
+    }    
+  }
+  
   public File getFsEditName() throws IOException {
     return getEditLog().getFsEditName();
   }
@@ -1783,10 +1927,9 @@ public class FSImage extends Storage {
  return dirs;    
   }
 
-  static private final UTF8 U_STR = new UTF8();
   static String readString(DataInputStream in) throws IOException {
-    U_STR.readFields(in);
-    return U_STR.toString();
+    U_STR.get().readFields(in);
+    return U_STR.get().toString();
   }
   
     
@@ -1801,8 +1944,8 @@ public class FSImage extends Storage {
    */
   public static byte[][] readPathComponents(DataInputStream in)
       throws IOException {
-    U_STR.readFields(in);
-    return DFSUtil.bytes2byteArray(U_STR.getBytes(), U_STR.getLength(),
+    U_STR.get().readFields(in);
+    return DFSUtil.bytes2byteArray(U_STR.get().getBytes(), U_STR.get().getLength(),
         (byte) Path.SEPARATOR_CHAR);
 
   }
@@ -1813,15 +1956,15 @@ public class FSImage extends Storage {
   }
 
   static byte[] readBytes(DataInputStream in) throws IOException {
-    U_STR.readFields(in);
-    int len = U_STR.getLength();
+    U_STR.get().readFields(in);
+    int len = U_STR.get().getLength();
     byte[] bytes = new byte[len];
-    System.arraycopy(U_STR.getBytes(), 0, bytes, 0, len);
+    System.arraycopy(U_STR.get().getBytes(), 0, bytes, 0, len);
     return bytes;
   }
 
   static void writeString(String str, DataOutputStream out) throws IOException {
-    U_STR.set(str);
-    U_STR.write(out);
+    U_STR.get().set(str);
+    U_STR.get().write(out);
   }
 }

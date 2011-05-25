@@ -18,72 +18,58 @@
 package org.apache.hadoop.hdfs;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.GregorianCalendar;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Properties;
 import java.util.Random;
 import java.util.zip.CRC32;
 
 import junit.framework.TestCase;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
-import org.apache.hadoop.util.StringUtils;
-import org.apache.hadoop.fs.BlockLocation;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FilterFileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.hadoop.hdfs.protocol.ClientProtocol;
-import org.apache.hadoop.hdfs.protocol.LocatedBlock;
-import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
 import org.apache.hadoop.hdfs.protocol.Block;
-import org.apache.hadoop.hdfs.DistributedFileSystem;
-import org.apache.hadoop.hdfs.DistributedRaidFileSystem;
+import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
+import org.apache.hadoop.raid.ErasureCodeType;
+import org.apache.hadoop.raid.ParityFilePair;
 import org.apache.hadoop.raid.RaidNode;
-import org.apache.hadoop.raid.protocol.PolicyInfo;
+import org.apache.hadoop.raid.RaidUtils;
+import org.apache.hadoop.util.StringUtils;
 
 public class TestRaidDfs extends TestCase {
   final static String TEST_DIR = new File(System.getProperty("test.build.data",
       "build/contrib/raid/test/data")).getAbsolutePath();
-  final static String CONFIG_FILE = new File(TEST_DIR, 
-      "test-raid.xml").getAbsolutePath();
   final static long RELOAD_INTERVAL = 1000;
   final static Log LOG = LogFactory.getLog("org.apache.hadoop.raid.TestRaidDfs");
   final static int NUM_DATANODES = 3;
+  static {
+    ParityFilePair.disableCacheUsedInTestOnly();
+  }
 
   Configuration conf;
   String namenode = null;
   String hftp = null;
   MiniDFSCluster dfs = null;
   FileSystem fileSys = null;
-  RaidNode cnode = null;
   String jobTrackerName = null;
+  ErasureCodeType code;
+  int stripeLength;
 
-  private void mySetup(String erasureCode, int stripeLength,
-      int rsParityLength) throws Exception {
+  private void mySetup(
+      String erasureCode, int rsParityLength) throws Exception {
 
     new File(TEST_DIR).mkdirs(); // Make sure data directory exists
     conf = new Configuration();
 
-    conf.set("raid.config.file", CONFIG_FILE);
-    conf.setBoolean("raid.config.reload", true);
-    conf.setLong("raid.config.reload.interval", RELOAD_INTERVAL);
-    conf.setLong(RaidNode.REPLICATION_CHECK_INTERVAL_KEY, 100L);
-    conf.setLong(RaidNode.REPLICATION_CHECK_TIMEOUT_KEY, 2 * 60 * 1000L);
+    conf.setInt("raid.encoder.bufsize", 128);
+    conf.setInt("raid.decoder.bufsize", 128);
     conf.setInt(RaidNode.RS_PARITY_LENGTH_KEY, rsParityLength);
 
     // scan all policies once every 5 second
@@ -91,12 +77,12 @@ public class TestRaidDfs extends TestCase {
 
     // make all deletions not go through Trash
     conf.set("fs.shell.delete.classname", "org.apache.hadoop.hdfs.DFSClient");
+    // Reduce run time for the test.
+    conf.setInt("dfs.client.max.block.acquire.failures", 1);
+    conf.setInt("dfs.client.baseTimeWindow.waitOn.BlockMissingException", 10);
 
     // do not use map-reduce cluster for Raiding
     conf.set("raid.classname", "org.apache.hadoop.raid.LocalRaidNode");
-    // use local block fixer
-    conf.set("raid.blockfix.classname",
-             "org.apache.hadoop.raid.LocalBlockFixer");
 
     conf.set("raid.server.address", "localhost:0");
     conf.setInt("hdfs.raid.stripeLength", stripeLength);
@@ -110,48 +96,17 @@ public class TestRaidDfs extends TestCase {
     hftp = "hftp://localhost.localdomain:" + dfs.getNameNodePort();
 
     FileSystem.setDefaultUri(conf, namenode);
-    
-    FileWriter fileWriter = new FileWriter(CONFIG_FILE);
-    fileWriter.write("<?xml version=\"1.0\"?>\n");
-    String str = "<configuration> " +
-                   "<srcPath prefix=\"/user/dhruba/raidtest\"> " +
-                     "<policy name = \"RaidTest1\"> " +
-                        "<erasureCode>" + erasureCode + "</erasureCode> " +
-                        "<property> " +
-                          "<name>targetReplication</name> " +
-                          "<value>1</value> " + 
-                          "<description>after RAIDing, decrease the replication factor of a file to this value." +
-                          "</description> " + 
-                        "</property> " +
-                        "<property> " +
-                          "<name>metaReplication</name> " +
-                          "<value>1</value> " + 
-                          "<description> replication factor of parity file" +
-                          "</description> " + 
-                        "</property> " +
-                        "<property> " +
-                          "<name>modTimePeriod</name> " +
-                          "<value>2000</value> " + 
-                          "<description> time (milliseconds) after a file is modified to make it " +
-                                         "a candidate for RAIDing " +
-                          "</description> " + 
-                        "</property> " +
-                     "</policy>" +
-                   "</srcPath>" +
-                 "</configuration>";
-    fileWriter.write(str);
-    fileWriter.close();
   }
 
   private void myTearDown() throws Exception {
-    if (cnode != null) { cnode.stop(); cnode.join(); }
     if (dfs != null) { dfs.shutdown(); }
   }
   
   private LocatedBlocks getBlockLocations(Path file, long length)
     throws IOException {
     DistributedFileSystem dfs = (DistributedFileSystem) fileSys;
-    return dfs.getClient().namenode.getBlockLocations(file.toString(), 0, length);
+    return RaidDFSUtil.getBlockLocations(
+      dfs, file.toUri().getPath(), 0, length);
   }
 
   private LocatedBlocks getBlockLocations(Path file)
@@ -199,8 +154,8 @@ public class TestRaidDfs extends TestCase {
     while (true) {
       LocatedBlocks locations = null;
       DistributedFileSystem dfs = (DistributedFileSystem) fileSys;
-      locations = dfs.getClient().namenode.getBlockLocations(
-                    file.toString(), 0, parityStat.getLen());
+      locations = RaidDFSUtil.getBlockLocations(
+        dfs, file.toUri().getPath(), 0, parityStat.getLen());
       if (!locations.isUnderConstruction()) {
         break;
       }
@@ -222,20 +177,21 @@ public class TestRaidDfs extends TestCase {
                   numBlocks, blockSize);
     long length = fileSys.getFileStatus(srcFile).getLen();
 
-    waitForFileRaided(LOG, fileSys, srcFile, destPath);
+    RaidNode.doRaid1(conf, fileSys.getFileStatus(srcFile),
+      destPath, code, new RaidNode.Statistics(), RaidUtils.NULL_PROGRESSABLE,
+      false, repl, repl, stripeLength);
 
     // Delete first block of file
     for (int blockNumToCorrupt : listBlockNumToCorrupt) {
-	    LOG.info("Corrupt block " + blockNumToCorrupt + " of file " + srcFile);
-	    LocatedBlocks locations = getBlockLocations(srcFile);
-	    corruptBlock(srcFile, locations.get(blockNumToCorrupt).getBlock(),
-	          NUM_DATANODES, true);
+      LOG.info("Corrupt block " + blockNumToCorrupt + " of file " + srcFile);
+      LocatedBlocks locations = getBlockLocations(srcFile);
+      corruptBlock(srcFile, locations.get(blockNumToCorrupt).getBlock(),
+            NUM_DATANODES, true);
     }
 
     // Validate
     DistributedRaidFileSystem raidfs = getRaidFS();
     assertTrue(validateFile(raidfs, srcFile, length, crc));
-
   }
 
   /**
@@ -245,68 +201,71 @@ public class TestRaidDfs extends TestCase {
   public void testRaidDfsRs() throws Exception {
     LOG.info("Test testRaidDfs started.");
 
+    code = ErasureCodeType.RS;
     long blockSize = 8192L;
     int numBlocks = 8;
-    int stripeLength = 3;
-    mySetup("rs", stripeLength, 3);
+    stripeLength = 3;
+    mySetup("rs", 3);
 
-    // Create an instance of the RaidNode
-    Configuration localConf = new Configuration(conf);
-    localConf.set(RaidNode.RAID_LOCATION_KEY, "/destraid");
-    cnode = RaidNode.createRaidNode(null, localConf);
     Path destPath = new Path("/destraid/user/dhruba/raidtest");
     int[][] corrupt = {{1, 2, 3}, {1, 4, 7}, {3, 6, 7}};
     try {
       for (int i = 0; i < corrupt.length; i++) {
         Path file = new Path("/user/dhruba/raidtest/file" + i);
         corruptBlockAndValidate(
-            file, destPath, corrupt[0], blockSize, numBlocks);
+            file, new Path("/destraid"), corrupt[i], blockSize, numBlocks);
       }
     } catch (Exception e) {
       LOG.info("testRaidDfs Exception " + e +
                 StringUtils.stringifyException(e));
       throw e;
     } finally {
-      if (cnode != null) { cnode.stop(); cnode.join(); }
       myTearDown();
     }
     LOG.info("Test testRaidDfs completed.");
   }
 
   /**
-   * Create a file, corrupt a block in it and ensure that the file can be
-   * read through DistributedRaidFileSystem by XOR code.
+   * Test DistributedRaidFileSystem.readFully()
    */
-  public void testRaidDfsXor() throws Exception {
-    LOG.info("Test testRaidDfs started.");
+  public void testReadFully() throws Exception {
+    code = ErasureCodeType.XOR;
+    stripeLength = 3;
+    mySetup("xor", 1);
 
-    long blockSize = 8192L;
-    int numBlocks = 8;
-    int stripeLength = 3;
-    mySetup("xor", stripeLength, 1);
-
-    // Create an instance of the RaidNode
-    Configuration localConf = new Configuration(conf);
-    localConf.set(RaidNode.RAID_LOCATION_KEY, "/destraid");
-    cnode = RaidNode.createRaidNode(null, localConf);
-    
-    Path destPath = new Path("/destraid/user/dhruba/raidtest");
-    int[][] corrupt = {{0}, {4}, {7}}; // first, last and middle block
     try {
-      for (int i = 0; i < corrupt.length; i++) {
-        Path file = new Path("/user/dhruba/raidtest/" + i);
-        corruptBlockAndValidate(
-            file, destPath, corrupt[0], blockSize, numBlocks);
+      Path file = new Path("/user/raid/raidtest/file1");
+      long crc = createTestFile(fileSys, file, 1, 8, 8192L);
+      FileStatus stat = fileSys.getFileStatus(file);
+      LOG.info("Created " + file + ", crc=" + crc + ", len=" + stat.getLen());
+
+      byte[] filebytes = new byte[(int)stat.getLen()];
+      // Test that readFully returns the correct CRC when there are no errors.
+      DistributedRaidFileSystem raidfs = getRaidFS();
+      FSDataInputStream stm = raidfs.open(file);
+      stm.readFully(0, filebytes);
+      assertEquals(crc, bufferCRC(filebytes));
+      stm.close();
+
+      // Generate parity.
+      RaidNode.doRaid1(conf, fileSys.getFileStatus(file),
+        new Path("/destraid"), code, new RaidNode.Statistics(),
+        RaidUtils.NULL_PROGRESSABLE,
+        false, 1, 1, stripeLength);
+      int[] corrupt = {0, 4, 7}; // first, last and middle block
+      for (int blockIdx : corrupt) {
+        LOG.info("Corrupt block " + blockIdx + " of file " + file);
+        LocatedBlocks locations = getBlockLocations(file);
+        corruptBlock(file, locations.get(blockIdx).getBlock(),
+            NUM_DATANODES, true);
       }
-    } catch (Exception e) {
-      LOG.info("testRaidDfs Exception " + e +
-                StringUtils.stringifyException(e));
-      throw e;
+      // Test that readFully returns the correct CRC when there are errors.
+      stm = raidfs.open(file);
+      stm.readFully(0, filebytes);
+      assertEquals(crc, bufferCRC(filebytes));
     } finally {
-      if (cnode != null) { cnode.stop(); cnode.join(); }
       myTearDown();
     }
-    LOG.info("Test testRaidDfs completed.");
   }
 
   /**
@@ -316,10 +275,12 @@ public class TestRaidDfs extends TestCase {
   public void testAccessTime() throws Exception {
     LOG.info("Test testAccessTime started.");
 
+    code = ErasureCodeType.XOR;
     long blockSize = 8192L;
     int numBlocks = 8;
     int repl = 1;
-    mySetup("xor", 3, 1);
+    stripeLength = 3;
+    mySetup("xor", 1);
 
     Path file = new Path("/user/dhruba/raidtest/file");
     Path destPath = new Path("/destraid/user/dhruba/raidtest");
@@ -327,16 +288,89 @@ public class TestRaidDfs extends TestCase {
     FileStatus stat = fileSys.getFileStatus(file);
 
     try {
-      // Create an instance of the RaidNode
-      Configuration localConf = new Configuration(conf);
-      localConf.set(RaidNode.RAID_LOCATION_KEY, "/destraid");
-      cnode = RaidNode.createRaidNode(null, localConf);
+      RaidNode.doRaid1(conf, fileSys.getFileStatus(file),
+        new Path("/destraid"), code, new RaidNode.Statistics(),
+        RaidUtils.NULL_PROGRESSABLE, false, repl, repl, stripeLength);
 
-      waitForFileRaided(LOG, fileSys, file, destPath);
       FileStatus newStat = fileSys.getFileStatus(file);
 
       assertEquals(stat.getModificationTime(), newStat.getModificationTime());
       assertEquals(stat.getAccessTime(), newStat.getAccessTime());
+    } finally {
+      myTearDown();
+    }
+  }
+
+  /**
+   * Create a file, corrupt a block in it and ensure that the file can be
+   * read through DistributedRaidFileSystem by XOR code.
+   */
+  public void testRaidDfsXor() throws Exception {
+    LOG.info("Test testRaidDfs started.");
+
+    code = ErasureCodeType.XOR;
+    long blockSize = 8192L;
+    int numBlocks = 8;
+    stripeLength = 3;
+    mySetup("xor", 1);
+
+    Path destPath = new Path("/destraid/user/dhruba/raidtest");
+    int[][] corrupt = {{0}, {4}, {7}}; // first, last and middle block
+    try {
+      for (int i = 0; i < corrupt.length; i++) {
+        Path file = new Path("/user/dhruba/raidtest/" + i);
+        corruptBlockAndValidate(
+            file, new Path("/destraid"), corrupt[i], blockSize, numBlocks);
+      }
+    } catch (Exception e) {
+      LOG.info("testRaidDfs Exception " + e +
+                StringUtils.stringifyException(e));
+      throw e;
+    } finally {
+      myTearDown();
+    }
+    LOG.info("Test testRaidDfs completed.");
+  }
+
+  public void testRead() throws Exception {
+    mySetup("xor", 1);
+    try {
+      Path p = new Path("/tmp/testRead." + System.currentTimeMillis());
+      long crc = createTestFile(fileSys, p, 1, 8, 8192L);
+      FileStatus stat = fileSys.getFileStatus(p);
+      LOG.info("Created " + p + ", crc=" + crc + ", len=" + stat.getLen());
+
+      // Test that readFully returns the correct CRC when there are no errors.
+      DistributedRaidFileSystem raidfs = getRaidFS();
+      FSDataInputStream stm = raidfs.open(p);
+      // Should be able to read all bytes.
+      for (int i = 0; i < stat.getLen(); i++) {
+        int val = stm.read();
+        if (val < 0) {
+          LOG.error("Invalid value " + val + " at index " + i);
+        }
+        assertTrue(val >= 0);
+      }
+      stm.close();
+      // One more read should return -1 to indicate EOF.
+      assertEquals(-1, stm.read());
+    } finally {
+      myTearDown();
+    }
+  }
+
+  public void testZeroLengthFile() throws Exception {
+    mySetup("xor", 1);
+    try {
+      Path p = new Path("/tmp/testZero." + System.currentTimeMillis());
+      fileSys.create(p).close();
+      FileStatus stat = fileSys.getFileStatus(p);
+      LOG.info("Created " + p + ", len=" + stat.getLen());
+
+      // Test that readFully returns the correct CRC when there are no errors.
+      DistributedRaidFileSystem raidfs = getRaidFS();
+      FSDataInputStream stm = raidfs.open(p);
+      assertEquals(-1, stm.read());
     } finally {
       myTearDown();
     }
@@ -392,6 +426,13 @@ public class TestRaidDfs extends TestCase {
     stm.close();
     return crc.getValue();
   }
+
+  static long bufferCRC(byte[] buf) {
+    CRC32 crc = new CRC32();
+    crc.update(buf, 0, buf.length);
+    return crc.getValue();
+  }
+
   //
   // validates that file matches the crc.
   //
@@ -452,10 +493,11 @@ public class TestRaidDfs extends TestCase {
     long id = blockNum.getBlockId();
 
     // Now deliberately remove/truncate data blocks from the block.
-    //
+    int numDeleted = 0;
+    int numCorrupted = 0;
     for (int i = 0; i < numDataNodes; i++) {
       File[] dirs = getDataNodeDirs(i);
-      
+
       for (int j = 0; j < dirs.length; j++) {
         File[] blocks = dirs[j].listFiles();
         assertTrue("Blocks do not exist in data-dir", (blocks != null) && (blocks.length >= 0));
@@ -465,6 +507,7 @@ public class TestRaidDfs extends TestCase {
             if (delete) {
               blocks[idx].delete();
               LOG.info("Deleted block " + blocks[idx]);
+              numDeleted++;
             } else {
               // Corrupt
               File f = blocks[idx];
@@ -475,11 +518,14 @@ public class TestRaidDfs extends TestCase {
               raf.seek(seekPos);
               raf.writeInt(data+1);
               LOG.info("Corrupted block " + blocks[idx]);
+              numCorrupted++;
             }
           }
         }
       }
     }
+    assertTrue("Nothing corrupted or deleted",
+              (numCorrupted + numDeleted) > 0);
   }
 
   public static void corruptBlock(Path file, Block blockNum,

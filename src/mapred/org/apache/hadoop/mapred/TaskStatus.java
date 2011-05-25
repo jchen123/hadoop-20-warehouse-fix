@@ -71,7 +71,7 @@ public abstract class TaskStatus implements Writable, Cloneable {
                     String stateString, String taskTracker,
                     Phase phase, Counters counters) {
     this.taskid = taskid;
-    this.progress = progress;
+    setProgress(progress);
     this.numSlots = numSlots;
     this.runState = runState;
     this.diagnosticInfo = diagnosticInfo;
@@ -89,7 +89,9 @@ public abstract class TaskStatus implements Writable, Cloneable {
   }
 
   public float getProgress() { return progress; }
-  public void setProgress(float progress) { this.progress = progress; } 
+  public void setProgress(float progress) {
+    this.progress = progress;
+  }
   public State getRunState() { return runState; }
   public String getTaskTracker() {return taskTracker;}
   public void setTaskTracker(String tracker) { this.taskTracker = tracker;}
@@ -316,7 +318,7 @@ public abstract class TaskStatus implements Writable, Cloneable {
    * @param status updated status
    */
   synchronized void statusUpdate(TaskStatus status) {
-    this.progress = status.getProgress();
+    setProgress(status.getProgress());
     this.runState = status.getRunState();
     this.stateString = status.getStateString();
     this.nextRecordRange = status.getNextRecordRange();
@@ -404,7 +406,7 @@ public abstract class TaskStatus implements Writable, Cloneable {
 
   public void readFields(DataInput in) throws IOException {
     this.taskid.readFields(in);
-    this.progress = in.readFloat();
+    setProgress(in.readFloat());
     this.numSlots = in.readInt();
     this.runState = WritableUtils.readEnum(in, State.class);
     this.diagnosticInfo = Text.readString(in);

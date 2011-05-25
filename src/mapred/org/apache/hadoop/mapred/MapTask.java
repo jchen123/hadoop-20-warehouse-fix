@@ -1430,6 +1430,10 @@ class MapTask extends Task {
         return null;
       }
       public void close() { }
+
+      public long getTotalBytesProcessed() {
+        return 0;
+      }
     }
 
     private void mergeParts() throws IOException, InterruptedException, 

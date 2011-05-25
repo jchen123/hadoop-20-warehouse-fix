@@ -49,7 +49,7 @@ public class LocalRaidNode extends RaidNode {
    */
   @Override
   void raidFiles(PolicyInfo info, List<FileStatus> paths) throws IOException {
-    doRaid(conf, info, paths);
+    doRaid1(conf, info, paths);
   }
 
   /**
@@ -58,5 +58,10 @@ public class LocalRaidNode extends RaidNode {
   @Override
   int getRunningJobsForPolicy(String policyName) {
     return 0;
+  }
+
+  @Override
+  public String raidJobsHtmlTable(boolean running) {
+    return "";
   }
 }

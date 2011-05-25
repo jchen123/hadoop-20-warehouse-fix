@@ -395,10 +395,9 @@ public class DistributedFileSystem extends FileSystem {
    * {@inheritDoc}
    */
   @Override
-  public CorruptFileBlocks listCorruptFileBlocks(String path,
-                                                 String cookie)
+  public RemoteIterator<Path> listCorruptFileBlocks(Path path)
     throws IOException {
-    return dfs.listCorruptFileBlocks(path, cookie);
+    return new CorruptFileBlockIterator(dfs, path);
   }
 
   /** Return statistics for each datanode. */
@@ -422,8 +421,9 @@ public class DistributedFileSystem extends FileSystem {
    * 
    * @see org.apache.hadoop.hdfs.protocol.ClientProtocol#saveNamespace()
    */
-  public void saveNamespace() throws AccessControlException, IOException {
-    dfs.saveNamespace();
+  public void saveNamespace(boolean force, boolean uncompressed)
+  throws AccessControlException, IOException {
+    dfs.saveNamespace(force, uncompressed);
   }
 
   /**

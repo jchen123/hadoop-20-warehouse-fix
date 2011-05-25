@@ -24,13 +24,13 @@
   #include <stdio.h>
 #else
   #error 'stdio.h not found'
-#endif  
+#endif
 
 #if defined HAVE_STDLIB_H
   #include <stdlib.h>
 #else
   #error 'stdlib.h not found'
-#endif  
+#endif
 
 #if defined HAVE_STRING_H
   #include <string.h>
@@ -58,7 +58,7 @@ static jfieldID LzmaDecompressor_uncompressedDirectBuf;
 static jfieldID LzmaDecompressor_directBufferSize;
 static jfieldID LzmaDecompressor_finished;
 
-static int (*dlsym_lzma_easy_encoder)(lzma_stream *strm, lzma_easy_level level);
+static int (*dlsym_lzma_easy_encoder)(lzma_stream *strm, uint32_t level, lzma_check check);
 static int (*dlsym_lzma_code)(lzma_stream *strm, lzma_action action);
 static int (*dlsym_lzma_end)(lzma_stream *strm);
 static int (*dlsym_lzma_auto_decoder)(lzma_stream *strm, uint64_t memlimit, uint32_t flags);
@@ -68,7 +68,7 @@ Java_org_apache_hadoop_io_compress_lzma_LzmaDecompressor_initIDs(
 	JNIEnv *env, jclass class
 	) {
 	// Load liblzma.so
-      liblzma = dlopen(HADOOP_LZMA_LIBRARY, RTLD_LAZY | RTLD_GLOBAL);
+  liblzma = dlopen(HADOOP_LZMA_LIBRARY, RTLD_LAZY | RTLD_GLOBAL);
 	if (!liblzma) {
 	  THROW(env, "java/lang/UnsatisfiedLinkError", "Cannot load liblzma.so");
 	  return;

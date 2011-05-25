@@ -1,11 +1,11 @@
 package org.apache.hadoop.raid;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Random;
-import java.util.Date;
-import java.text.SimpleDateFormat;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -24,6 +24,7 @@ import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobID;
+import org.apache.hadoop.mapred.JobInProgress;
 import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.RecordReader;
@@ -43,6 +44,8 @@ public class DistRaid {
   static final String JOB_DIR_LABEL = NAME + ".job.dir";
   static final String OP_LIST_LABEL = NAME + ".op.list";
   static final String OP_COUNT_LABEL = NAME + ".op.count";
+  static final String SCHEDULER_OPTION_LABEL = NAME + ".scheduleroption";
+  static final String IGNORE_FAILURES_OPTION_LABEL = NAME + ".ignore.failures";
   static final int   OP_LIST_BLOCK_SIZE = 32 * 1024 * 1024; // block size of control file
   static final short OP_LIST_REPLICATION = 10; // replication factor of control file
 
@@ -101,6 +104,8 @@ public class DistRaid {
   private RunningJob runningJob;
   private int jobEventCounter = 0;
   private String lastReport = null;
+
+  private long totalSaving;
 
   /** Responsible for generating splits of the src file list. */
   static class DistRaidInputFormat implements InputFormat<Text, PolicyInfo> {
@@ -175,8 +180,6 @@ public class DistRaid {
     private int failcount = 0;
     private int succeedcount = 0;
     private Statistics st = null;
-    private List<Path> raidedFiles = new ArrayList<Path>();
-    private List<Integer> targetRepl = new ArrayList<Integer>();
     private Reporter reporter = null;
 
     private String getCountString() {
@@ -186,7 +189,7 @@ public class DistRaid {
     /** {@inheritDoc} */
     public void configure(JobConf job) {
       this.jobconf = job;
-      ignoreFailures = false;
+      ignoreFailures = jobconf.getBoolean(IGNORE_FAILURES_OPTION_LABEL, true);
       st = new Statistics();
     }
 
@@ -200,11 +203,7 @@ public class DistRaid {
         Path p = new Path(key.toString());
         FileStatus fs = p.getFileSystem(jobconf).getFileStatus(p);
         st.clear();
-        if (RaidNode.doRaid(jobconf, policy, fs, st, reporter)) {
-          raidedFiles.add(fs.getPath());
-          targetRepl.add(
-              Integer.parseInt(policy.getProperty("targetReplication")));
-        }
+        RaidNode.doRaid1(jobconf, policy, fs, st, reporter);
 
         ++succeedcount;
 
@@ -229,8 +228,6 @@ public class DistRaid {
 
     /** {@inheritDoc} */
     public void close() throws IOException {
-      RaidNode.waitAndSetReplication(
-          jobconf, raidedFiles, targetRepl, reporter);
       if (failcount == 0 || ignoreFailures) {
         return;
       }
@@ -249,10 +246,7 @@ public class DistRaid {
     jobName = NAME + " " + dateForm.format(new Date(RaidNode.now()));
     jobconf.setJobName(jobName);
     jobconf.setMapSpeculativeExecution(false);
-    String poolName = conf.get("raid.mapred.fairscheduler.pool");
-    if (poolName != null) {
-	    jobconf.set("mapred.fairscheduler.pool", poolName);
-    }
+    RaidUtils.parseAndSetOptions(jobconf, SCHEDULER_OPTION_LABEL);
 
     jobconf.setJarByClass(DistRaid.class);
     jobconf.setInputFormat(DistRaidInputFormat.class);
@@ -311,9 +305,16 @@ public class DistRaid {
        }
        raidPolicyPathPairList.clear();
        Counters ctrs = runningJob.getCounters();
-       long filesFailed = ctrs.findCounter(Counter.FILES_FAILED).getValue();
-       RaidNodeMetrics metrics = RaidNodeMetrics.getInstance();
-       metrics.raidFailures.inc(filesFailed);
+       if (ctrs != null) {
+         RaidNodeMetrics metrics = RaidNodeMetrics.getInstance();
+         if (ctrs.findCounter(Counter.FILES_FAILED) != null) {
+           long filesFailed = ctrs.findCounter(Counter.FILES_FAILED).getValue();
+           metrics.raidFailures.inc(filesFailed);
+         }
+         long slotSeconds = ctrs.findCounter(
+          JobInProgress.Counter.SLOTS_MILLIS_MAPS).getValue() / 1000;
+         metrics.raidSlotSeconds.inc(slotSeconds);
+       }
        return true;
      } else {
        String report =  (" job " + jobID +
@@ -335,8 +336,27 @@ public class DistRaid {
      }
    }
 
+   public void killJob() throws IOException {
+     runningJob.killJob();
+   }
+
    public boolean successful() throws IOException {
      return runningJob.isSuccessful();
+   }
+
+   private void estimateSavings() {
+     for (RaidPolicyPathPair p : raidPolicyPathPairList) {
+       ErasureCodeType code = p.policy.getErasureCode();
+       int stripeSize = RaidNode.getStripeLength(jobconf);
+       int paritySize = RaidNode.parityLength(code, jobconf);
+       int targetRepl = Integer.parseInt(p.policy.getProperty("targetReplication"));
+       int parityRepl = Integer.parseInt(p.policy.getProperty("metaReplication"));
+       for (FileStatus st : p.srcPaths) {
+         long saving = RaidNode.savingFromRaidingFile(
+             st, stripeSize, paritySize, targetRepl, parityRepl);
+         totalSaving += saving;
+       }
+     }
    }
 
   /**
@@ -346,9 +366,15 @@ public class DistRaid {
    * @throws IOException
    */
   private boolean setup() throws IOException {
+    estimateSavings();
+
     final String randomId = getRandomId();
     JobClient jClient = new JobClient(jobconf);
     Path jobdir = new Path(jClient.getSystemDir(), NAME + "_" + randomId);
+    FileSystem fs = jobdir.getFileSystem(jobconf);
+    // Do not use the URI authority from getSystemDir.
+    // Get the path component of the system directory and qualify it ourselves.
+    jobdir = new Path(jobdir.toUri().getPath()).makeQualified(fs);
 
     LOG.info(JOB_DIR_LABEL + "=" + jobdir);
     jobconf.set(JOB_DIR_LABEL, jobdir.toString());
@@ -362,11 +388,11 @@ public class DistRaid {
     LOG.info("log=" + log);
 
     // create operation list
-    FileSystem fs = jobdir.getFileSystem(jobconf);
     Path opList = new Path(jobdir, "_" + OP_LIST_LABEL);
     jobconf.set(OP_LIST_LABEL, opList.toString());
     int opCount = 0, synCount = 0;
     SequenceFile.Writer opWriter = null;
+
     try {
       opWriter = SequenceFile.createWriter(fs, jobconf, opList, Text.class,
           PolicyInfo.class, SequenceFile.CompressionType.NONE);
@@ -401,5 +427,21 @@ public class DistRaid {
     LOG.info("jobName= " + jobName + " numMapTasks=" + jobconf.getNumMapTasks());
     return opCount != 0;
 
+  }
+
+  public String toHtmlRow() {
+    return JspUtils.tr(
+        JspUtils.td(
+            JspUtils.link(
+                runningJob.getID().toString(), runningJob.getTrackingURL())) +
+        JspUtils.td(runningJob.getJobName()) +
+        JspUtils.td(StringUtils.humanReadableInt(totalSaving)));
+  }
+  
+  public static String htmlRowHeader() {
+    return JspUtils.tr(
+        JspUtils.td("Job ID") +
+        JspUtils.td("Name") +
+        JspUtils.td("Estimated Saving"));
   }
 }

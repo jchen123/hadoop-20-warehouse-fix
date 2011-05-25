@@ -377,7 +377,6 @@ public class TestCapacityScheduler extends TestCase {
       return true;
     }
     
-    @Override
     public boolean isRunning() {
       return !activeTasks.isEmpty();
     }

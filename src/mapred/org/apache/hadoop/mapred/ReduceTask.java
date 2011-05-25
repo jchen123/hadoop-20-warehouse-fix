@@ -543,6 +543,9 @@ class ReduceTask extends Task {
         reporter.progress();
         return ret;
       }
+      public long getTotalBytesProcessed() {
+        return rawIter.getTotalBytesProcessed();
+      }
     };
     // make a task context so we can get the classes
     org.apache.hadoop.mapreduce.TaskAttemptContext taskContext =
@@ -1857,7 +1860,7 @@ class ReduceTask extends Task {
     
     public boolean fetchOutputs() throws IOException {
       int totalFailures = 0;
-      int            numInFlight = 0, numCopied = 0;
+      int numInFlight = 0, numCopied = 0;
       DecimalFormat  mbpsFormat = new DecimalFormat("0.00");
       final Progress copyPhase = 
         reduceTask.getProgress().phase();
@@ -2010,7 +2013,13 @@ class ReduceTask extends Task {
                   locItr.remove();  // remove from knownOutputs
                   numInFlight++; numScheduled++;
 
-                  break; //we have a map from this host
+                  //
+                  // Comment out this break allows fetching all the shards at
+                  // once from a host, instead of fetching one at a time.
+                  // See MAPREDUCE-318.
+                  //
+                  // break; //we have a map from this host
+                  //
                 }
               }
             }
@@ -2436,7 +2445,7 @@ class ReduceTask extends Task {
       }
 
       public long getPosition() throws IOException {
-        return bytesRead;
+        return kvIter.getTotalBytesProcessed();
       }
 
       public void close() throws IOException {

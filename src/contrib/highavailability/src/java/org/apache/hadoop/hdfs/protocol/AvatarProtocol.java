@@ -19,6 +19,8 @@ package org.apache.hadoop.hdfs.protocol;
 
 import java.io.IOException;
 import org.apache.hadoop.hdfs.protocol.AvatarConstants.Avatar;
+import org.apache.hadoop.hdfs.server.protocol.BlockReport;
+import org.apache.hadoop.hdfs.server.protocol.DatanodeCommand;
 import org.apache.hadoop.hdfs.server.protocol.DatanodeRegistration;
 
 /**********************************************************************
@@ -65,5 +67,7 @@ public interface AvatarProtocol extends ClientProtocol {
   public Block[] blockReceivedNew(DatanodeRegistration registration,
                                   Block blocks[],
                                   String[] delHints) throws IOException;
+
+  public DatanodeCommand blockReportNew(DatanodeRegistration reg, BlockReport rep) throws IOException;
 }
 

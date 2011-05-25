@@ -19,37 +19,43 @@
 package org.apache.hadoop.mapred;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.ListIterator;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.Map.Entry;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.http.HttpServer;
-import org.apache.hadoop.mapred.JobStatus;
+import org.apache.hadoop.ipc.ProtocolSignature;
+import org.apache.hadoop.ipc.RPC;
+import org.apache.hadoop.ipc.RPC.Server;
 import org.apache.hadoop.mapred.JobInProgress.DataStatistics;
-import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.hadoop.mapred.protocal.FairSchedulerProtocol;
+import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.mapreduce.server.jobtracker.TaskTracker;
+import org.apache.hadoop.net.NetUtils;
+import org.apache.hadoop.util.ReflectionUtils;
 
 /**
  * A {@link TaskScheduler} that implements fair sharing.
  */
-public class FairScheduler extends TaskScheduler {
+public class FairScheduler extends TaskScheduler
+    implements FairSchedulerProtocol {
   /** How often fair shares are re-calculated */
   public static long updateInterval = 500;
   public static final Log LOG = LogFactory.getLog(
@@ -57,6 +63,7 @@ public class FairScheduler extends TaskScheduler {
 
   // Maximum locality delay when auto-computing locality delays
   private static final long MAX_AUTOCOMPUTED_LOCALITY_DELAY = 15000;
+  private static final double FIFO_WEIGHT_DECAY_FACTOR = 0.5;
   private long dumpStatusPeriod = 300000; // 5 minute
   private long lastDumpStatusTime= 0L;
 
@@ -103,6 +110,12 @@ public class FairScheduler extends TaskScheduler {
   private static final TaskType[] MAP_AND_REDUCE =
     new TaskType[] {TaskType.MAP, TaskType.REDUCE};
 
+  // Default parameters for RPC
+  public static final int DEFAULT_PORT = 50083;
+
+  /** RPC server */
+  Server server = null;
+
   private FairSchedulerMetricsInst fairSchedulerMetrics = null;
 
   
@@ -144,6 +157,8 @@ public class FairScheduler extends TaskScheduler {
     int neededReduces;          // Reduces needed at last update
     int minMaps = 0;            // Minimum maps as guaranteed by pool
     int minReduces = 0;         // Minimum reduces as guaranteed by pool
+    int maxMaps = 0;            // Maximum maps allowed to run
+    int maxReduces = 0;         // Maximum reduces allowed to run
     double mapFairShare = 0;    // Fair share of map slots at last update
     double reduceFairShare = 0; // Fair share of reduce slots at last update
     int neededSpeculativeMaps;    // Speculative maps needed at last update
@@ -293,7 +308,7 @@ public class FairScheduler extends TaskScheduler {
         conf.getInt("mapred.fairscheduler.mapsperheartbeat", 1);
       reducePerHeartBeat =
         conf.getInt("mapred.fairscheduler.reducesperheartbeat", 1);
-      jobComparator = JobComparator.fromString(
+      jobComparator = JobComparator.valueOf(
           conf.get("mapred.fairscheduler.jobcomparator",
                    JobComparator.DEFICIT.toString()));
       long defaultDelay = conf.getLong(
@@ -326,7 +341,13 @@ public class FairScheduler extends TaskScheduler {
             FairSchedulerServlet.class);
         fairSchedulerMetrics = new FairSchedulerMetricsInst(this, conf);
       }
-
+      // Start RPC server
+      InetSocketAddress socAddr = FairScheduler.getAddress(conf);
+      server = RPC.getServer(
+          this, socAddr.getHostName(), socAddr.getPort(), conf);
+      LOG.info("FairScheduler RPC server started at " +
+           server.getListenerAddress());
+      server.start();
     } catch (Exception e) {
       // Can't load one of the managers - crash the JobTracker now while it is
       // starting up so that the user notices.
@@ -335,12 +356,22 @@ public class FairScheduler extends TaskScheduler {
     LOG.info("Successfully configured FairScheduler");
   }
 
+  public static InetSocketAddress getAddress(Configuration conf) {
+    String nodeport = conf.get("mapred.fairscheduler.server.address");
+    if (nodeport == null) {
+      nodeport = "localhost:" + DEFAULT_PORT;
+    }
+    return NetUtils.createSocketAddr(nodeport);
+  }
+
   @Override
   public void terminate() throws IOException {
     running = false;
     jobInitializer.terminate();
     if (jobListener != null)
       taskTrackerManager.removeJobInProgressListener(jobListener);
+    if (server != null)
+      server.stop();
   }
 
   private class JobInitializer {
@@ -468,6 +499,10 @@ public class FairScheduler extends TaskScheduler {
     // listener of tracker join/leave events.
     int totalMapSlots = getTotalSlots(TaskType.MAP, clusterStatus);
     int totalReduceSlots = getTotalSlots(TaskType.REDUCE, clusterStatus);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("totalMapSlots:" + totalMapSlots +
+                " totalReduceSlots:" + totalReduceSlots);
+    }
 
     // Scan to see whether any job needs to run a map, then a reduce
     ArrayList<Task> tasks = new ArrayList<Task>();
@@ -475,8 +510,19 @@ public class FairScheduler extends TaskScheduler {
     // Update time waited for local maps for jobs skipped on last heartbeat
     updateLocalityWaitTimes(currentTime);
     TaskTrackerStatus trackerStatus = tracker.getStatus();
-    int availableMapsOnTT = trackerStatus.getAvailableMapSlots();
-    int availableReducesOnTT = trackerStatus.getAvailableReduceSlots();
+
+    int runningMapsOnTT = occupiedSlotsAfterKill(trackerStatus, TaskType.MAP);
+    int runningReducesOnTT =
+        occupiedSlotsAfterKill(trackerStatus, TaskType.REDUCE);
+    int availableMapsOnTT = getAvailableSlots(trackerStatus, TaskType.MAP);
+    int availableReducesOnTT = getAvailableSlots(trackerStatus, TaskType.REDUCE);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("tracker:" + trackerStatus.getTrackerName() +
+                " runMaps:" + runningMapsOnTT +
+                " runReduces:" + runningReducesOnTT +
+                " availMaps:" + availableMapsOnTT +
+                " availReduces:" + availableReducesOnTT);
+    }
     for (TaskType taskType: MAP_AND_REDUCE) {
       boolean canAssign = (taskType == TaskType.MAP) ?
           loadMgr.canAssignMap(trackerStatus, totalRunnableMaps,
@@ -486,6 +532,11 @@ public class FairScheduler extends TaskScheduler {
       boolean hasAvailableSlots =
         (availableMapsOnTT > 0 && taskType == TaskType.MAP) ||
         (availableReducesOnTT > 0 && taskType == TaskType.REDUCE);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("type:" + taskType +
+                  " canAssign:" + canAssign +
+                  " hasAvailableSlots:" + hasAvailableSlots);
+      }
       if (!canAssign || !hasAvailableSlots) {
         continue; // Go to the next task type
       }
@@ -504,23 +555,38 @@ public class FairScheduler extends TaskScheduler {
       while (iterator.hasNext()) {
         JobInProgress job = iterator.next();
 
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("job:" + job + " numTasks:" + numTasks);
+        }
         if (job.getStatus().getRunState() != JobStatus.RUNNING) {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Job run state is not running. Skip job");
+          }
           iterator.remove();
           continue;
         }
 
         if (!loadMgr.canLaunchTask(trackerStatus, job, taskType)) {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Load manager canLaunchTask returns false. Skip job");
+          }
           continue;
         }
         // Do not schedule if the maximum slots is reached in the pool.
         JobInfo info = infos.get(job);
         if (poolMgr.isMaxTasks(info.poolName, taskType)) {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("pool:" + info.poolName + " is full. Skip job");
+          }
           continue;
         }
         // Try obtaining a suitable task for this job
         Task task = null;
         if (taskType == TaskType.MAP) {
           LocalityLevel level = getAllowedLocalityLevel(job, currentTime);
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("level:" + level);
+          }
           task = job.obtainNewMapTask(trackerStatus,
                          clusterStatus.getTaskTrackers(),
                          taskTrackerManager.getNumberOfUniqueHosts(),
@@ -535,6 +601,9 @@ public class FairScheduler extends TaskScheduler {
                          clusterStatus.getTaskTrackers(),
                          taskTrackerManager.getNumberOfUniqueHosts());
         }
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("task:" + task);
+        }
         // Update information when obtained a task
         if (task != null) {
           // Update the JobInfo for this job so we account for the launched
@@ -545,11 +614,13 @@ public class FairScheduler extends TaskScheduler {
             info.neededMaps--;
             infosummary.totalRunningMaps++;
             infosummary.totalNeededMaps--;
+            runningMapsOnTT++;
           } else {
             info.runningReduces++;
             info.neededReduces--;
             infosummary.totalRunningReduces++;
             infosummary.totalNeededReduces--;
+            runningReducesOnTT++;
           }
           poolMgr.incRunningTasks(info.poolName, taskType, 1);
           tasks.add(task);
@@ -560,21 +631,28 @@ public class FairScheduler extends TaskScheduler {
 
           // keep track that it needs to be reinserted.
           // we reinsert in LIFO order to minimize comparisons
-          if (neededTasks(job, taskType) > 0)
+          if (neededTasks(info, taskType) > 0)
             jobsToReinsert.push(job);
 
           if (!assignMultiple) {
-            if (jobsToReinsert.size() > 0)
+            if (jobsToReinsert.size() > 0) {
               mergeJobs(jobsToReinsert, taskType);
+            }
             return tasks;
           }
 
           if (numTasks >= ((taskType == TaskType.MAP)
                           ? mapPerHeartBeat : reducePerHeartBeat)) {
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("numTasks:" + numTasks + " reached tasks per heart beat");
+            }
             break;
           }
           if (numTasks >= ((taskType == TaskType.MAP)
                           ? availableMapsOnTT : availableReducesOnTT)) {
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("numTasks:" + numTasks + " reached available slots.");
+            }
             break;
           }
         }
@@ -583,9 +661,31 @@ public class FairScheduler extends TaskScheduler {
       if (jobsToReinsert.size() > 0)
         mergeJobs(jobsToReinsert, taskType);
     }
-
     // If no tasks were found, return null
     return tasks.isEmpty() ? null : tasks;
+  }
+
+  /**
+   * Obtain the how many more slots can be scheduled on this tasktracker
+   * @param tts The status of the tasktracker
+   * @param type The type of the task to be scheduled
+   * @return the number of tasks can be scheduled
+   */
+  private int getAvailableSlots(TaskTrackerStatus tts, TaskType type) {
+    return getMaxSlots(tts, type) - occupiedSlotsAfterKill(tts, type);
+  }
+
+  /**
+   * Obtain the number of occupied slots after the scheduled kills are done
+   * @param tts The status of the tasktracker
+   * @param type The type of the task
+   * @return the number of occupied slots after kill actions
+   */
+  private int occupiedSlotsAfterKill(TaskTrackerStatus tts, TaskType type) {
+    int occupied = (type == TaskType.MAP) ?
+        tts.countOccupiedMapSlots() - tts.getMapsKilled() :
+        tts.countOccupiedReduceSlots() - tts.getReducesKilled();
+    return occupied;
   }
 
   /**
@@ -624,6 +724,19 @@ public class FairScheduler extends TaskScheduler {
     }
   }
 
+  public enum JobComparator {
+    DEFICIT, FAIR, FIFO;
+  }
+
+  public synchronized JobComparator getJobComparator() {
+    return jobComparator;
+  }
+
+  public synchronized void setJobComparator(JobComparator jobComparator) {
+    if (jobComparator != null) {
+      this.jobComparator = jobComparator;
+    }
+  }
 
   /**
    * Compare jobs by deficit for a given task type, putting jobs whose current
@@ -691,6 +804,7 @@ public class FairScheduler extends TaskScheduler {
       this.taskType = taskType;
     }
 
+    @Override
     public int compare(JobInProgress j1, JobInProgress j2) {
       JobInfo j1Info = infos.get(j1);
       JobInfo j2Info = infos.get(j2);
@@ -715,14 +829,13 @@ public class FairScheduler extends TaskScheduler {
       }
 
       // Compute the ratio between running tasks and fairshare (or minslots)
-      boolean job1BelowMinSlots, job2BelowMinSlots;
+      boolean job1BelowMinSlots = false, job2BelowMinSlots = false;
       double job1RunningTaskRatio, job2RunningTaskRatio;
       if (job1RunningTasks < job1MinTasks) {
         job1BelowMinSlots = true;
         job1RunningTaskRatio = (double)job1RunningTasks /
                                (double)job1MinTasks;
       } else {
-        job1BelowMinSlots = false;
         job1RunningTaskRatio = (double)job1RunningTasks /
                                job1Weight;
       }
@@ -731,7 +844,6 @@ public class FairScheduler extends TaskScheduler {
         job2RunningTaskRatio = (double)job2RunningTasks /
                                (double)job2MinTasks;
       } else {
-        job2BelowMinSlots = false;
         job2RunningTaskRatio = (double)job2RunningTasks /
                                job2Weight;
       }
@@ -750,13 +862,15 @@ public class FairScheduler extends TaskScheduler {
       boolean job2Needy = pool2BelowMinSlots && job2BelowMinSlots;
       if (job1Needy && !job2Needy) {
         return -1;
-      } else if (job2Needy && !job1Needy) {
-        return 1;
-      } else if (job1RunningTaskRatio == job2RunningTaskRatio) {
-        return j1.getJobID().toString().compareTo(j2.getJobID().toString());
-      } else {  // Both needy or both non-needy; compare by running task ratio
-        return job1RunningTaskRatio <= job2RunningTaskRatio ? -1 : 1;
       }
+      if (job2Needy && !job1Needy) {
+        return 1;
+      }
+      // Both needy or both non-needy; compare by running task ratio
+      if (job1RunningTaskRatio == job2RunningTaskRatio) {
+        return j1.getJobID().toString().compareTo(j2.getJobID().toString());
+      }
+      return job1RunningTaskRatio < job2RunningTaskRatio ? -1 : 1;
     }
   }
 
@@ -856,7 +970,11 @@ public class FairScheduler extends TaskScheduler {
     synchronized(this){
 
       // Reload allocations file if it hasn't been loaded in a while
-      poolMgr.reloadAllocsIfNecessary();
+      if (poolMgr.reloadAllocsIfNecessary()) {
+        // Check if the cluster have enough slots for reserving
+        poolMgr.checkMinimumSlotsAvailable(clusterStatus, TaskType.MAP);
+        poolMgr.checkMinimumSlotsAvailable(clusterStatus, TaskType.REDUCE);
+      }
 
       List<JobInProgress> toRemove = new ArrayList<JobInProgress>();
       for (JobInProgress job: infos.keySet()) {
@@ -878,7 +996,7 @@ public class FairScheduler extends TaskScheduler {
       updateRunnability();
       updateTaskCounts();
       updateWeights();
-      updateMinSlots();
+      updateMinAndMaxSlots();
       updateFairShares(clusterStatus);
       if (preemptionEnabled) {
         updatePreemptionVariables();
@@ -905,29 +1023,33 @@ public class FairScheduler extends TaskScheduler {
     final long TASK_INFO_DUMP_DELAY = 1200000; // 20 minutes
     for (JobInProgress job : infos.keySet()) {
       for (TaskType type : MAP_AND_REDUCE) {
-        boolean is_map = (type == TaskType.MAP);
-        if (!is_map && job.desiredReduces() <= 0)
+        boolean isMap = (type == TaskType.MAP);
+        if (!isMap && job.desiredReduces() <= 0)
+          continue;
+
+        if ((isMap && !job.hasSpeculativeMaps()) ||
+            (!isMap && !job.hasSpeculativeReduces()))
           continue;
 
         DataStatistics taskStats =
-            job.getRunningTaskStatistics(is_map);
+            job.getRunningTaskStatistics(isMap);
         LOG.info(job.getJobID().toString() + " taskStats : " + taskStats);
 
         for (TaskInProgress tip :
-               job.getTasks(is_map ? org.apache.hadoop.mapreduce.TaskType.MAP :
+               job.getTasks(isMap ? org.apache.hadoop.mapreduce.TaskType.MAP :
                             org.apache.hadoop.mapreduce.TaskType.REDUCE)) {
           if (!tip.isComplete() &&
               now - tip.getLastDispatchTime() > TASK_INFO_DUMP_DELAY) {
-            double currProgRate = tip.getCurrentProgressRate(now);
+            double currProgRate = tip.getProgressRate();
             TreeMap<TaskAttemptID, String> activeTasks = tip.getActiveTasks();
             if (activeTasks.isEmpty()) {
               continue;
             }
             boolean canBeSpeculated = tip.canBeSpeculated(now);
             LOG.info(activeTasks.firstKey() +
-                "activeTasks.size(): " + activeTasks.size() + " " +
-                " task's progressrate: " + currProgRate +
-                " canBeSepculated : " + canBeSpeculated);
+                " activeTasks.size():" + activeTasks.size() +
+                " task's progressrate:" + currProgRate +
+                " canBeSepculated:" + canBeSpeculated);
           }
         }
       }
@@ -970,6 +1092,24 @@ public class FairScheduler extends TaskScheduler {
         reduceComparator = comparator;
       }
     }
+  }
+
+  private void logJobStats(List<JobInProgress> jobs, TaskType type) {
+    if (jobs.isEmpty())
+      return;
+
+    StringBuilder sb = new StringBuilder ("JobStats for type:" + type + "\t");
+    for (JobInProgress job: jobs) {
+      JobInfo info = infos.get(job);
+      sb.append("Job:" + job.getJobID().toString());
+      sb.append(",runningTasks:" + runningTasks(info, type));
+      sb.append(",minTasks:" + minTasks(info, type));
+      sb.append(",weight:" + weight(info, type));
+      sb.append(",fairTasks:" + fairTasks(info, type));
+      sb.append(",neededTasks:" + neededTasks(info, type));
+      sb.append("\t");
+    }
+    LOG.info (sb.toString());
   }
 
 
@@ -1040,12 +1180,14 @@ public class FairScheduler extends TaskScheduler {
       int totalMaps = job.numMapTasks;
       int finishedMaps = 0;
       int runningMaps = 0;
+      int runningMapTips = 0;
       for (TaskInProgress tip :
            job.getTasks(org.apache.hadoop.mapreduce.TaskType.MAP)) {
         if (tip.isComplete()) {
           finishedMaps += 1;
         } else if (tip.isRunning()) {
           runningMaps += tip.getActiveTasks().size();
+          runningMapTips += 1;
         }
       }
       info.totalInitedTasks = job.numMapTasks + job.numReduceTasks;
@@ -1053,18 +1195,20 @@ public class FairScheduler extends TaskScheduler {
       infosummary.totalRunningMaps += runningMaps;
       poolMgr.incRunningTasks(info.poolName, TaskType.MAP, runningMaps);
       info.neededSpeculativeMaps =  taskSelector.neededSpeculativeMaps(job);
-      info.neededMaps = (totalMaps - runningMaps - finishedMaps
+      info.neededMaps = (totalMaps - runningMapTips - finishedMaps
           + info.neededSpeculativeMaps);
       // Count reduces
       int totalReduces = job.numReduceTasks;
       int finishedReduces = 0;
       int runningReduces = 0;
+      int runningReduceTips = 0;
       for (TaskInProgress tip :
            job.getTasks(org.apache.hadoop.mapreduce.TaskType.REDUCE)) {
         if (tip.isComplete()) {
           finishedReduces += 1;
         } else if (tip.isRunning()) {
           runningReduces += tip.getActiveTasks().size();
+          runningReduceTips += 1;
         }
       }
       info.runningReduces = runningReduces;
@@ -1073,7 +1217,7 @@ public class FairScheduler extends TaskScheduler {
       if (job.scheduleReduces()) {
         info.neededSpeculativeReduces =
           taskSelector.neededSpeculativeReduces(job);
-        info.neededReduces = (totalReduces - runningReduces - finishedReduces
+        info.neededReduces = (totalReduces - runningReduceTips - finishedReduces
             + info.neededSpeculativeReduces);
       } else {
         info.neededReduces = 0;
@@ -1098,6 +1242,14 @@ public class FairScheduler extends TaskScheduler {
       info.mapWeight = calculateRawWeight(job, TaskType.MAP);
       info.reduceWeight = calculateRawWeight(job, TaskType.REDUCE);
     }
+
+    // Adjust pool weight to FIFO if configured
+    for (Pool pool : poolMgr.getPools()) {
+      if (poolMgr.fifoWeight(pool.getName())) {
+        fifoWeightAdjust(pool);
+      }
+    }
+
     // Now calculate job weight sums for each pool
     Map<String, Double> mapWeightSums = new HashMap<String, Double>();
     Map<String, Double> reduceWeightSums = new HashMap<String, Double>();
@@ -1105,12 +1257,13 @@ public class FairScheduler extends TaskScheduler {
       double mapWeightSum = 0;
       double reduceWeightSum = 0;
       for (JobInProgress job: pool.getJobs()) {
-        if (isRunnable(job)) {
-          if (runnableTasks(job, TaskType.MAP) > 0) {
-            mapWeightSum += infos.get(job).mapWeight;
+        JobInfo info = infos.get(job);
+        if (isRunnable(info)) {
+          if (runnableTasks(info, TaskType.MAP) > 0) {
+            mapWeightSum += info.mapWeight;
           }
-          if (runnableTasks(job, TaskType.REDUCE) > 0) {
-            reduceWeightSum += infos.get(job).reduceWeight;
+          if (runnableTasks(info, TaskType.REDUCE) > 0) {
+            reduceWeightSum += info.reduceWeight;
           }
         }
       }
@@ -1137,166 +1290,266 @@ public class FairScheduler extends TaskScheduler {
     }
   }
 
-  private void updateMinSlots() {
-    // Clear old minSlots
-    for (JobInfo info: infos.values()) {
-      info.minMaps = 0;
-      info.minReduces = 0;
+  /**
+   * Boost the weight for the older jobs.
+   */
+  private void fifoWeightAdjust(Pool pool) {
+    List<JobInProgress> jobs = new ArrayList<JobInProgress>();
+    jobs.addAll(pool.getJobs());
+    Collections.sort(jobs, new FifoJobComparator());
+    double factor = 1.0;
+    for (JobInProgress job : jobs) {
+      JobInfo info = infos.get(job);
+      info.mapWeight *= factor;
+      info.reduceWeight *= factor;
+      factor *= FIFO_WEIGHT_DECAY_FACTOR;
     }
-    // For each pool, distribute its task allocation among jobs in it that need
-    // slots. This is a little tricky since some jobs in the pool might not be
-    // able to use all the slots, e.g. they might have only a few tasks left.
-    // To deal with this, we repeatedly split up the available task slots
-    // between the jobs left, give each job min(its alloc, # of slots it needs),
-    // and redistribute any slots that are left over between jobs that still
-    // need slots on the next pass. If, in total, the jobs in our pool don't
-    // need all its allocation, we leave the leftover slots for general use.
-    PoolManager poolMgr = getPoolManager();
-    for (Pool pool: poolMgr.getPools()) {
-      for (final TaskType type: MAP_AND_REDUCE) {
-        Set<JobInProgress> jobs = new HashSet<JobInProgress>(pool.getJobs());
-        int slotsLeft = poolMgr.getAllocation(pool.getName(), type);
-        // Keep assigning slots until none are left
-        while (slotsLeft > 0) {
-          // Figure out total weight of jobs that still need slots
-          double totalWeight = 0;
-          for (Iterator<JobInProgress> it = jobs.iterator(); it.hasNext();) {
-            JobInProgress job = it.next();
-            if (isRunnable(job) &&
-                runnableTasks(job, type) > minTasks(job, type)) {
-              totalWeight += weight(job, type);
-            } else {
-              it.remove();
-            }
-          }
-          if (totalWeight == 0) // No jobs that can use more slots are left
-            break;
-          // Assign slots to jobs, using the floor of their weight divided by
-          // total weight. This ensures that all jobs get some chance to take
-          // a slot. Then, if no slots were assigned this way, we do another
-          // pass where we use ceil, in case some slots were still left over.
-          int oldSlots = slotsLeft; // Copy slotsLeft so we can modify it
-          for (JobInProgress job: jobs) {
-            double weight = weight(job, type);
-            int share = (int) Math.floor(oldSlots * weight / totalWeight);
-            slotsLeft = giveMinSlots(job, type, slotsLeft, share);
-          }
-          if (slotsLeft == oldSlots) {
-            // No tasks were assigned; do another pass using ceil, giving the
-            // extra slots to jobs in order of weight then deficit
-            List<JobInProgress> sortedJobs = new ArrayList<JobInProgress>(jobs);
-            Collections.sort(sortedJobs, new Comparator<JobInProgress>() {
-              public int compare(JobInProgress j1, JobInProgress j2) {
-                double dif = weight(j2, type) - weight(j1, type);
-                if (dif == 0) // Weights are equal, compare by deficit
-                  dif = deficit(j2, type) - deficit(j1, type);
-                return (int) Math.signum(dif);
-              }
-            });
-            for (JobInProgress job: sortedJobs) {
-              double weight = weight(job, type);
-              int share = (int) Math.ceil(oldSlots * weight / totalWeight);
-              slotsLeft = giveMinSlots(job, type, slotsLeft, share);
-            }
-            if (slotsLeft > 0) {
-              LOG.warn("Had slotsLeft = " + slotsLeft + " after the final "
-                  + "loop in updateMinSlots. This probably means some fair "
-                  + "scheduler weights are being set to NaN or Infinity.");
-            }
-            break;
-          }
-        }
+  }
+
+  private void updateMinAndMaxSlots() {
+    for (TaskType type : MAP_AND_REDUCE) {
+      for (Pool pool : poolMgr.getPools()) {
+        updateMinSlots(pool, type);
+        updateMaxSlots(pool, type);
       }
     }
   }
 
   /**
-   * Give up to <code>tasksToGive</code> min slots to a job (potentially fewer
-   * if either the job needs fewer slots or there aren't enough slots left).
-   * Returns the number of slots left over.
+   * Compute the min slots for each job. This is done by distributing the
+   * configured minSlots of each pool to the jobs inside that pool.
    */
-  private int giveMinSlots(JobInProgress job, TaskType type,
-      int slotsLeft, int slotsToGive) {
-    int runnable = runnableTasks(job, type);
-    int curMin = minTasks(job, type);
-    slotsToGive = Math.min(Math.min(slotsLeft, runnable - curMin), slotsToGive);
-    slotsLeft -= slotsToGive;
-    JobInfo info = infos.get(job);
-    if (type == TaskType.MAP)
-      info.minMaps += slotsToGive;
-    else
-      info.minReduces += slotsToGive;
-    return slotsLeft;
+  private void updateMinSlots(final Pool pool, final TaskType type) {
+    // Find the proper ratio of (# of minSlots / weight) by bineary search
+    BinarySearcher searcher = new BinarySearcher() {
+      @Override
+      double targetFunction(double x) {
+        return poolSlotsUsedWithWeightToSlotRatio(pool, x, type, false);
+      }
+    };
+    int total = poolMgr.getAllocation(pool.getName(), type);
+    double ratio = searcher.getSolution(total);
+
+    int leftOver = total;
+    List<JobInfo> candidates = new LinkedList<JobInfo>();
+    for (JobInProgress job : pool.getJobs()) {
+      JobInfo info = infos.get(job);
+      int slots = (int)Math.floor(computeShare(info, ratio, type, false));
+      candidates.add(info);
+      leftOver -= slots;
+      setMinSlots(info, slots, type);
+    }
+    // Assign the left over slots
+    for (int i = 0; i < leftOver && !candidates.isEmpty(); ++i) {
+      JobInfo info = candidates.remove(0);
+      if (incMinSlots(info, type)) {
+        candidates.add(info);
+      }
+    }
+  }
+
+  private static void setMinSlots(JobInfo info, int slots, TaskType type) {
+    if (type == TaskType.MAP) {
+      info.minMaps = slots;
+    } else {
+      info.minReduces = slots;
+    }
+  }
+
+  private boolean incMinSlots(JobInfo info, TaskType type) {
+    if (type == TaskType.MAP) {
+      if (info.minMaps < runnableTasks(info, type)) {
+        info.minMaps += 1;
+        return true;
+      }
+    } else {
+      if (info.minReduces < runnableTasks(info, type)) {
+        info.minReduces += 1;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Compute the max slots for each job. This is done by distributing the
+   * configured max of each pool to the jobs inside that pool.
+   */
+  private void updateMaxSlots(final Pool pool, final TaskType type) {
+    // Find the proper ratio of (# of maxlots / weight) by bineary search
+    BinarySearcher searcher = new BinarySearcher() {
+      @Override
+      double targetFunction(double x) {
+        return poolSlotsUsedWithWeightToSlotRatio(pool, x, type, false);
+      }
+    };
+    int total = poolMgr.getMaxSlots(pool.getName(), type);
+    double ratio = searcher.getSolution(total);
+
+    int leftOver = total;
+    List<JobInfo> candidates = new LinkedList<JobInfo>();
+    for (JobInProgress job : pool.getJobs()) {
+      JobInfo info = infos.get(job);
+      int slots = (int)Math.floor(computeShare(info, ratio, type, false));
+      candidates.add(info);
+      leftOver -= slots;
+      setMaxSlots(info, slots, type);
+    }
+    // Assign the left over slots
+    for (int i = 0; i < leftOver && !candidates.isEmpty(); ++i) {
+      JobInfo info = candidates.remove(0);
+      if (incMaxSlots(info, type)) {
+        candidates.add(info);
+      }
+    }
+  }
+
+  private static void setMaxSlots(JobInfo info, int slots, TaskType type) {
+    if (type == TaskType.MAP) {
+      info.maxMaps = slots;
+    } else {
+      info.maxReduces = slots;
+    }
+  }
+
+  private boolean incMaxSlots(JobInfo info, TaskType type) {
+    if (type == TaskType.MAP) {
+      if (info.maxMaps < runnableTasks(info, type)) {
+        info.maxMaps += 1;
+        return true;
+      }
+    } else {
+      if (info.maxReduces < runnableTasks(info, type)) {
+        info.maxReduces += 1;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Compute the number of slots that would be used given a weight-to-slot
+   * ratio w2sRatio.
+   */
+  private double poolSlotsUsedWithWeightToSlotRatio(
+      Pool pool, double w2sRatio, TaskType type, boolean considerMinMax) {
+    double slotsTaken = 0;
+    for (JobInProgress job : pool.getJobs()) {
+      JobInfo info = infos.get(job);
+      slotsTaken += computeShare(
+         info, w2sRatio, type, considerMinMax);
+    }
+    return slotsTaken;
   }
 
   private void updateFairShares(ClusterStatus clusterStatus) {
-    // Clear old fairShares
-    for (JobInfo info: infos.values()) {
-      info.mapFairShare = 0;
-      info.reduceFairShare = 0;
-    }
-    // Assign new shares, based on weight and minimum share. This is done
-    // as follows. First, we split up the available slots between all
-    // jobs according to weight. Then if there are any jobs whose minSlots is
-    // larger than their fair allocation, we give them their minSlots and
-    // remove them from the list, and start again with the amount of slots
-    // left over. This continues until all jobs' minSlots are less than their
-    // fair allocation, and at this point we know that we've met everyone's
-    // guarantee and we've split the excess capacity fairly among jobs left.
-    for (TaskType type: TaskType.values()) {
-      // Select only jobs that still need this type of task
-      HashSet<JobInfo> jobsLeft = new HashSet<JobInfo>();
-      for (Entry<JobInProgress, JobInfo> entry: infos.entrySet()) {
-        JobInProgress job = entry.getKey();
-        JobInfo info = entry.getValue();
-        if (isRunnable(job) && runnableTasks(job, type) > 0) {
-          jobsLeft.add(info);
-        }
+    double totalMaps = getTotalSlots(TaskType.MAP, clusterStatus);
+    updateFairShares(totalMaps, TaskType.MAP);
+    double totalReduces = getTotalSlots(TaskType.REDUCE, clusterStatus);
+    updateFairShares(totalReduces, TaskType.REDUCE);
+  }
+
+  /**
+   * Update fairshare for each JobInfo based on the weight, neededTasks and
+   * minTasks and the size of the pool. We compute the share by finding the
+   * ratio of (# of slots / weight) using binary search.
+   */
+  private void updateFairShares(double totalSlots, final TaskType type) {
+    // Find the proper ratio of (# of slots share / weight) by bineary search
+    BinarySearcher searcher = new BinarySearcher() {
+      @Override
+      double targetFunction(double x) {
+        return slotsUsedWithWeightToSlotRatio(x, type);
       }
-      double slotsLeft = getTotalSlots(type, clusterStatus);
-      while (!jobsLeft.isEmpty()) {
-        double totalWeight = 0;
-        for (JobInfo info: jobsLeft) {
-          double weight = (type == TaskType.MAP ?
-              info.mapWeight : info.reduceWeight);
-          totalWeight += weight;
-        }
-        boolean recomputeSlots = false;
-        double oldSlots = slotsLeft; // Copy slotsLeft so we can modify it
-        for (Iterator<JobInfo> iter = jobsLeft.iterator(); iter.hasNext();) {
-          JobInfo info = iter.next();
-          double minSlots = (type == TaskType.MAP ?
-              info.minMaps : info.minReduces);
-          double weight = (type == TaskType.MAP ?
-              info.mapWeight : info.reduceWeight);
-          double fairShare = weight / totalWeight * oldSlots;
-          if (minSlots > fairShare) {
-            // Job needs more slots than its fair share; give it its minSlots,
-            // remove it from the list, and set recomputeSlots = true to
-            // remember that we must loop again to redistribute unassigned slots
-            if (type == TaskType.MAP)
-              info.mapFairShare = minSlots;
-            else
-              info.reduceFairShare = minSlots;
-            slotsLeft -= minSlots;
-            iter.remove();
-            recomputeSlots = true;
-          }
-        }
-        if (!recomputeSlots) {
-          // All minimums are met. Give each job its fair share of excess slots.
-          for (JobInfo info: jobsLeft) {
-            double weight = (type == TaskType.MAP ?
-                info.mapWeight : info.reduceWeight);
-            double fairShare = weight / totalWeight * oldSlots;
-            if (type == TaskType.MAP)
-              info.mapFairShare = fairShare;
-            else
-              info.reduceFairShare = fairShare;
-          }
+    };
+    double ratio = searcher.getSolution(totalSlots);
+
+    // Set the fair shares based on the value of R we've converged to
+    for (JobInfo info : infos.values()) {
+      if (type == TaskType.MAP) {
+        info.mapFairShare = computeShare(info, ratio, type);
+      } else {
+        info.reduceFairShare = computeShare(info, ratio, type);
+      }
+    }
+  }
+
+  /**
+   * Compute the number of slots that would be used given a weight-to-slot
+   * ratio w2sRatio.
+   */
+  private double slotsUsedWithWeightToSlotRatio(double w2sRatio, TaskType type) {
+    double slotsTaken = 0;
+    for (JobInfo info : infos.values()) {
+      slotsTaken += computeShare(info, w2sRatio, type);
+    }
+    return slotsTaken;
+  }
+
+  private double computeShare(
+      JobInfo info, double w2sRatio, TaskType type) {
+    return computeShare(info, w2sRatio, type, true);
+  }
+
+  /**
+   * Compute the number of slots assigned to a job given a particular
+   * weight-to-slot ratio w2sRatio.
+   */
+  private double computeShare(JobInfo info, double w2sRatio,
+      TaskType type, boolean considerMinMax) {
+    if (!isRunnable(info)) {
+      return 0;
+    }
+    double share = type == TaskType.MAP ? info.mapWeight : info.reduceWeight;
+    share *= w2sRatio;
+    if (considerMinMax) {
+      int minSlots = type == TaskType.MAP ? info.minMaps : info.minReduces;
+      share = Math.max(share, minSlots);
+      int maxSlots = type == TaskType.MAP ? info.maxMaps : info.maxReduces;
+      share = Math.min(share, maxSlots);
+    }
+    share = Math.min(share, runnableTasks(info, type));
+    return share;
+  }
+
+  /**
+   * Given a targetFunction and a targetValue, find a positive number x so that
+   * targetFunction(x) == targetValue approximately
+   */
+  abstract class BinarySearcher {
+    final static int MAXIMUM_ITERATION = 25;
+    final static double ERROR_ALLOW_WHEN_COMPARE_FLOATS = 1e-8;
+    abstract double targetFunction(double x);
+    double getSolution(double targetValue) {
+      double rMax = 1.0;
+      double oldValue = -1;
+      for (int i = 0; i < MAXIMUM_ITERATION; ++i) {
+        double value = targetFunction(rMax);
+        if (value >= targetValue) {
           break;
         }
+        if (equals(value, oldValue)) {
+          return rMax; // Target value is not feasible. Just return rMax
+        }
+        rMax *= 2;
       }
+      double left = 0, right = rMax;
+      for (int i = 0; i < MAXIMUM_ITERATION; ++i) {
+        double mid = (left + right) / 2.0;
+        double value = targetFunction(mid);
+        if (equals(value, targetValue)) {
+          return mid;
+        }
+        if (value < targetValue) {
+          left = mid;
+        } else {
+          right = mid;
+        }
+      }
+      return right;
+    }
+    private boolean equals(double x, double y) {
+      return Math.abs(x - y) < ERROR_ALLOW_WHEN_COMPARE_FLOATS;
     }
   }
 
@@ -1309,7 +1562,7 @@ public class FairScheduler extends TaskScheduler {
         // Set weight based on runnable tasks
         weight = Math.log1p(runnableTasks(job, taskType)) / Math.log(2);
       }
-      weight *= getPriorityFactor(job.getPriority());
+      weight *= job.getPriority().getFactor();
       if (weightAdjuster != null) {
         // Run weight through the user-supplied weightAdjuster
         weight = weightAdjuster.adjustWeight(job, taskType, weight);
@@ -1317,17 +1570,6 @@ public class FairScheduler extends TaskScheduler {
       return weight;
     }
   }
-
-  private double getPriorityFactor(JobPriority priority) {
-    switch (priority) {
-    case VERY_HIGH: return 4.0;
-    case HIGH:      return 2.0;
-    case NORMAL:    return 1.0;
-    case LOW:       return 0.5;
-    default:        return 0.25; // priority = VERY_LOW
-    }
-  }
-
 
   /**
    * Returns the LoadManager object used by the Fair Share scheduler
@@ -1345,37 +1587,27 @@ public class FairScheduler extends TaskScheduler {
       clusterStatus.getMaxMapTasks() : clusterStatus.getMaxReduceTasks());
   }
 
-  public enum JobComparator {
-    DEFICIT, FAIR, FIFO;
-    public static JobComparator fromString(String str) {
-      if (FIFO.toString().equals(str.toUpperCase())) {
-        return FIFO;
-      }
-      if (FAIR.toString().equals(str.toUpperCase())) {
-        return FAIR;
-      }
-      if (DEFICIT.toString().equals(str.toUpperCase())) {
-        return DEFICIT;
-      }
-      return null;
-    }
-  }
-  public synchronized JobComparator getJobComparator() {
-    return jobComparator;
-  }
-
-  public synchronized void setJobComparator(JobComparator jobComparator) {
-    if (jobComparator != null) {
-      this.jobComparator = jobComparator;
-    }
-  }
-
   // Getter methods for reading JobInfo values based on TaskType, safely
   // returning 0's for jobs with no JobInfo present.
 
   protected int neededTasks(JobInfo info, TaskType taskType) {
     if (info == null) return 0;
     return taskType == TaskType.MAP ? info.neededMaps : info.neededReduces;
+  }
+
+  protected int runningTasks(JobInfo info, TaskType taskType) {
+    if (info == null) return 0;
+    return taskType == TaskType.MAP ? info.runningMaps : info.runningReduces;
+  }
+
+  protected int minTasks(JobInfo info, TaskType type) {
+    if (info == null) return 0;
+    return (type == TaskType.MAP) ? info.minMaps : info.minReduces;
+  }
+
+  protected double weight(JobInfo info, TaskType type) {
+    if (info == null) return 0;
+    return (type == TaskType.MAP) ? info.mapWeight : info.reduceWeight;
   }
 
   protected int neededTasks(JobInProgress job, TaskType taskType) {
@@ -1385,24 +1617,26 @@ public class FairScheduler extends TaskScheduler {
 
   protected int runningTasks(JobInProgress job, TaskType taskType) {
     JobInfo info = infos.get(job);
-    if (info == null) return 0;
-    return taskType == TaskType.MAP ? info.runningMaps : info.runningReduces;
+    return runningTasks (info, taskType);
+  }
+
+  protected int runnableTasks(JobInfo info, TaskType type) {
+    return neededTasks(info, type) + runningTasks(info, type);
   }
 
   protected int runnableTasks(JobInProgress job, TaskType type) {
-    return neededTasks(job, type) + runningTasks(job, type);
+    JobInfo info = infos.get(job);
+    return neededTasks(info, type) + runningTasks(info, type);
   }
 
   protected int minTasks(JobInProgress job, TaskType type) {
     JobInfo info = infos.get(job);
-    if (info == null) return 0;
-    return (type == TaskType.MAP) ? info.minMaps : info.minReduces;
+    return minTasks(info, type);
   }
 
   protected double weight(JobInProgress job, TaskType taskType) {
     JobInfo info = infos.get(job);
-    if (info == null) return 0;
-    return (taskType == TaskType.MAP ? info.mapWeight : info.reduceWeight);
+    return weight(info, taskType);
   }
 
   protected double deficit(JobInProgress job, TaskType taskType) {
@@ -1411,10 +1645,14 @@ public class FairScheduler extends TaskScheduler {
     return taskType == TaskType.MAP ? info.mapDeficit : info.reduceDeficit;
   }
 
-  protected boolean isRunnable(JobInProgress job) {
-    JobInfo info = infos.get(job);
+  protected static boolean isRunnable(JobInfo info) {
     if (info == null) return false;
     return info.runnable;
+  }
+
+  protected boolean isRunnable(JobInProgress job) {
+    JobInfo info = infos.get(job);
+    return isRunnable(info);
   }
 
   @Override
@@ -1485,13 +1723,13 @@ public class FairScheduler extends TaskScheduler {
         info.lastTimeAtMapHalfFairShare = now;
         info.lastTimeAtReduceHalfFairShare = now;
       } else {
-        if (!isStarvedForMinShare(job, TaskType.MAP))
+        if (!isStarvedForMinShare(info, TaskType.MAP))
           info.lastTimeAtMapMinShare = now;
-        if (!isStarvedForMinShare(job, TaskType.REDUCE))
+        if (!isStarvedForMinShare(info, TaskType.REDUCE))
           info.lastTimeAtReduceMinShare = now;
-        if (!isStarvedForFairShare(job, TaskType.MAP))
+        if (!isStarvedForFairShare(info, TaskType.MAP))
           info.lastTimeAtMapHalfFairShare = now;
-        if (!isStarvedForFairShare(job, TaskType.REDUCE))
+        if (!isStarvedForFairShare(info, TaskType.REDUCE))
           info.lastTimeAtReduceHalfFairShare = now;
       }
     }
@@ -1500,9 +1738,9 @@ public class FairScheduler extends TaskScheduler {
   /**
    * Is a job below 90% of its min share for the given task type?
    */
-  boolean isStarvedForMinShare(JobInProgress job, TaskType taskType) {
-    float starvingThreshold = (float) (minTasks(job, taskType) * 0.9);
-    return runningTasks(job, taskType) < starvingThreshold;
+  boolean isStarvedForMinShare(JobInfo info, TaskType taskType) {
+    float starvingThreshold = (float) (minTasks(info, taskType) * 0.9);
+    return runningTasks(info, taskType) < starvingThreshold;
   }
 
   /**
@@ -1510,10 +1748,10 @@ public class FairScheduler extends TaskScheduler {
    * This is defined as being below half its fair share *and* having a
    * positive deficit.
    */
-  boolean isStarvedForFairShare(JobInProgress job, TaskType type) {
+  boolean isStarvedForFairShare(JobInfo info, TaskType type) {
     int desiredFairShare = (int) Math.floor(Math.min(
-        fairTasks(job, type) / 2, runnableTasks(job, type)));
-    return (runningTasks(job, type) < desiredFairShare);
+        fairTasks(info, type) / 2, runnableTasks(info, type)));
+    return (runningTasks(info, type) < desiredFairShare);
   }
 
   /**
@@ -1545,6 +1783,14 @@ public class FairScheduler extends TaskScheduler {
           for (JobInProgress job: jobs) {
             tasksToPreempt += tasksToPreempt(job, type, curTime);
           }
+
+          if (tasksToPreempt > 0) {
+            // for debugging purposes log the jobs by scheduling priority
+            // to check whether preemption and scheduling are in sync.
+            logJobStats(sortedJobsByMapNeed, TaskType.MAP);
+            logJobStats(sortedJobsByReduceNeed, TaskType.REDUCE);
+          }
+
           // Actually preempt the tasks. The policy for this is to pick
           // tasks from jobs that are above their min share and have very
           // negative deficits (meaning they've been over-scheduled).
@@ -1568,28 +1814,33 @@ public class FairScheduler extends TaskScheduler {
    */
   protected int tasksToPreempt(JobInProgress job, TaskType type, long curTime) {
     JobInfo info = infos.get(job);
-    if (info == null) return 0;
-    String pool = poolMgr.getPoolName(job);
+    if (info == null || poolMgr.isMaxTasks(info.poolName, type)) return 0;
+    String pool = info.poolName;
     long minShareTimeout = poolMgr.getMinSharePreemptionTimeout(pool);
     long fairShareTimeout = poolMgr.getFairSharePreemptionTimeout();
     int tasksDueToMinShare = 0;
     int tasksDueToFairShare = 0;
+    boolean poolBelowMinSlots = poolMgr.getRunningTasks(pool, type) <
+      poolMgr.getAllocation(pool, type);
+
     if (type == TaskType.MAP) {
-      if (curTime - info.lastTimeAtMapMinShare > minShareTimeout) {
+      if (curTime - info.lastTimeAtMapMinShare > minShareTimeout && 
+          poolBelowMinSlots) {
         tasksDueToMinShare = info.minMaps - info.runningMaps;
       }
       if (curTime - info.lastTimeAtMapHalfFairShare > fairShareTimeout) {
         double fairShare = Math.min(info.mapFairShare,
-                                    runnableTasks(job, type));
+                                    runnableTasks(info, type));
         tasksDueToFairShare = (int) (fairShare - info.runningMaps);
       }
     } else { // type == TaskType.REDUCE
-      if (curTime - info.lastTimeAtReduceMinShare > minShareTimeout) {
+      if (curTime - info.lastTimeAtReduceMinShare > minShareTimeout &&
+          poolBelowMinSlots) {
         tasksDueToMinShare = info.minReduces - info.runningReduces;
       }
       if (curTime - info.lastTimeAtReduceHalfFairShare > fairShareTimeout) {
         double fairShare = Math.min(info.reduceFairShare,
-                                    runnableTasks(job, type));
+                                    runnableTasks(info, type));
         tasksDueToFairShare = (int) (fairShare - info.runningReduces);
       }
     }
@@ -1603,7 +1854,8 @@ public class FairScheduler extends TaskScheduler {
       String message = "Should preempt " + tasksToPreempt + " "
           + type + " tasks for " + job.getJobID()
           + ": tasksDueToMinShare = " + tasksDueToMinShare
-          + ", tasksDueToFairShare = " + tasksDueToFairShare;
+          + ", tasksDueToFairShare = " + tasksDueToFairShare
+          + ", runningTasks = " + runningTasks(info, type);
       LOG.info(message);
     }
     return tasksToPreempt < 0 ? 0 : tasksToPreempt;
@@ -1723,9 +1975,80 @@ public class FairScheduler extends TaskScheduler {
         fairSchedulerMetrics.preemptReduce(id);
       }
   }
-  protected double fairTasks(JobInProgress job, TaskType type) {
-    JobInfo info = infos.get(job);
+
+  protected double fairTasks(JobInfo info, TaskType type) {
     if (info == null) return 0;
     return (type == TaskType.MAP) ? info.mapFairShare : info.reduceFairShare;
+  }
+
+  protected double fairTasks(JobInProgress job, TaskType type) {
+    JobInfo info = infos.get(job);
+    return fairTasks(info, type);
+  }
+
+  @Override
+  public int getMaxSlots(TaskTrackerStatus status, TaskType type) {
+    int maxSlots = loadMgr.getMaxSlots(status, type);
+    return maxSlots;
+  }
+
+  @Override
+  public int getFSMaxSlots(String trackerName, TaskType type) {
+    return loadMgr.getFSMaxSlots(trackerName, type);
+  }
+
+  @Override
+  public void setFSMaxSlots(String trackerName, TaskType type, int slots)
+      throws IOException {
+    loadMgr.setFSMaxSlots(trackerName, type, slots);
+  }
+
+  @Override
+  public void resetFSMaxSlots() throws IOException {
+    loadMgr.resetFSMaxSlots();
+  }
+
+  @Override
+  public TaskTrackerStatus[] getTaskTrackerStatus() throws IOException {
+    Collection<TaskTrackerStatus> tts = taskTrackerManager.taskTrackers();
+    return tts.toArray(new TaskTrackerStatus[tts.size()]);
+  }
+
+  @Override
+  public synchronized int getRunnableTasks(TaskType type)
+      throws IOException {
+    int runnableTasks = 0;
+    for (JobInfo info : infos.values()) {
+      runnableTasks += runnableTasks(info, type);
+    }
+    return runnableTasks;
+  }
+
+  @Override
+  public long getProtocolVersion(String arg0, long arg1) throws IOException {
+    return versionID;
+  }
+  
+  @Override
+  public ProtocolSignature getProtocolSignature(String protocol,
+      long clientVersion, int clientMethodsHash) throws IOException {
+    return ProtocolSignature.getProtocolSignature(
+        this, protocol, clientVersion, clientMethodsHash);
+  }
+
+  @Override
+  public int[] getPoolRunningTasks(String pool) throws IOException {
+    int result[] = new int[2];
+    result[0] = poolMgr.getRunningTasks(pool, TaskType.MAP);
+    result[1] = poolMgr.getRunningTasks(pool, TaskType.REDUCE);
+    return result;
+  }
+
+  @Override
+  public int[] getPoolMaxTasks(String pool) throws IOException {
+    int result[] = new int[2];
+    result[0] = poolMgr.getMaxSlots(pool, TaskType.MAP);
+    result[1] = poolMgr.getMaxSlots(pool, TaskType.REDUCE);
+    return result;
   }
 }

@@ -62,7 +62,9 @@ public class LzmaCompressor implements Compressor {
         nativeLzmaLoaded = true;
       } catch (Throwable t) {
         // Ignore failure to load/initialize native-lzma
-      	LOG.error("initIDs() failed in LzmaCompressor...");
+      	LOG.error("initIDs() failed in LzmaCompressor..." + t);
+      	LOG.error(t.getCause());
+      	LOG.error(t.getMessage());
         nativeLzmaLoaded = false;
       }
     } else {
@@ -240,6 +242,8 @@ public class LzmaCompressor implements Compressor {
     compressedDirectBuf.limit(directBufferSize);
     compressedDirectBuf.position(directBufferSize);
     userBufOff = userBufLen = 0;
+    end();
+    stream = init(this.level);
   }
   
   public synchronized void end() {

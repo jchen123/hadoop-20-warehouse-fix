@@ -40,6 +40,11 @@ import org.apache.hadoop.util.StringUtils;
  */
 class TaskMemoryManagerThread extends Thread {
 
+  public static final String TASK_MAX_PHYSICAL_MEMORY_MB_KEY =
+    "mapred.task.max.physical.memory.mb";
+  public static final int TASK_MAX_PHYSICAL_MEMORY_MB_DEFAULT = 5 * 1024;
+
+
   private static Log LOG = LogFactory.getLog(TaskMemoryManagerThread.class);
 
   private TaskTracker taskTracker;
@@ -59,10 +64,6 @@ class TaskMemoryManagerThread extends Thread {
   private Map<TaskAttemptID, ProcessTreeInfo> processTreeInfoMap;
   private Map<TaskAttemptID, ProcessTreeInfo> tasksToBeAdded;
   private List<TaskAttemptID> tasksToBeRemoved;
-
-  private static final String MEMORY_USAGE_STRING =
-    "Memory usage of ProcessTree %s for task-id %s : %d bytes, " +
-      "limit : %d bytes";
   
   public TaskMemoryManagerThread(TaskTracker taskTracker) {
 
@@ -239,7 +240,7 @@ class TaskMemoryManagerThread extends Thread {
           long limit = ptInfo.getMemLimit();
           String user = taskTracker.getUserName(ptInfo.tid);
           // Log RSS and virtual memory usage of all tasks
-          LOG.info((String.format("Memory usage of ProcessTree %s : " +
+          LOG.debug((String.format("Memory usage of ProcessTree %s : " +
           		     "[USER,TID,RSS,VMEM,VLimit,TotalRSSLimit]"
                    + "=[%s,%s,%s,%s,%s,%s]",
                    pId, user, ptInfo.tid, currentRssMemUsage,
@@ -293,7 +294,7 @@ class TaskMemoryManagerThread extends Thread {
             + " is still overflowing TTs limits "
             + maxRssMemoryAllowedForAllTasks
             + ". Trying to kill a few tasks with the highest memory.");
-        killTasksWithMaxRssMemory(rssMemoryStillInUsage);
+        failTasksWithMaxRssMemory(rssMemoryStillInUsage);
       }
     
       // Sleep for some time before beginning next cycle
@@ -452,7 +453,7 @@ class TaskMemoryManagerThread extends Thread {
                 + "the TaskTracker exceeds virtual memory limit "
                 + maxMemoryAllowedForAllTasks + ".";
         LOG.warn(msg);
-        killTask(tid, msg);
+        killTask(tid, msg, false);
       }
     } else {
       LOG.info("The total memory usage is overflowing TTs limits. "
@@ -473,10 +474,10 @@ class TaskMemoryManagerThread extends Thread {
 
   /**
    * Starting from the tasks use the highest amount of RSS memory,
-   * kill the tasks until the RSS memory meets the requirement
+   * fail the tasks until the RSS memory meets the requirement
    * @param rssMemoryInUsage
    */
-  private void killTasksWithMaxRssMemory(long rssMemoryInUsage) {
+  private void failTasksWithMaxRssMemory(long rssMemoryInUsage) {
     
     List<TaskAttemptID> tasksToKill = new ArrayList<TaskAttemptID>();
     List<TaskAttemptID> allTasks = new ArrayList<TaskAttemptID>();
@@ -488,7 +489,7 @@ class TaskMemoryManagerThread extends Thread {
                 1 : -1;
       }});
     
-    // Kill the tasks one by one until the memory requirement is met
+    // Fail the tasks one by one until the memory requirement is met
     while (rssMemoryInUsage > maxRssMemoryAllowedForAllTasks &&
            !allTasks.isEmpty()) {
       TaskAttemptID tid = allTasks.remove(0);
@@ -506,16 +507,34 @@ class TaskMemoryManagerThread extends Thread {
     // Now kill the tasks.
     if (!tasksToKill.isEmpty()) {
       for (TaskAttemptID tid : tasksToKill) {
-        String msg =
-            "Killing one of the memory-consuming tasks - " + tid
-                + ", as the cumulative RSS memory usage of all the tasks on "
-                + "the TaskTracker exceeds physical memory limit "
-                + maxRssMemoryAllowedForAllTasks + ".";
-        LOG.warn(msg);
-        killTask(tid, msg);
+        JobConf conf;
+        synchronized (this.taskTracker) {
+          conf = this.taskTracker.tasks.get(tid).getJobConf();
+        }
+        int maxMemory =
+          conf.getInt(TASK_MAX_PHYSICAL_MEMORY_MB_KEY,
+              TASK_MAX_PHYSICAL_MEMORY_MB_DEFAULT);
+        LOG.info("Maximum memory for " + tid + ": " + maxMemory + " MB");
+        if (getTaskCumulativeRssmem(tid) > maxMemory * 1024 * 1024L) {
+          String msg =
+            "Failing the top memory-consuming tasks - " + tid
+            + ", as the cumulative RSS memory usage of all the tasks on "
+            + "the TaskTracker exceeds physical memory limit "
+            + maxRssMemoryAllowedForAllTasks + ".";
+          LOG.warn(msg);
+          killTask(tid, msg, true);
+        } else {
+          String msg =
+            "Killing the top memory-consuming tasks - " + tid
+            + ", as the cumulative RSS memory usage of all the tasks on "
+            + "the TaskTracker exceeds physical memory limit "
+            + maxRssMemoryAllowedForAllTasks + ".";
+          LOG.warn(msg);
+          killTask(tid, msg, false);
+        }
       }
     } else {
-      LOG.info("The total physical memory usage is overflowing TTs limits. "
+      LOG.error("The total physical memory usage is overflowing TTs limits. "
           + "But found no alive task to kill for freeing memory.");
     }
   }
@@ -524,10 +543,11 @@ class TaskMemoryManagerThread extends Thread {
    * Kill the task and clean up ProcessTreeInfo
    * @param tid task attempt ID of the task to be killed.
    * @param msg diagonostic message
+   * @param wasFailure if true, fail the task
    */
-  private void killTask(TaskAttemptID tid, String msg) {
+  private void killTask(TaskAttemptID tid, String msg, boolean wasFailure) {
     // Kill the task and mark it as killed.
-    taskTracker.cleanUpOverMemoryTask(tid, false, msg);
+    taskTracker.cleanUpOverMemoryTask(tid, wasFailure, msg);
     // Now destroy the ProcessTree, remove it from monitoring map.
     ProcessTreeInfo ptInfo = processTreeInfoMap.get(tid);
     ProcfsBasedProcessTree pTree = ptInfo.getProcessTree();

@@ -25,6 +25,7 @@ import org.apache.hadoop.metrics.*;
 import org.apache.hadoop.metrics.jvm.JvmMetrics;
 import org.apache.hadoop.metrics.util.MetricsBase;
 import org.apache.hadoop.metrics.util.MetricsIntValue;
+import org.apache.hadoop.metrics.util.MetricsLongValue;
 import org.apache.hadoop.metrics.util.MetricsRegistry;
 import org.apache.hadoop.metrics.util.MetricsTimeVaryingLong;
 import org.apache.hadoop.metrics.util.MetricsTimeVaryingRate;
@@ -48,6 +49,8 @@ public class NameNodeMetrics implements Updater {
     
     private NameNodeActivtyMBean namenodeActivityMBean;
     
+    public MetricsTimeVaryingLong numReportedCorruptReplicas =
+               new MetricsTimeVaryingLong("CorruptReplicasReported", registry);
     public MetricsTimeVaryingLong numFilesCreated =
                           new MetricsTimeVaryingLong("FilesCreated", registry);
     public MetricsTimeVaryingLong numFilesAppended =
@@ -121,6 +124,8 @@ public class NameNodeMetrics implements Updater {
                     new MetricsIntValue("BlocksCorrupted", registry);
     public MetricsIntValue numBufferedTransactions =
                     new MetricsIntValue("numBufferedTransactions", registry);
+    public MetricsLongValue numOverReplicatedBlocks =
+                    new MetricsLongValue("numOverReplicatedBlocks", registry);
 
       
     public NameNodeMetrics(Configuration conf, NameNode nameNode) {

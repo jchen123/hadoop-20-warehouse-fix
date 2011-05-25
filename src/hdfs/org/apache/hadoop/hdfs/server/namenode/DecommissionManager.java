@@ -21,13 +21,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hdfs.protocol.Block;
-import org.apache.hadoop.hdfs.util.GSet;
-import org.apache.hadoop.hdfs.util.LightWeightGSet;
+import org.apache.hadoop.hdfs.server.namenode.DatanodeDescriptor.DecommissioningStatus;
 
 /**
  * Manage node decommissioning.
@@ -49,6 +47,7 @@ class DecommissionManager {
     private final long recheckInterval;
     /** The number of decommission nodes to check for each interval */
     private final int numNodesPerCheck;
+    private final DecommissioningStatus nodeStatus = new DecommissioningStatus();
 
     // datanodes that just started decomission,
     // which has higher priority to be checked next
@@ -115,33 +114,8 @@ class DecommissionManager {
                toBeChecked.remove(datanode)) {
         checked.remove(datanode);
       }
+      datanode.decommissioningStatus.set(0, 0, 0);
       return true;
-    }
-    
-    /**
-     * Return a list of unchecked blocks on srcNode
-     * 
-     * @param srcNode a datanode
-     * @param checkedBlocks all blocks that have been checked
-     * @param numBlocks maximum number of blocks to return
-     * @return a list of blocks to be checked
-     */
-    private List<Block> fetchBlocks(
-        GSet<Block, Block> checkedBlocks, int numBlocks) {
-      final List<Block> blocksToCheck = new ArrayList<Block>(numBlocks);
-      fsnamesystem.readLock();
-      try {
-        final Iterator<Block> it = nodeBeingCheck.getBlockIterator();
-        while (blocksToCheck.size()<numBlocks && it.hasNext()) {
-          final Block block = it.next();
-          if (!checkedBlocks.contains(block)) { // the block has not been checked
-            blocksToCheck.add(block);
-          }
-        }
-      } finally {
-        fsnamesystem.readUnlock();
-      }
-      return blocksToCheck;
     }
     
     synchronized private void handlePendingStopDecommission() {
@@ -149,6 +123,7 @@ class DecommissionManager {
         LOG.info("Stop (delayed) Decommissioning node " + 
             nodeBeingCheck.getName());
         nodeBeingCheck.stopDecommission();
+        nodeBeingCheck.decommissioningStatus.set(0, 0, 0);
         pendingToStopDecommission = false;
       }
     }
@@ -157,57 +132,91 @@ class DecommissionManager {
      * Change, if appropriate, the admin state of a datanode to 
      * decommission completed. Return true if decommission is complete.
      */
-    private boolean checkDecommissionStateInternal() {
-      fsnamesystem.writeLock();
+    private boolean checkDecommissionStateInternal(boolean newlyStartedNode) {
+      LOG.info("Decommission started checking the progress of " +
+          nodeBeingCheck.getName());
+      fsnamesystem.readLock();
       int numOfBlocks;
       try {
         if (!nodeBeingCheck.isDecommissionInProgress()) {
           return true;
         }
         // initialize decominssioning status
-        nodeBeingCheck.decommissioningStatus.set(0, 0, 0);
         numOfBlocks = nodeBeingCheck.numBlocks();
       } finally {
-        fsnamesystem.writeUnlock();
+        fsnamesystem.readUnlock();
       }
       
-      //
-      // Check to see if all blocks in this decommissioned
-      // node has reached their target replication factor.
-      //
-      // limit the number of scans
-      final int BLOCKS_PER_ITER = 1000;
-      final int numOfBlocksToFetch = Math.max(BLOCKS_PER_ITER, numOfBlocks/5);
-      GSet<Block, Block> checkedBlocks =
-        new LightWeightGSet<Block, Block>(numOfBlocks);
-      List<Block> blocksToCheck;
-      int numBlocksToCheck;
-      do {
-        // get a batch of unchecked blocks
-        blocksToCheck = fetchBlocks(checkedBlocks, numOfBlocksToFetch);
-        numBlocksToCheck = blocksToCheck.size();
-        for (int i=0; i<numBlocksToCheck; ) {
+      nodeStatus.set(0, 0, 0);
+      if (newlyStartedNode) {
+        // add all nodes to needed replication queue
+        // limit the number of scans
+        final int numOfBlocksToCheck = Math.max(10000, numOfBlocks/5);
+        int numCheckedBlocks = 0;
+        boolean hasMore;
+        do {
           fsnamesystem.writeLock();
           try {
-            for (int j=0; j<BLOCKS_PER_ITER && i<numBlocksToCheck; j++, i++) {
-              // check if each block reaches its replication factor or not
-              Block blk = blocksToCheck.get(i);
-              fsnamesystem.isReplicationInProgress(nodeBeingCheck, blk);
-              checkedBlocks.put(blk);
+            Iterator<Block> it = nodeBeingCheck.getBlockIterator();
+            // scan to the last checked position
+            for(int i=0; i<numCheckedBlocks && it.hasNext(); i++, it.next()) ;
+            // start checking blocks
+            for (int i=0; i<numOfBlocksToCheck && it.hasNext(); i++) {
+              // put the block into neededReplication queue
+              fsnamesystem.isReplicationInProgress(
+                  nodeStatus, nodeBeingCheck, it.next(), true);
+              numCheckedBlocks++;
+            }
+            hasMore = it.hasNext();
+          } finally {
+            fsnamesystem.writeUnlock();
+          }
+        } while (hasMore);
+      } else {
+        // Check to see if all blocks in this decommissioned
+        // node has reached their target replication factor.
+        ArrayList<Block> needReplicationBlocks = new ArrayList<Block>();
+        fsnamesystem.readLock();
+        try {
+          for( Iterator<Block> it = nodeBeingCheck.getBlockIterator();
+                                    it.hasNext(); ) {
+            final Block block = fsnamesystem.isReplicationInProgress(
+                nodeStatus, nodeBeingCheck, it.next(), false);
+            if (block != null) {
+              needReplicationBlocks.add(block);
+            }
+          }
+        } finally {
+          fsnamesystem.readUnlock();
+        }
+        
+        if (!needReplicationBlocks.isEmpty()) {
+          // re-insert them into needReplication queue
+          LOG.info("Decommission found " +
+              needReplicationBlocks.size() + " under-replicated blocks");
+          fsnamesystem.writeLock();
+          try {
+            for (Block block : needReplicationBlocks) {
+              fsnamesystem.isReplicationInProgress(
+                  null, nodeBeingCheck, block, true);
             }
           } finally {
             fsnamesystem.writeUnlock();
           }
         }
-      } while (numBlocksToCheck != 0);
-        
+      }
+      
       fsnamesystem.writeLock();
+      nodeBeingCheck.decommissioningStatus.set(
+          nodeStatus.getUnderReplicatedBlocks(),
+          nodeStatus.getDecommissionOnlyReplicas(),
+          nodeStatus.getUnderReplicatedInOpenFiles());
       try {
         handlePendingStopDecommission();
         if (!nodeBeingCheck.isDecommissionInProgress()) {
           return true;
         }
-        if (nodeBeingCheck.decommissioningStatus.
+        if (!newlyStartedNode && nodeBeingCheck.decommissioningStatus.
             getUnderReplicatedBlocks() == 0) {
          nodeBeingCheck.setDecommissioned();
          LOG.info("Decommission complete for node " + nodeBeingCheck.getName());
@@ -217,6 +226,8 @@ class DecommissionManager {
         fsnamesystem.writeUnlock();
       }
       
+      LOG.info("Decommission finished checking the progress of " +
+          nodeBeingCheck.getName());
       return false;
     }
 
@@ -224,15 +235,20 @@ class DecommissionManager {
      * Wait for more work to do
      * @return true if more work to do; false if gets interrupted
      */
-    synchronized private boolean waitForWork() {
+    private boolean waitForWork() {
       try {
-        if (newlyStarted.isEmpty() && toBeChecked.isEmpty()) {
-          do {
-            wait();
-          } while (newlyStarted.isEmpty() && toBeChecked.isEmpty());
-        } else {
-          Thread.sleep(recheckInterval);
+        synchronized (this) {
+          if (newlyStarted.isEmpty() && toBeChecked.isEmpty() &&
+              checked.isEmpty()) {
+            do {
+              wait();
+            } while (newlyStarted.isEmpty() && toBeChecked.isEmpty() &&
+                checked.isEmpty());
+            return true;
+          }
         }
+        // the queue is not empty
+        Thread.sleep(recheckInterval);
         return true;
       } catch (InterruptedException ie) {
         LOG.info("Interrupted " + this.getClass().getSimpleName(), ie);
@@ -261,19 +277,26 @@ class DecommissionManager {
     
     /**
      * Get the next datanode that's decommission in progress
+     * 
+     * @return true if this is a newly started decommission node
      */
-    synchronized private void getDecommissionInProgressNode() {
-      nodeBeingCheck = newlyStarted.poll();
-      if (nodeBeingCheck == null) {
-        nodeBeingCheck = toBeChecked.poll();
-      }
+    synchronized private boolean getDecommissionInProgressNode() {
+      do {
+        nodeBeingCheck = newlyStarted.poll();
+      } while (nodeBeingCheck != null && !nodeBeingCheck.isAlive);
+      if (nodeBeingCheck != null)
+        return true;
       
+      do {
+        nodeBeingCheck = toBeChecked.poll();
+      } while (nodeBeingCheck != null && !nodeBeingCheck.isAlive);
       if (nodeBeingCheck == null) {
         // all datanodes have been checked; preparing for the next iteration
         LinkedList<DatanodeDescriptor> tmp = toBeChecked;
         toBeChecked = checked;
         checked = tmp;
       }
+      return false;
     }
     
     /**
@@ -294,13 +317,13 @@ class DecommissionManager {
      */
     private void check() {
       for (int i=0; i<numNodesPerCheck; i++) {
-        getDecommissionInProgressNode();
+        boolean isNewNode = getDecommissionInProgressNode();
         if (nodeBeingCheck == null) {
           break;
         }
         try {
           boolean isDecommissioned =
-            checkDecommissionStateInternal();
+            checkDecommissionStateInternal(isNewNode);
           doneCheck(isDecommissioned);
         } catch(Exception e) {
           LOG.warn("entry=" + nodeBeingCheck, e);

@@ -274,7 +274,7 @@ public class TestRaidPurge extends TestCase {
       LOG.info("deleted file " + file1);
 
       // wait till parity file and directory are automatically deleted
-      while (fileSys.exists(destPath)) {
+      while (fileSys.listStatus(destPath).length == 0) {
         LOG.info("doTestPurge waiting for parity files to be removed.");
         Thread.sleep(1000);                  // keep waiting
       }
@@ -441,9 +441,9 @@ public class TestRaidPurge extends TestCase {
       FileStatus stat = fileSys.getFileStatus(file1);
 
       // Create the parity files.
-      RaidNode.doRaid(
+      RaidNode.doRaid1(
         conf, infoXor, stat, new RaidNode.Statistics(), Reporter.NULL);
-      RaidNode.doRaid(
+      RaidNode.doRaid1(
         conf, infoRs, stat, new RaidNode.Statistics(), Reporter.NULL);
       Path xorParity =
         new Path(RaidNode.DEFAULT_RAID_LOCATION, "user/test/raidtest/file1");
@@ -453,20 +453,14 @@ public class TestRaidPurge extends TestCase {
       assertTrue(fileSys.exists(rsParity));
 
       // Check purge of a single parity file.
-      RaidNode cnode = RaidNode.createRaidNode(conf);
-      FileStatus raidRsStat =
-        fileSys.getFileStatus(new Path(RaidNode.DEFAULT_RAIDRS_LOCATION));
-      cnode.purgeMonitor.recursePurge(infoRs.getErasureCode(), fileSys, fileSys,
-         RaidNode.DEFAULT_RAIDRS_LOCATION, raidRsStat);
-
+      PurgeMonitor purgeMonitor =
+        new PurgeMonitor(conf, new PlacementMonitor(conf));
+      purgeMonitor.purgeCode(ErasureCodeType.RS);
       // Calling purge under the RS path has no effect.
       assertTrue(fileSys.exists(xorParity));
       assertTrue(fileSys.exists(rsParity));
 
-      FileStatus raidStat =
-         fileSys.getFileStatus(new Path(RaidNode.DEFAULT_RAID_LOCATION));
-      cnode.purgeMonitor.recursePurge(infoXor.getErasureCode(), fileSys, fileSys,
-         RaidNode.DEFAULT_RAID_LOCATION, raidStat);
+      purgeMonitor.purgeCode(ErasureCodeType.XOR);
       // XOR parity must have been purged by now.
       assertFalse(fileSys.exists(xorParity));
       assertTrue(fileSys.exists(rsParity));
@@ -478,29 +472,30 @@ public class TestRaidPurge extends TestCase {
       Path xorHar =
         new Path(RaidNode.DEFAULT_RAID_LOCATION, "user/test/raidtest/raidtest" +
           RaidNode.HAR_SUFFIX);
-      RaidNode.doRaid(
+      RaidNode.doRaid1(
         conf, infoXor, stat, new RaidNode.Statistics(), Reporter.NULL);
       assertTrue(fileSys.exists(xorParity));
       assertFalse(fileSys.exists(xorHar));
 
       // Create the har.
       long cutoff = System.currentTimeMillis();
+      RaidNode cnode = RaidNode.createRaidNode(conf);
+      FileStatus raidStat =
+         fileSys.getFileStatus(new Path(RaidNode.DEFAULT_RAID_LOCATION));
       cnode.recurseHar(infoXor, fileSys, raidStat,
         RaidNode.DEFAULT_RAID_LOCATION, fileSys, cutoff,
         RaidNode.tmpHarPathForCode(conf, infoXor.getErasureCode()));
 
       // Call purge to get rid of the parity file. The har should remain.
-      cnode.purgeMonitor.recursePurge(infoXor.getErasureCode(), fileSys, fileSys,
-         RaidNode.DEFAULT_RAID_LOCATION, raidStat);
+      purgeMonitor.purgeCode(ErasureCodeType.XOR);
       // XOR har should exist but xor parity file should have been purged.
       assertFalse(fileSys.exists(xorParity));
       assertTrue(fileSys.exists(xorHar));
 
       // Now create the RS parity.
-      RaidNode.doRaid(
+      RaidNode.doRaid1(
         conf, infoRs, stat, new RaidNode.Statistics(), Reporter.NULL);
-      cnode.purgeMonitor.recursePurge(infoXor.getErasureCode(), fileSys, fileSys,
-         RaidNode.DEFAULT_RAID_LOCATION, raidStat);
+      purgeMonitor.purgeCode(ErasureCodeType.XOR);
       // XOR har should get deleted.
       assertTrue(fileSys.exists(rsParity));
       assertFalse(fileSys.exists(xorParity));

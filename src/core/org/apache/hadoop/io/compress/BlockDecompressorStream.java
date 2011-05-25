@@ -62,14 +62,17 @@ public class BlockDecompressorStream extends DecompressorStream {
     // Check if we are the beginning of a block
     if (noUncompressedBytes == originalBlockSize) {
       // Get original data size
-      try {
-        originalBlockSize =  rawReadInt();
-      } catch (IOException ioe) {
-        return -1;
-      }
+      do {
+        try {
+          originalBlockSize =  rawReadInt();
+        } catch (IOException ioe) {
+          return -1;
+        }
+      } while (originalBlockSize == 0);
+      
       noUncompressedBytes = 0;
     }
-    
+
     int n = 0;
     while ((n = decompressor.decompress(b, off, len)) == 0) {
       if (decompressor.finished() || decompressor.needsDictionary()) {

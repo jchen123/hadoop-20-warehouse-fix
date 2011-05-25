@@ -26,9 +26,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.zip.CheckedInputStream;
+import java.util.zip.Checksum;
 import java.lang.Math;
 import java.nio.channels.FileChannel;
 import java.nio.ByteBuffer;
@@ -43,6 +47,8 @@ import org.apache.hadoop.hdfs.server.common.Storage.StorageDirectory;
 import org.apache.hadoop.hdfs.server.namenode.FSImage.NameNodeDirType;
 import org.apache.hadoop.hdfs.server.namenode.metrics.NameNodeMetrics;
 import org.apache.hadoop.io.*;
+import org.apache.hadoop.util.PureJavaCrc32;
+import org.apache.hadoop.fs.ChecksumException;
 import org.apache.hadoop.fs.permission.*;
 
 /**
@@ -94,7 +100,31 @@ public class FSEditLog {
   private long numTransactionsBatchedInSync;
   private long totalTimeTransactions;  // total time for all transactions
   private NameNodeMetrics metrics;
+  
+  private static ThreadLocal<Checksum> localChecksumForRead =
+    new ThreadLocal<Checksum>() {
+    protected Checksum initialValue() {
+        return new PureJavaCrc32();
+    }
+  };
 
+  private static ThreadLocal<Checksum> localChecksumForWrite =
+    new ThreadLocal<Checksum>() {
+    protected Checksum initialValue() {
+        return new PureJavaCrc32();
+    }
+  };
+
+  /** Get a thread local checksum for read */
+  static Checksum getChecksumForRead() {
+    return localChecksumForRead.get();
+  }
+  
+  /** Get a thread local checksum for read */
+  static Checksum getChecksumForWrite() {
+    return localChecksumForWrite.get();
+  }
+  
   private static class TransactionId {
     public long txid;
 
@@ -153,10 +183,25 @@ public class FSEditLog {
     /** {@inheritDoc} */
     @Override
     void write(byte op, Writable ... writables) throws IOException {
+      int start = bufCurrent.getLength();
       write(op);
       for(Writable w : writables) {
         w.write(bufCurrent);
       }
+      // write transaction checksum
+      int end = bufCurrent.getLength();
+      Checksum checksum = getChecksumForWrite();
+      checksum.reset();
+      checksum.update(bufCurrent.getData(), start, end-start);
+      if (FSNamesystem.LOG.isDebugEnabled()) {
+        byte[] transaction = new byte[end - start];
+        System.arraycopy(bufCurrent.getData(), start, 
+                transaction, 0, end-start);
+        FSNamesystem.LOG.debug("Transaction written: " +
+                Arrays.toString(transaction));
+      }
+      int sum = (int)checksum.getValue();
+      bufCurrent.writeInt(sum);
     }
 
     /**
@@ -212,6 +257,8 @@ public class FSEditLog {
     @Override
     protected void flushAndSync() throws IOException {
       preallocate();            // preallocate file if necessary
+      if (FSNamesystem.LOG.isDebugEnabled())
+        FSNamesystem.LOG.debug("Flushing buffer of size: " + bufReady.size());
       bufReady.writeTo(fp);     // write data to file
       bufReady.reset();         // erase all data in the buffer
       fc.force(false);          // metadata updates not needed because of preallocation
@@ -345,6 +392,7 @@ public class FSEditLog {
       } catch (IOException e) {
         FSNamesystem.LOG.warn("Unable to open edit log file " + eFile);
         // Remove the directory from list of storage directories
+        fsimage.removedStorageDirs.add(sd);
         it.remove();
       }
     }
@@ -391,6 +439,8 @@ public class FSEditLog {
         eStream.flush();
         eStream.close();
       } catch (IOException e) {
+        FSNamesystem.LOG.warn("FSEditLog:close - failed to close stream " 
+            + eStream.getName());
         processIOError(idx);
         idx--;
       }
@@ -412,9 +462,15 @@ public class FSEditLog {
     assert(index < getNumStorageDirs());
     assert(getNumStorageDirs() == editStreams.size());
     
+    EditLogFileOutputStream eStream = (EditLogFileOutputStream)editStreams.get(index);
     File parentStorageDir = ((EditLogFileOutputStream)editStreams
                                       .get(index)).getFile()
                                       .getParentFile().getParentFile();
+    
+    try {
+      eStream.close();
+    } catch (Exception e) {}
+    
     editStreams.remove(index);
     //
     // Invoke the ioerror routine of the fsimage
@@ -503,8 +559,9 @@ public class FSEditLog {
         numOpSetPerm = 0, numOpSetOwner = 0, numOpSetGenStamp = 0,
         numOpTimes = 0, numOpOther = 0, numOpConcatDelete = 0;
     long startTime = FSNamesystem.now();
-
-    DataInputStream in = new DataInputStream(new BufferedInputStream(edits));
+    InputStream bin = new BufferedInputStream(edits);
+    DataInputStream in = new DataInputStream(bin);
+    DataInputStream rawIn = in;
     try {
       // Read log file version. Could be missing. 
       in.mark(4);
@@ -516,19 +573,26 @@ public class FSEditLog {
       } catch (EOFException e) {
         available = false;
       }
+      boolean supportChecksum = false;
+      Checksum checksum = getChecksumForRead();
       if (available) {
         in.reset();
         logVersion = in.readInt();
-        if (logVersion < FSConstants.LAYOUT_VERSION) // future version
+        if (logVersion < FSConstants.LAYOUT_VERSION) { // future version
           throw new IOException(
                           "Unexpected version of the file system log file: "
                           + logVersion + ". Current version = " 
                           + FSConstants.LAYOUT_VERSION + ".");
+        } else if (logVersion < -26) { // support fsedits checksum
+          supportChecksum = true;
+          in = new DataInputStream(new CheckedInputStream(bin, checksum));
+        }
       }
       assert logVersion <= Storage.LAST_UPGRADABLE_LAYOUT_VERSION :
                             "Unsupported version " + logVersion;
 
       while (true) {
+        checksum.reset();
         long timestamp = 0;
         long mtime = 0;
         long atime = 0;
@@ -814,7 +878,8 @@ public class FSEditLog {
           throw new IOException("Never seen opcode " + opcode);
         }
         }
-      }
+        validateChecksum(supportChecksum, rawIn, checksum, numEdits);
+      }  // end while
     } finally {
       in.close();
     }
@@ -839,6 +904,22 @@ public class FSEditLog {
     return numEdits;
   }
 
+  /**
+   * Validate a transaction's checksum
+   */
+  static void validateChecksum(boolean supportChecksum, 
+      DataInputStream rawStream, Checksum checksum, int tid)
+  throws IOException {
+    if (supportChecksum) {
+      int expectedChecksum = rawStream.readInt();  // read in checksum
+      int calculatedChecksum = (int)checksum.getValue();
+      if (expectedChecksum != calculatedChecksum) {
+        throw new ChecksumException(
+            "Transaction " + tid + " is corrupt.", tid);
+      }
+    }
+  }
+  
   // a place holder for reading a long
   private static final LongWritable longWritable = new LongWritable();
 
@@ -875,6 +956,7 @@ public class FSEditLog {
       try {
         eStream.write(op, writables);
       } catch (IOException ie) {
+        FSImage.LOG.warn("logEdit: removing "+ eStream.getName(), ie);
         processIOError(idx);         
         // processIOError will remove the idx's stream 
         // from the editStreams collection, so we need to update idx
@@ -1194,9 +1276,16 @@ public class FSEditLog {
     assert(getNumStorageDirs() == editStreams.size());
     long size = 0;
     for (int idx = 0; idx < editStreams.size(); idx++) {
-      long curSize = editStreams.get(idx).length();
-      assert (size == 0 || size == curSize) : "All streams must be the same";
-      size = curSize;
+      EditLogOutputStream es = editStreams.get(idx);
+      try {
+        long curSize = es.length();
+        assert (size == 0 || size == curSize) : "All streams must be the same";
+        size = curSize;
+      } catch (IOException e) {
+        FSImage.LOG.warn("getEditLogSize: editstream.length failed. removing editlog (" +
+            idx + ") " + es.getName());
+        processIOError(idx);
+      }
     }
     return size;
   }
@@ -1224,9 +1313,15 @@ public class FSEditLog {
 
     close();                     // close existing edit log
 
+    // We do not do this yet because it is not safe to add it back
+    // without ensuring that its contents are resynced with the
+    // latest data from the godo directories.
+    //fsimage.attemptRestoreRemovedStorage(false);
+    
     //
     // Open edits.new
     //
+    boolean failedSd = false;
     for (Iterator<StorageDirectory> it = 
            fsimage.dirIterator(NameNodeDirType.EDITS); it.hasNext();) {
       StorageDirectory sd = it.next();
@@ -1236,11 +1331,16 @@ public class FSEditLog {
         eStream.create();
         editStreams.add(eStream);
       } catch (IOException e) {
+        failedSd = true;
         // remove stream and this storage directory from list
-        processIOError(sd);
-       it.remove();
+        FSImage.LOG.warn("rollEdidLog: removing storage " + sd.getRoot().getPath());
+        sd.unlock();
+        fsimage.removedStorageDirs.add(sd);
+        it.remove();
       }
     }
+    if(failedSd)
+      fsimage.incrementCheckpointTime();  // update time for the valid ones
   }
 
   /**
@@ -1271,6 +1371,8 @@ public class FSEditLog {
         getEditFile(sd).delete();
         if (!getEditNewFile(sd).renameTo(getEditFile(sd))) {
           // Should we also remove from edits
+          NameNode.LOG.warn("purgeEditLog: removing failed storage " + sd.getRoot().getPath());
+          fsimage.removedStorageDirs.add(sd);
           it.remove(); 
         }
       }

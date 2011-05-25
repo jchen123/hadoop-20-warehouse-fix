@@ -48,6 +48,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.hdfs.HDFSPolicyProvider;
 import org.apache.hadoop.hdfs.protocol.Block;
+import org.apache.hadoop.hdfs.protocol.BlockPathInfo;
 import org.apache.hadoop.hdfs.protocol.BlockListAsLongs;
 import org.apache.hadoop.hdfs.protocol.ClientDatanodeProtocol;
 import org.apache.hadoop.hdfs.protocol.DataTransferProtocol;
@@ -69,6 +70,7 @@ import org.apache.hadoop.hdfs.server.namenode.NameNode;
 import org.apache.hadoop.hdfs.server.namenode.StreamFile;
 import org.apache.hadoop.hdfs.server.protocol.BlockCommand;
 import org.apache.hadoop.hdfs.server.protocol.BlockMetaDataInfo;
+import org.apache.hadoop.hdfs.server.protocol.BlockReport;
 import org.apache.hadoop.hdfs.server.protocol.DatanodeCommand;
 import org.apache.hadoop.hdfs.server.protocol.DatanodeProtocol;
 import org.apache.hadoop.hdfs.server.protocol.DatanodeRegistration;
@@ -79,6 +81,7 @@ import org.apache.hadoop.hdfs.server.protocol.UpgradeCommand;
 import org.apache.hadoop.http.HttpServer;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.ipc.ProtocolSignature;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.hadoop.ipc.Server;
@@ -191,6 +194,7 @@ public class DataNode extends Configured
   int socketWriteTimeout = 0;  
   boolean transferToAllowed = true;
   int writePacketSize = 0;
+  boolean syncOnClose;
   
   public DataBlockScanner blockScanner = null;
   public Daemon blockScannerThread = null;
@@ -339,6 +343,9 @@ public class DataNode extends Configured
     this.heartBeatInterval = conf.getLong("dfs.heartbeat.interval", HEARTBEAT_INTERVAL) * 1000L;
     DataNode.nameNodeAddr = nameNodeAddr;
 
+    // do we need to sync block file contents to disk when blockfile is closed?
+    this.syncOnClose = conf.getBoolean("dfs.datanode.synconclose", false);
+
     //initialize periodic block scanner
     String reason = null;
     if (conf.getInt("dfs.datanode.scan.period.hours", 0) < 0) {
@@ -372,6 +379,11 @@ public class DataNode extends Configured
       sslConf.addResource(conf.get("dfs.https.server.keystore.resource",
           "ssl-server.xml"));
       this.infoServer.addSslListener(secInfoSocAddr, sslConf, needClientAuth);
+      // assume same ssl port for all datanodes
+      InetSocketAddress datanodeSslPort = NetUtils.createSocketAddr(conf.get(
+          "dfs.datanode.https.address", infoHost + ":" + 50475));
+      this.infoServer.setAttribute("datanode.https.port", datanodeSslPort
+          .getPort());
     }
     this.infoServer.addInternalServlet(null, "/streamFile/*", StreamFile.class);
     this.infoServer.addInternalServlet(null, "/getFileChecksum/*",
@@ -553,12 +565,22 @@ public class DataNode extends Configured
         dnRegistration.name = machineName + ":" + dnRegistration.getPort();
         dnRegistration = namenode.register(dnRegistration);
         break;
-      } catch(SocketTimeoutException e) {  // namenode is busy
-        LOG.info("Problem connecting to server: " + getNameNodeAddr());
-        try {
-          Thread.sleep(1000);
-        } catch (InterruptedException ie) {}
+      } catch(RemoteException re) {
+        String reClass = re.getClassName();
+        if (UnregisteredDatanodeException.class.getName().equals(reClass) ||
+            DisallowedDatanodeException.class.getName().equals(reClass) ||
+            IncorrectVersionException.class.getName().equals(reClass)) {
+          LOG.warn("DataNode is shutting down: " +
+                   StringUtils.stringifyException(re));
+          break;
+        }
+      } catch(Exception e) {  // namenode cannot be contacted
+        LOG.info("Problem connecting to server: " + getNameNodeAddr() +
+                  StringUtils.stringifyException(e));
       }
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException ie) {}
     }
     assert ("".equals(storage.getStorageID()) 
             && !"".equals(dnRegistration.getStorageID()))
@@ -631,9 +653,9 @@ public class DataNode extends Configured
       } catch (InterruptedException ie) {
       }
     }
-    
-    RPC.stopProxy(namenode); // stop the RPC threads
-    
+    if (namenode != null) {
+      RPC.stopProxy(namenode); // stop the RPC threads
+    }
     if(upgradeManager != null)
       upgradeManager.shutdownUpgrade();
     if (blockScannerThread != null) { 
@@ -809,8 +831,9 @@ public class DataNode extends Configured
           //
           long brStartTime = now();
           Block[] bReport = data.getBlockReport();
+          
           DatanodeCommand cmd = namenode.blockReport(dnRegistration,
-                  BlockListAsLongs.convertToArrayLongs(bReport));
+                  new BlockReport(BlockListAsLongs.convertToArrayLongs(bReport)));
           long brTime = now() - brStartTime;
           myMetrics.blockReports.inc(brTime);
           LOG.info("BlockReport of " + bReport.length +
@@ -1510,7 +1533,6 @@ public class DataNode extends Configured
   /** {@inheritDoc} */
   public long getProtocolVersion(String protocol, long clientVersion
       ) throws IOException {
-    long datanodeVersion = 0;
     if (protocol.equals(InterDatanodeProtocol.class.getName())) {
       return InterDatanodeProtocol.versionID; 
     } else if (protocol.equals(ClientDatanodeProtocol.class.getName())) {
@@ -1519,6 +1541,26 @@ public class DataNode extends Configured
     }
     throw new IOException("Unknown protocol to " + getClass().getSimpleName()
         + ": " + protocol);
+  }
+
+  /** {@inheritDoc} */
+  public BlockPathInfo getBlockPathInfo(Block block) throws IOException {
+    File datafile = data.getBlockFile(block);
+    File metafile = FSDataset.getMetaFile(datafile, block);
+    BlockPathInfo info = new BlockPathInfo(block, datafile.getAbsolutePath(), 
+                                           metafile.getAbsolutePath());
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("getBlockPathInfo successful block=" + block +
+                " blockfile " + datafile.getAbsolutePath() +
+                " metafile " + metafile.getAbsolutePath());
+    }
+    return info;
+  }
+
+  public ProtocolSignature getProtocolSignature(String protocol,
+      long clientVersion, int clientMethodsHash) throws IOException {
+    return ProtocolSignature.getProtocolSignature(
+        this, protocol, clientVersion, clientMethodsHash);
   }
 
   private void checkVersion(String protocol, long clientVersion, 

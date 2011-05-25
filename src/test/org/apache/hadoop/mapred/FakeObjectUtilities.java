@@ -142,6 +142,11 @@ public class FakeObjectUtilities {
       }
       if (tip == null) {
         if (getJobConf().getSpeculativeExecution()) {
+          long now = JobTracker.getClock().getTime();
+          // update the progress rates of all the candidate tips ..
+          for(TaskInProgress rtip: runningTasks) {
+            rtip.updateProgressRate(now);
+          }
           tip = findSpeculativeTask(findSpeculativeTaskCandidates(runningTasks),
                                     trackerName, trackerHost,
                                     taskType);

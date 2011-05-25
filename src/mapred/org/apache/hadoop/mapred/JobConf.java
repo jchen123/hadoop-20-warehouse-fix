@@ -2004,6 +2004,25 @@ public class JobConf extends Configuration {
     }
   }
 
-
+  /**
+   * Replce the jobtracker configuration with the configuration of 0 or 1
+   * instance. This allows switching two sets of configurations in the
+   * command line option.
+   * @param conf The jobConf to be overwritten
+   * @param instance 0 or 1 instance of the jobtracker
+   */
+  public static void overrideConfiguration(JobConf conf, int instance) {
+    final String CONFIG_KEYS[] =
+        new String[]{"mapred.job.tracker", "mapred.local.dir",
+                     "mapred.fairscheduler.server.address"};
+    for (String configKey : CONFIG_KEYS) {
+      String value = conf.get(configKey + "-" + instance);
+      if (value != null) {
+        conf.set(configKey, value);
+      } else {
+        LOG.warn("Configuration " + configKey + "-" + instance + " not found.");
+      }
+    }
+  }
 }
 

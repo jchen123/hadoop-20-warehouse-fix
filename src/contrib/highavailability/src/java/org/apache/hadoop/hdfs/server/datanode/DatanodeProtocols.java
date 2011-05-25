@@ -28,11 +28,14 @@ import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.protocol.DatanodeID;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
+import org.apache.hadoop.hdfs.server.protocol.BlockReport;
 import org.apache.hadoop.hdfs.server.protocol.DatanodeProtocol;
 import org.apache.hadoop.hdfs.server.protocol.DatanodeRegistration;
 import org.apache.hadoop.hdfs.server.protocol.DatanodeCommand;
 import org.apache.hadoop.hdfs.server.protocol.UpgradeCommand;
 import org.apache.hadoop.hdfs.server.protocol.NamespaceInfo;
+import org.apache.hadoop.ipc.ProtocolSignature;
+import org.apache.hadoop.ipc.RPC;
 
 /**********************************************************************
  * Protocol that a DFS datanode uses to communicate with the NameNode.
@@ -40,6 +43,8 @@ import org.apache.hadoop.hdfs.server.protocol.NamespaceInfo;
  *
  **********************************************************************/
 public class DatanodeProtocols implements DatanodeProtocol {
+
+  public final static int DNA_BACKOFF = -1;
 
   public static final Log LOG = LogFactory.getLog(DatanodeProtocols.class.getName());
 
@@ -95,7 +100,13 @@ public class DatanodeProtocols implements DatanodeProtocol {
     return lastProt; // all objects have the same version
   }
 
-
+  @Override
+  public ProtocolSignature getProtocolSignature(String protocol,
+      long clientVersion, int clientMethodsHash) throws IOException {
+    return ProtocolSignature.getProtocolSignature(
+        this, protocol, clientVersion, clientMethodsHash);
+  }
+  
   /**
    * This method should not be invoked on the composite 
    * DatanodeProtocols object. You can call these on the individual
@@ -126,6 +137,16 @@ public class DatanodeProtocols implements DatanodeProtocol {
    */
   public DatanodeCommand blockReport(DatanodeRegistration registration,
                                      long[] blocks) throws IOException {
+    throw new IOException("blockReport" + errMessage);
+  }
+    
+  /**
+   * This method should not be invoked on the composite 
+   * DatanodeProtocols object. You can call these on the individual
+   * DatanodeProcol objects.
+   */
+  public DatanodeCommand blockReport(DatanodeRegistration registration,
+                                     BlockReport blocks) throws IOException {
     throw new IOException("blockReport" + errMessage);
   }
     
@@ -224,5 +245,13 @@ public class DatanodeProtocols implements DatanodeProtocol {
       }
     }
     throw last; // fail if all DatanodeProtocol object failed.
+  }
+
+  public void shutdown() {
+    for (int i = 0; i < numProtocol; i++) {
+      if (node[i] != null) {
+        RPC.stopProxy(node[i]);
+      }
+    }
   }
 }

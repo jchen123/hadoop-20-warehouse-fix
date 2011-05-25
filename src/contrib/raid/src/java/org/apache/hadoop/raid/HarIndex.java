@@ -22,10 +22,14 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.Iterator;
 import java.util.List;
 import java.util.LinkedList;
 
 import org.apache.hadoop.util.LineReader;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -33,7 +37,10 @@ import org.apache.hadoop.io.Text;
  * comprising of RAID parity files only and no directories.
  */
 public class HarIndex {
+  static final String INDEX = "_index";
+  static final String HAR = ".har";
   private List<IndexEntry> entries = new LinkedList<IndexEntry>();
+  private Path harDirectory;
 
   /**
    * Represents information in a single line of the HAR index file.
@@ -62,6 +69,31 @@ public class HarIndex {
              ", partFileName=" + partFileName;
     }
   }
+
+  /**
+   * Creates a HarIndex object with the path to either the HAR
+   * or a part file in the HAR.
+   */
+  public static HarIndex getHarIndex(FileSystem fs, Path initializer)
+      throws IOException {
+    if (!initializer.getName().endsWith(HAR)) {
+      initializer = initializer.getParent();
+    }
+    InputStream in = null;
+    try {
+      Path indexFile = new Path(initializer, INDEX);
+      FileStatus indexStat = fs.getFileStatus(indexFile);
+      in = fs.open(indexFile);
+      HarIndex harIndex = new HarIndex(in, indexStat.getLen());
+      harIndex.harDirectory = initializer;
+      return harIndex;
+    } finally {
+      if (in != null) {
+        in.close();
+      }
+    }
+  }
+
 
   /**
    * Constructor that reads the contents of the index file.
@@ -140,4 +172,11 @@ public class HarIndex {
     return null;
   }
 
+  public Iterator<IndexEntry> getEntries() {
+    return entries.iterator();
+  }
+
+  public Path partFilePath(IndexEntry entry) {
+    return new Path(harDirectory, entry.partFileName);
+  }
 }

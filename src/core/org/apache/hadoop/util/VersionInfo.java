@@ -19,12 +19,17 @@
 package org.apache.hadoop.util;
 
 import org.apache.hadoop.HadoopVersionAnnotation;
+import org.apache.hadoop.metrics.util.MBeanUtil;
+
+import javax.management.NotCompliantMBeanException;
+import javax.management.ObjectName;
+import javax.management.StandardMBean;
 
 /**
  * This class finds the package info for Hadoop and the HadoopVersionAnnotation
  * information.
  */
-public class VersionInfo {
+public class VersionInfo implements VersionInfoMBean {
   private static Package myPackage;
   private static HadoopVersionAnnotation version;
   
@@ -89,6 +94,35 @@ public class VersionInfo {
     " from " + VersionInfo.getRevision() +
     " by " + VersionInfo.getUser() + 
     " on " + VersionInfo.getDate();
+  }
+
+  public String version() {
+    return "Hadoop " + VersionInfo.getVersion();
+  }
+
+  public String subversion() {
+    return "Subversion " + VersionInfo.getUrl() +
+           " -r " + VersionInfo.getRevision();
+  }
+
+  public String compiledby() {
+    return "Compiled by " + VersionInfo.getUser() +
+           " on " + VersionInfo.getDate();
+  }
+
+  public static ObjectName registerJMX(String daemon) {
+    StandardMBean versionBean;
+    ObjectName versionBeanName = null;
+    try {
+      versionBean = new StandardMBean(new VersionInfo(),
+                                          VersionInfoMBean.class);
+      versionBeanName =
+        MBeanUtil.registerMBean(daemon, "Version", versionBean);
+    } catch (NotCompliantMBeanException e) {
+      e.printStackTrace();
+    }
+
+    return versionBeanName;
   }
   
   public static void main(String[] args) {

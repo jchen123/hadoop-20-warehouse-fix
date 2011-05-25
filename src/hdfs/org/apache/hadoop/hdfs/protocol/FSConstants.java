@@ -81,9 +81,9 @@ public interface FSConstants {
   // Version is reflected in the data storage file.
   // Versions are negative.
   // Decrement LAYOUT_VERSION to define a new version.
-  public static final int LAYOUT_VERSION = -26;
+  public static final int LAYOUT_VERSION = -27;
   // Current version: 
-  // Support image checksum
+  // Support fsedits checksum
   
   public static final String DFS_SOFT_LEASE_KEY = "dfs.softlease.period";
   public static final String DFS_HARD_LEASE_KEY = "dfs.hardlease.period";

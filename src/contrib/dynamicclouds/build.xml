@@ -27,7 +27,7 @@ to call at top-level: ant deploy-contrib compile-core-test
   
   <import file="../build-contrib.xml"/>
   
-  <property name="build.webapp" value="${root}/webapp"/>
+  <property name="build.webapp" value="${build.dir}/webapp"/>
   <property name="src.webapp" value="${root}/src/webapps" />
   <property name="build.src" value="${build.dir}/src" />
   
@@ -44,7 +44,7 @@ to call at top-level: ant deploy-contrib compile-core-test
      package="org.apache.hadoop.mapred"
      webxml="${build.webapp}/cb/WEB-INF/web.xml">
     </jsp-compile>
-    
+
     <echo message="contrib: ${name}"/>
     <javac
      encoding="${build.encoding}"
@@ -55,6 +55,7 @@ to call at top-level: ant deploy-contrib compile-core-test
      deprecation="${javac.deprecation}">
      <classpath refid="contrib-classpath"/>
     </javac>
+
   </target>
   
 	<property name="jarfile" value="${root}/${name}.jar"/>
@@ -64,6 +65,7 @@ to call at top-level: ant deploy-contrib compile-core-test
       <manifest>
         <attribute name="Main-Class" value="org.apache.hadoop.mapred.ClustersBalancer"/>
       </manifest>
+      <zipfileset dir="${build.webapp}" prefix="webapp"/>
     </jar>
   </target>
   <target name="clean" >
