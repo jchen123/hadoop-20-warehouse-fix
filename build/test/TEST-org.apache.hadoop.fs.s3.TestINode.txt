@@ -1,0 +1,6 @@
+Testsuite: org.apache.hadoop.fs.s3.TestINode
+Tests run: 3, Failures: 0, Errors: 0, Time elapsed: 0.033 sec
+
+Testcase: testSerializeFileWithSingleBlock took 0.008 sec
+Testcase: testSerializeDirectory took 0 sec
+Testcase: testDeserializeNull took 0.001 sec

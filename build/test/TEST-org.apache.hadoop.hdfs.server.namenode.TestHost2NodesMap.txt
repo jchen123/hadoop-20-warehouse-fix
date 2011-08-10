@@ -1,0 +1,7 @@
+Testsuite: org.apache.hadoop.hdfs.server.namenode.TestHost2NodesMap
+Tests run: 4, Failures: 0, Errors: 0, Time elapsed: 0.029 sec
+
+Testcase: testContains took 0.003 sec
+Testcase: testGetDatanodeByHost took 0 sec
+Testcase: testGetDatanodeByName took 0.001 sec
+Testcase: testRemove took 0.001 sec

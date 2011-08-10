@@ -1,0 +1,273 @@
+Testsuite: org.apache.hadoop.hdfs.TestFileLocalRead
+Tests run: 1, Failures: 0, Errors: 0, Time elapsed: 58.078 sec
+------------- Standard Output ---------------
+2011-08-09 19:31:53,609 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+2011-08-09 19:31:53,889 INFO  util.GSet (BlocksMap.java:computeCapacity(342)) - VM type       = 64-bit
+2011-08-09 19:31:53,891 INFO  util.GSet (BlocksMap.java:computeCapacity(343)) - 2% max memory = 9.89875 MB
+2011-08-09 19:31:53,892 INFO  util.GSet (BlocksMap.java:computeCapacity(344)) - capacity      = 2^20 = 1048576 entries
+2011-08-09 19:31:53,892 INFO  util.GSet (LightWeightGSet.java:<init>(79)) - recommended=1048576, actual=1048576
+2011-08-09 19:31:53,924 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(521)) - fsOwner=jeff,jeff
+2011-08-09 19:31:53,925 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(527)) - supergroup=supergroup
+2011-08-09 19:31:53,925 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(528)) - isPermissionEnabled=true
+2011-08-09 19:31:54,024 INFO  namenode.NameNode (FSDirectory.java:<init>(126)) - Caching file names occuring more than 10 times 
+2011-08-09 19:31:54,134 INFO  common.Storage (FSImage.java:saveFSImage(1268)) - Image file of size 95 saved in 0 seconds.
+2011-08-09 19:31:54,137 INFO  namenode.FSNamesystem (FSEditLog.java:<init>(157)) - Edit Log preallocate size for /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name1/current/edits is 1048576 bytes  and initial size of edits buffer is 524288 bytes. Max number of buffered transactions is 10000
+2011-08-09 19:31:54,144 DEBUG namenode.FSNamesystem (FSEditLog.java:preallocate(284)) - Preallocating Edit log, current size 0
+2011-08-09 19:31:54,145 DEBUG namenode.FSNamesystem (FSEditLog.java:preallocate(289)) - Edit log size is now 1049088 written 512 bytes  at offset 1048576
+2011-08-09 19:31:54,145 DEBUG namenode.FSNamesystem (FSEditLog.java:flushAndSync(261)) - Flushing buffer of size: 5
+2011-08-09 19:31:54,169 INFO  common.Storage (FSImage.java:format(1394)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name1 has been successfully formatted.
+2011-08-09 19:31:54,173 INFO  common.Storage (FSImage.java:saveFSImage(1268)) - Image file of size 95 saved in 0 seconds.
+2011-08-09 19:31:54,173 INFO  namenode.FSNamesystem (FSEditLog.java:<init>(157)) - Edit Log preallocate size for /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name2/current/edits is 1048576 bytes  and initial size of edits buffer is 524288 bytes. Max number of buffered transactions is 10000
+2011-08-09 19:31:54,174 DEBUG namenode.FSNamesystem (FSEditLog.java:preallocate(284)) - Preallocating Edit log, current size 0
+2011-08-09 19:31:54,174 DEBUG namenode.FSNamesystem (FSEditLog.java:preallocate(289)) - Edit log size is now 1049088 written 512 bytes  at offset 1048576
+2011-08-09 19:31:54,174 DEBUG namenode.FSNamesystem (FSEditLog.java:flushAndSync(261)) - Flushing buffer of size: 5
+2011-08-09 19:31:54,187 INFO  common.Storage (FSImage.java:format(1394)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name2 has been successfully formatted.
+2011-08-09 19:31:54,208 INFO  jvm.JvmMetrics (JvmMetrics.java:init(71)) - Initializing JVM Metrics with processName=NameNode, sessionId=null
+2011-08-09 19:31:54,278 INFO  metrics.NameNodeMetrics (NameNodeMetrics.java:<init>(145)) - Initializing NameNodeMeterics using context object:org.apache.hadoop.metrics.spi.NullContext
+2011-08-09 19:31:54,279 INFO  util.GSet (BlocksMap.java:computeCapacity(342)) - VM type       = 64-bit
+2011-08-09 19:31:54,279 INFO  util.GSet (BlocksMap.java:computeCapacity(343)) - 2% max memory = 9.89875 MB
+2011-08-09 19:31:54,279 INFO  util.GSet (BlocksMap.java:computeCapacity(344)) - capacity      = 2^20 = 1048576 entries
+2011-08-09 19:31:54,286 INFO  util.GSet (LightWeightGSet.java:<init>(79)) - recommended=1048576, actual=1048576
+2011-08-09 19:31:54,357 WARN  namenode.FSNamesystem (ConfigManager.java:<init>(56)) - No whitelist file specified in dfs.namenode.whitelist.file. The namenode will allow deletion/renaming of any directory.
+2011-08-09 19:31:54,357 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(521)) - fsOwner=jeff,jeff
+2011-08-09 19:31:54,358 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(527)) - supergroup=supergroup
+2011-08-09 19:31:54,358 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(528)) - isPermissionEnabled=true
+2011-08-09 19:31:54,384 INFO  metrics.FSNamesystemMetrics (FSNamesystemMetrics.java:<init>(71)) - Initializing FSNamesystemMetrics using context object:org.apache.hadoop.metrics.spi.NullContext
+2011-08-09 19:31:54,385 INFO  namenode.FSNamesystem (FSNamesystem.java:registerMBean(5940)) - Registered FSNamesystemStatusMBean
+2011-08-09 19:31:54,395 INFO  namenode.NameNode (FSDirectory.java:<init>(126)) - Caching file names occuring more than 10 times 
+2011-08-09 19:31:54,402 INFO  common.Storage (FSImage.java:loadFSImage(1034)) - Number of files = 1
+2011-08-09 19:31:54,403 INFO  common.Storage (FSImage.java:loadFilesUnderConstruction(1499)) - Number of files under construction = 0
+2011-08-09 19:31:54,403 INFO  common.Storage (FSImage.java:loadFSImage(1144)) - Image file of size 95 loaded in 0 seconds.
+2011-08-09 19:31:54,406 INFO  common.Storage (FSEditLog.java:loadFSEdits(886)) - Edits file /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name1/current/edits of size 4 edits # 0 loaded in 0 seconds.
+2011-08-09 19:31:54,407 INFO  namenode.FSNamesystem (FSEditLog.java:<init>(157)) - Edit Log preallocate size for /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name1/current/edits is 1048576 bytes  and initial size of edits buffer is 524288 bytes. Max number of buffered transactions is 10000
+2011-08-09 19:31:54,408 INFO  namenode.FSNamesystem (FSEditLog.java:<init>(157)) - Edit Log preallocate size for /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name2/current/edits is 1048576 bytes  and initial size of edits buffer is 524288 bytes. Max number of buffered transactions is 10000
+2011-08-09 19:31:54,414 INFO  namenode.NameCache (NameCache.java:initialized(143)) - initialized with 0 entries 0 lookups
+2011-08-09 19:31:54,414 INFO  namenode.FSNamesystem (FSNamesystem.java:initialize(372)) - Finished loading FSImage in 58 msecs
+2011-08-09 19:31:54,416 INFO  namenode.FSNamesystem (FSNamesystem.java:initializeReplQueues(5294)) - initializing replication queues
+2011-08-09 19:31:54,426 INFO  namenode.FSNamesystem (FSNamesystem.java:processMisReplicatedBlocks(4047)) - Total number of blocks = 0
+2011-08-09 19:31:54,426 INFO  namenode.FSNamesystem (FSNamesystem.java:processMisReplicatedBlocks(4048)) - Number of invalid blocks = 0
+2011-08-09 19:31:54,427 INFO  namenode.FSNamesystem (FSNamesystem.java:processMisReplicatedBlocks(4049)) - Number of under-replicated blocks = 0
+2011-08-09 19:31:54,427 INFO  namenode.FSNamesystem (FSNamesystem.java:processMisReplicatedBlocks(4050)) - Number of  over-replicated blocks = 0
+2011-08-09 19:31:54,427 INFO  hdfs.StateChange (FSNamesystem.java:leave(5269)) - STATE* Leaving safe mode after 0 secs.
+2011-08-09 19:31:54,455 INFO  ipc.Server (Server.java:run(307)) - Starting SocketReader
+2011-08-09 19:31:54,458 INFO  metrics.RpcMetrics (RpcMetrics.java:<init>(59)) - Initializing RPC Metrics with hostName=NameNode, port=36183
+2011-08-09 19:31:54,462 INFO  namenode.NameNode (NameNode.java:startServerForClientRequests(396)) - Namenode up at: localhost/127.0.0.1:36183
+2011-08-09 19:31:54,463 INFO  ipc.Server (Server.java:run(581)) - IPC Server Responder: starting
+2011-08-09 19:31:54,464 INFO  ipc.Server (Server.java:run(408)) - IPC Server listener on 36183: starting
+2011-08-09 19:31:54,465 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 0 on 36183: starting
+2011-08-09 19:31:54,466 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 1 on 36183: starting
+2011-08-09 19:31:54,467 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 2 on 36183: starting
+2011-08-09 19:31:54,468 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 3 on 36183: starting
+2011-08-09 19:31:54,521 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 4 on 36183: starting
+2011-08-09 19:31:54,521 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 6 on 36183: starting
+2011-08-09 19:31:54,522 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 5 on 36183: starting
+2011-08-09 19:31:54,522 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 7 on 36183: starting
+2011-08-09 19:31:54,523 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 8 on 36183: starting
+2011-08-09 19:31:54,525 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 9 on 36183: starting
+2011-08-09 19:31:54,631 WARN  fs.Trash (Trash.java:<init>(232)) - The configured interval for checkpoint is 0 minutes. Using interval of 0 minutes that is used for deletion instead
+2011-08-09 19:31:54,633 INFO  hdfs.StateChange (FSNamesystem.java:leave(5283)) - STATE* Network topology has 0 racks and 0 datanodes
+2011-08-09 19:31:54,633 INFO  hdfs.StateChange (FSNamesystem.java:leave(5286)) - STATE* UnderReplicatedBlocks has 0 blocks
+2011-08-09 19:31:54,633 INFO  namenode.FSNamesystem (FSNamesystem.java:initialize(388)) - Skip counting items in the file tree
+2011-08-09 19:31:54,636 DEBUG namenode.FSNamesystem (PendingReplicationBlocks.java:pendingReplicationCheck(201)) - PendingReplicationMonitor checking Q
+2011-08-09 19:31:54,640 INFO  util.HostsFileReader (HostsFileReader.java:refresh(80)) - Refreshing hosts (include/exclude) list
+2011-08-09 19:31:54,715 INFO  mortbay.log (Slf4jLog.java:info(67)) - Logging to org.slf4j.impl.Log4jLoggerAdapter(org.mortbay.log) via org.mortbay.log.Slf4jLog
+2011-08-09 19:31:54,793 INFO  http.HttpServer (HttpServer.java:addGlobalFilter(297)) - Added global filtersafety (class=org.apache.hadoop.http.HttpServer$QuotingInputFilter)
+2011-08-09 19:31:54,802 INFO  http.HttpServer (HttpServer.java:start(437)) - Port returned by webServer.getConnectors()[0].getLocalPort() before open() is -1. Opening the listener on 0
+2011-08-09 19:31:54,802 INFO  http.HttpServer (HttpServer.java:start(442)) - listener.getLocalPort() returned 38473 webServer.getConnectors()[0].getLocalPort() returned 38473
+2011-08-09 19:31:54,803 INFO  http.HttpServer (HttpServer.java:start(475)) - Jetty bound to port 38473
+2011-08-09 19:31:54,803 INFO  mortbay.log (Slf4jLog.java:info(67)) - jetty-6.1.26
+2011-08-09 19:31:55,248 INFO  mortbay.log (Slf4jLog.java:info(67)) - Started SelectChannelConnector@localhost:38473
+2011-08-09 19:31:55,248 INFO  namenode.NameNode (NameNode.java:startHttpServer(329)) - Web-server up at: localhost:38473
+Starting DataNode 0 with dfs.data.dir: /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data1,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data2
+2011-08-09 19:31:55,328 INFO  common.Storage (DataStorage.java:recoverTransitionRead(124)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data1 is not formatted.
+2011-08-09 19:31:55,329 INFO  common.Storage (DataStorage.java:recoverTransitionRead(125)) - Formatting ...
+2011-08-09 19:31:55,359 INFO  common.Storage (DataStorage.java:recoverTransitionRead(124)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data2 is not formatted.
+2011-08-09 19:31:55,360 INFO  common.Storage (DataStorage.java:recoverTransitionRead(125)) - Formatting ...
+2011-08-09 19:31:55,537 INFO  datanode.DataNode (FSDataset.java:registerMBean(1597)) - Registered FSDatasetStatusMBean
+2011-08-09 19:31:55,571 INFO  datanode.DataNode (DataNode.java:startDataNode(327)) - Opened info server at 54342
+2011-08-09 19:31:55,576 INFO  datanode.DataNode (DataXceiverServer.java:<init>(75)) - Balancing bandwith is 1048576 bytes/s
+2011-08-09 19:31:55,585 INFO  http.HttpServer (HttpServer.java:addGlobalFilter(297)) - Added global filtersafety (class=org.apache.hadoop.http.HttpServer$QuotingInputFilter)
+2011-08-09 19:31:55,589 INFO  http.HttpServer (HttpServer.java:start(437)) - Port returned by webServer.getConnectors()[0].getLocalPort() before open() is -1. Opening the listener on 0
+2011-08-09 19:31:55,590 INFO  http.HttpServer (HttpServer.java:start(442)) - listener.getLocalPort() returned 34253 webServer.getConnectors()[0].getLocalPort() returned 34253
+2011-08-09 19:31:55,590 INFO  http.HttpServer (HttpServer.java:start(475)) - Jetty bound to port 34253
+2011-08-09 19:31:55,591 INFO  mortbay.log (Slf4jLog.java:info(67)) - jetty-6.1.26
+2011-08-09 19:31:55,790 INFO  mortbay.log (Slf4jLog.java:info(67)) - Started SelectChannelConnector@localhost:34253
+2011-08-09 19:31:55,792 INFO  jvm.JvmMetrics (JvmMetrics.java:init(66)) - Cannot initialize JVM Metrics with processName=DataNode, sessionId=null - already initialized
+2011-08-09 19:31:55,806 INFO  ipc.Server (Server.java:run(307)) - Starting SocketReader
+2011-08-09 19:31:55,815 INFO  metrics.RpcMetrics (RpcMetrics.java:<init>(59)) - Initializing RPC Metrics with hostName=DataNode, port=53855
+2011-08-09 19:31:55,816 INFO  ipc.Server (Server.java:run(581)) - IPC Server Responder: starting
+2011-08-09 19:31:55,817 INFO  ipc.Server (Server.java:run(408)) - IPC Server listener on 53855: starting
+2011-08-09 19:31:55,838 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 1 on 53855: starting
+2011-08-09 19:31:55,839 INFO  datanode.DataNode (DataNode.java:startDataNode(418)) - dnRegistration = DatanodeRegistration(m3vm6.tuenti.local:54342, storageID=, infoPort=34253, ipcPort=53855)
+2011-08-09 19:31:55,841 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 2 on 53855: starting
+2011-08-09 19:31:55,857 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 0 on 53855: starting
+2011-08-09 19:32:48,925 INFO  hdfs.StateChange (FSNamesystem.java:registerDatanode(2757)) - BLOCK* NameSystem.registerDatanode: node registration from 127.0.0.1:54342 storage DS-880697237-10.0.62.238-54342-1312911168918
+2011-08-09 19:32:48,929 INFO  net.NetworkTopology (NetworkTopology.java:add(328)) - Adding a new node: /default-rack/127.0.0.1:54342
+2011-08-09 19:32:48,934 INFO  datanode.DataNode (DataNode.java:register(592)) - New storage id DS-880697237-10.0.62.238-54342-1312911168918 is assigned to data-node 127.0.0.1:54342
+2011-08-09 19:32:48,935 INFO  datanode.DataNode (DataNode.java:run(1274)) - DatanodeRegistration(127.0.0.1:54342, storageID=DS-880697237-10.0.62.238-54342-1312911168918, infoPort=34253, ipcPort=53855)In DataNode.run, data = FSDataset{dirpath='/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data1/current,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data2/current'}
+2011-08-09 19:32:48,936 INFO  datanode.DataNode (DataNode.java:offerService(756)) - using BLOCKREPORT_INTERVAL of 3600000msec Initial delay: 0msec
+2011-08-09 19:32:48,964 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 19:32:48,971 INFO  hdfs.StateChange (FSNamesystem.java:processReport(3701)) - BLOCK* NameSystem.processReport: from 127.0.0.1:54342 0 blocks shortCircuit first report.
+2011-08-09 19:32:48,972 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 0 blocks got processed in 8 msecs
+2011-08-09 19:32:48,972 INFO  datanode.DataNode (DataNode.java:offerService(864)) - Starting Periodic block scanner.
+Path : "/"
+true
+createFile: Created filelocal.dat with 1 replica.
+2011-08-09 19:32:49,006 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 19:32:49,007 DEBUG hdfs.DFSClient (DFSClient.java:create(577)) - /user/jeff/filelocal.dat: masked=rwxr-xr-x
+2011-08-09 19:32:49,014 DEBUG hdfs.DFSClient (DFSClient.java:computePacketChunkSize(3437)) - computePacketChunkSize: src=/user/jeff/filelocal.dat, chunkSize=516, chunksPerPacket=127, packetSize=65557
+2011-08-09 19:32:49,016 DEBUG namenode.FSNamesystem (FSEditLog.java:write(200)) - Transaction written: [10, 0, 0, 0, 0, 0, 0, 3, -23]
+2011-08-09 19:32:49,016 DEBUG namenode.FSNamesystem (FSEditLog.java:write(200)) - Transaction written: [10, 0, 0, 0, 0, 0, 0, 3, -23]
+2011-08-09 19:32:49,019 DEBUG namenode.FSNamesystem (FSEditLog.java:write(200)) - Transaction written: [3, 0, 0, 0, 3, 0, 5, 47, 117, 115, 101, 114, 0, 13, 49, 51, 49, 50, 57, 49, 49, 49, 54, 57, 48, 49, 56, 0, 1, 48, 4, 106, 101, 102, 102, 10, 115, 117, 112, 101, 114, 103, 114, 111, 117, 112, 1, -19]
+2011-08-09 19:32:49,019 DEBUG namenode.FSNamesystem (FSEditLog.java:write(200)) - Transaction written: [3, 0, 0, 0, 3, 0, 5, 47, 117, 115, 101, 114, 0, 13, 49, 51, 49, 50, 57, 49, 49, 49, 54, 57, 48, 49, 56, 0, 1, 48, 4, 106, 101, 102, 102, 10, 115, 117, 112, 101, 114, 103, 114, 111, 117, 112, 1, -19]
+2011-08-09 19:32:49,020 DEBUG namenode.FSNamesystem (FSEditLog.java:write(200)) - Transaction written: [3, 0, 0, 0, 3, 0, 10, 47, 117, 115, 101, 114, 47, 106, 101, 102, 102, 0, 13, 49, 51, 49, 50, 57, 49, 49, 49, 54, 57, 48, 49, 56, 0, 1, 48, 4, 106, 101, 102, 102, 10, 115, 117, 112, 101, 114, 103, 114, 111, 117, 112, 1, -19]
+2011-08-09 19:32:49,020 DEBUG namenode.FSNamesystem (FSEditLog.java:write(200)) - Transaction written: [3, 0, 0, 0, 3, 0, 10, 47, 117, 115, 101, 114, 47, 106, 101, 102, 102, 0, 13, 49, 51, 49, 50, 57, 49, 49, 49, 54, 57, 48, 49, 56, 0, 1, 48, 4, 106, 101, 102, 102, 10, 115, 117, 112, 101, 114, 103, 114, 111, 117, 112, 1, -19]
+2011-08-09 19:32:49,022 DEBUG namenode.FSNamesystem (FSEditLog.java:write(200)) - Transaction written: [0, 0, 0, 0, 5, 0, 24, 47, 117, 115, 101, 114, 47, 106, 101, 102, 102, 47, 102, 105, 108, 101, 108, 111, 99, 97, 108, 46, 100, 97, 116, 0, 1, 49, 0, 13, 49, 51, 49, 50, 57, 49, 49, 49, 54, 57, 48, 49, 56, 0, 13, 49, 51, 49, 50, 57, 49, 49, 49, 54, 57, 48, 49, 56, 0, 4, 53, 49, 50, 48, 0, 0, 0, 0, 4, 106, 101, 102, 102, 10, 115, 117, 112, 101, 114, 103, 114, 111, 117, 112, 1, -92, 0, 20, 68, 70, 83, 67, 108, 105, 101, 110, 116, 95, 49, 51, 57, 55, 49, 51, 57, 51, 55, 48, 0, 9, 49, 50, 55, 46, 48, 46, 48, 46, 49]
+2011-08-09 19:32:49,022 DEBUG namenode.FSNamesystem (FSEditLog.java:write(200)) - Transaction written: [0, 0, 0, 0, 5, 0, 24, 47, 117, 115, 101, 114, 47, 106, 101, 102, 102, 47, 102, 105, 108, 101, 108, 111, 99, 97, 108, 46, 100, 97, 116, 0, 1, 49, 0, 13, 49, 51, 49, 50, 57, 49, 49, 49, 54, 57, 48, 49, 56, 0, 13, 49, 51, 49, 50, 57, 49, 49, 49, 54, 57, 48, 49, 56, 0, 4, 53, 49, 50, 48, 0, 0, 0, 0, 4, 106, 101, 102, 102, 10, 115, 117, 112, 101, 114, 103, 114, 111, 117, 112, 1, -92, 0, 20, 68, 70, 83, 67, 108, 105, 101, 110, 116, 95, 49, 51, 57, 55, 49, 51, 57, 51, 55, 48, 0, 9, 49, 50, 55, 46, 48, 46, 48, 46, 49]
+2011-08-09 19:32:49,023 DEBUG namenode.FSNamesystem (FSEditLog.java:preallocate(284)) - Preallocating Edit log, current size 4
+2011-08-09 19:32:49,023 DEBUG namenode.FSNamesystem (FSEditLog.java:preallocate(289)) - Edit log size is now 1049092 written 512 bytes  at offset 1048580
+2011-08-09 19:32:49,024 DEBUG namenode.FSNamesystem (FSEditLog.java:flushAndSync(261)) - Flushing buffer of size: 252
+2011-08-09 19:32:49,034 DEBUG namenode.FSNamesystem (FSEditLog.java:preallocate(284)) - Preallocating Edit log, current size 4
+2011-08-09 19:32:49,035 DEBUG namenode.FSNamesystem (FSEditLog.java:preallocate(289)) - Edit log size is now 1049092 written 512 bytes  at offset 1048580
+2011-08-09 19:32:49,035 DEBUG namenode.FSNamesystem (FSEditLog.java:flushAndSync(261)) - Flushing buffer of size: 252
+2011-08-09 19:32:49,038 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=create	src=/user/jeff/filelocal.dat	dst=null	perm=jeff:supergroup:rw-r--r--
+2011-08-09 19:32:49,045 INFO  hdfs.AppendTestUtil (AppendTestUtil.java:<clinit>(49)) - seed=1107035717793251339
+2011-08-09 19:32:49,046 INFO  hdfs.AppendTestUtil (AppendTestUtil.java:randomBytes(70)) - seed=3735928559, size=15460
+2011-08-09 19:32:49,051 DEBUG hdfs.DFSClient (DFSClient.java:writeChunk(3666)) - DFSClient writeChunk allocating new packet seqno=0, src=/user/jeff/filelocal.dat, packetSize=65557, chunksPerPacket=127, bytesCurBlock=0
+2011-08-09 19:32:49,052 DEBUG hdfs.DFSClient (DFSClient.java:writeChunk(3685)) - DFSClient writeChunk packet full seqno=0, src=/user/jeff/filelocal.dat, bytesCurBlock=5120, blockSize=5120, appendChunk=false
+2011-08-09 19:32:49,052 DEBUG hdfs.DFSClient (DFSClient.java:computePacketChunkSize(3437)) - computePacketChunkSize: src=/user/jeff/filelocal.dat, chunkSize=516, chunksPerPacket=10, packetSize=5185
+2011-08-09 19:32:49,052 DEBUG hdfs.DFSClient (DFSClient.java:writeChunk(3666)) - DFSClient writeChunk allocating new packet seqno=1, src=/user/jeff/filelocal.dat, packetSize=5185, chunksPerPacket=10, bytesCurBlock=0
+2011-08-09 19:32:49,053 DEBUG hdfs.DFSClient (DFSClient.java:writeChunk(3685)) - DFSClient writeChunk packet full seqno=1, src=/user/jeff/filelocal.dat, bytesCurBlock=5120, blockSize=5120, appendChunk=false
+2011-08-09 19:32:49,053 DEBUG hdfs.DFSClient (DFSClient.java:computePacketChunkSize(3437)) - computePacketChunkSize: src=/user/jeff/filelocal.dat, chunkSize=516, chunksPerPacket=10, packetSize=5185
+2011-08-09 19:32:49,053 DEBUG hdfs.DFSClient (DFSClient.java:writeChunk(3666)) - DFSClient writeChunk allocating new packet seqno=2, src=/user/jeff/filelocal.dat, packetSize=5185, chunksPerPacket=10, bytesCurBlock=0
+2011-08-09 19:32:49,053 DEBUG hdfs.DFSClient (DFSClient.java:writeChunk(3685)) - DFSClient writeChunk packet full seqno=2, src=/user/jeff/filelocal.dat, bytesCurBlock=5120, blockSize=5120, appendChunk=false
+2011-08-09 19:32:49,054 DEBUG hdfs.DFSClient (DFSClient.java:computePacketChunkSize(3437)) - computePacketChunkSize: src=/user/jeff/filelocal.dat, chunkSize=516, chunksPerPacket=10, packetSize=5185
+2011-08-09 19:32:49,054 DEBUG hdfs.DFSClient (DFSClient.java:writeChunk(3666)) - DFSClient writeChunk allocating new packet seqno=3, src=/user/jeff/filelocal.dat, packetSize=5185, chunksPerPacket=10, bytesCurBlock=0
+2011-08-09 19:32:49,056 DEBUG hdfs.DFSClient (DFSClient.java:run(2932)) - Allocating new block
+2011-08-09 19:32:49,058 INFO  hdfs.StateChange (FSNamesystem.java:allocateBlock(1930)) - BLOCK* NameSystem.allocateBlock: /user/jeff/filelocal.dat. blk_2804192123312058142_1001
+2011-08-09 19:32:49,060 DEBUG hdfs.DFSClient (DFSClient.java:createBlockOutputStream(3504)) - pipeline = 127.0.0.1:54342
+2011-08-09 19:32:49,060 DEBUG hdfs.DFSClient (DFSClient.java:createBlockOutputStream(3513)) - Connecting to 127.0.0.1:54342
+2011-08-09 19:32:49,067 DEBUG hdfs.DFSClient (DFSClient.java:createBlockOutputStream(3520)) - Send buf size 131071
+2011-08-09 19:32:49,155 INFO  datanode.DataNode (DataXceiver.java:writeBlock(254)) - Receiving block blk_2804192123312058142_1001 src: /127.0.0.1:51212 dest: /127.0.0.1:54342
+2011-08-09 19:32:49,164 DEBUG hdfs.DFSClient (DFSClient.java:run(2969)) - DataStreamer block blk_2804192123312058142_1001 wrote packet seqno:0 size:5185 offsetInBlock:0 lastPacketInBlock:true
+2011-08-09 19:32:49,167 INFO  hdfs.StateChange (FSNamesystem.java:addStoredBlock(3893)) - BLOCK* NameSystem.addStoredBlock: blockMap updated: 127.0.0.1:54342 is added to blk_2804192123312058142_1001 size 5120
+2011-08-09 19:32:49,173 INFO  DataNode.clienttrace (BlockReceiver.java:lastDataNodeRun(820)) - src: /127.0.0.1:51212, dest: /127.0.0.1:54342, bytes: 5120, op: HDFS_WRITE, cliID: DFSClient_1397139370, offset: 0, srvID: DS-880697237-10.0.62.238-54342-1312911168918, blockid: blk_2804192123312058142_1001, duration: 1335496
+2011-08-09 19:32:49,173 INFO  datanode.DataNode (BlockReceiver.java:lastDataNodeRun(851)) - PacketResponder 0 for block blk_2804192123312058142_1001 terminating
+2011-08-09 19:32:49,173 DEBUG hdfs.DFSClient (DFSClient.java:run(3072)) - DFSClient received ack for seqno 0
+2011-08-09 19:32:49,173 DEBUG hdfs.DFSClient (DFSClient.java:run(2999)) - Closing old block blk_2804192123312058142_1001
+2011-08-09 19:32:49,174 DEBUG hdfs.DFSClient (DFSClient.java:run(2932)) - Allocating new block
+2011-08-09 19:32:49,176 INFO  hdfs.StateChange (FSNamesystem.java:allocateBlock(1930)) - BLOCK* NameSystem.allocateBlock: /user/jeff/filelocal.dat. blk_2427558099291506615_1001
+2011-08-09 19:32:49,178 DEBUG hdfs.DFSClient (DFSClient.java:createBlockOutputStream(3504)) - pipeline = 127.0.0.1:54342
+2011-08-09 19:32:49,179 DEBUG hdfs.DFSClient (DFSClient.java:createBlockOutputStream(3513)) - Connecting to 127.0.0.1:54342
+2011-08-09 19:32:49,179 DEBUG hdfs.DFSClient (DFSClient.java:createBlockOutputStream(3520)) - Send buf size 131071
+2011-08-09 19:32:49,180 INFO  datanode.DataNode (DataXceiver.java:writeBlock(254)) - Receiving block blk_2427558099291506615_1001 src: /127.0.0.1:51213 dest: /127.0.0.1:54342
+2011-08-09 19:32:49,183 DEBUG hdfs.DFSClient (DFSClient.java:run(2969)) - DataStreamer block blk_2427558099291506615_1001 wrote packet seqno:1 size:5185 offsetInBlock:0 lastPacketInBlock:true
+2011-08-09 19:32:49,184 INFO  DataNode.clienttrace (BlockReceiver.java:lastDataNodeRun(820)) - src: /127.0.0.1:51213, dest: /127.0.0.1:54342, bytes: 5120, op: HDFS_WRITE, cliID: DFSClient_1397139370, offset: 0, srvID: DS-880697237-10.0.62.238-54342-1312911168918, blockid: blk_2427558099291506615_1001, duration: 1860584
+2011-08-09 19:32:49,185 INFO  hdfs.StateChange (FSNamesystem.java:addStoredBlock(3893)) - BLOCK* NameSystem.addStoredBlock: blockMap updated: 127.0.0.1:54342 is added to blk_2427558099291506615_1001 size 5120
+2011-08-09 19:32:49,186 INFO  datanode.DataNode (BlockReceiver.java:lastDataNodeRun(851)) - PacketResponder 0 for block blk_2427558099291506615_1001 terminating
+2011-08-09 19:32:49,186 DEBUG hdfs.DFSClient (DFSClient.java:run(3072)) - DFSClient received ack for seqno 1
+2011-08-09 19:32:49,186 DEBUG hdfs.DFSClient (DFSClient.java:run(2999)) - Closing old block blk_2427558099291506615_1001
+2011-08-09 19:32:49,187 DEBUG hdfs.DFSClient (DFSClient.java:run(2932)) - Allocating new block
+2011-08-09 19:32:49,188 INFO  hdfs.StateChange (FSNamesystem.java:allocateBlock(1930)) - BLOCK* NameSystem.allocateBlock: /user/jeff/filelocal.dat. blk_9095666949317832943_1001
+2011-08-09 19:32:49,188 DEBUG hdfs.DFSClient (DFSClient.java:createBlockOutputStream(3504)) - pipeline = 127.0.0.1:54342
+2011-08-09 19:32:49,188 DEBUG hdfs.DFSClient (DFSClient.java:createBlockOutputStream(3513)) - Connecting to 127.0.0.1:54342
+2011-08-09 19:32:49,189 DEBUG hdfs.DFSClient (DFSClient.java:createBlockOutputStream(3520)) - Send buf size 131071
+2011-08-09 19:32:49,237 INFO  datanode.DataNode (DataXceiver.java:writeBlock(254)) - Receiving block blk_9095666949317832943_1001 src: /127.0.0.1:51214 dest: /127.0.0.1:54342
+2011-08-09 19:32:49,238 DEBUG hdfs.DFSClient (DFSClient.java:run(2969)) - DataStreamer block blk_9095666949317832943_1001 wrote packet seqno:2 size:5185 offsetInBlock:0 lastPacketInBlock:true
+2011-08-09 19:32:49,241 INFO  DataNode.clienttrace (BlockReceiver.java:lastDataNodeRun(820)) - src: /127.0.0.1:51214, dest: /127.0.0.1:54342, bytes: 5120, op: HDFS_WRITE, cliID: DFSClient_1397139370, offset: 0, srvID: DS-880697237-10.0.62.238-54342-1312911168918, blockid: blk_9095666949317832943_1001, duration: 2503880
+2011-08-09 19:32:49,242 INFO  datanode.DataNode (BlockReceiver.java:lastDataNodeRun(851)) - PacketResponder 0 for block blk_9095666949317832943_1001 terminating
+2011-08-09 19:32:49,242 INFO  hdfs.StateChange (FSNamesystem.java:addStoredBlock(3893)) - BLOCK* NameSystem.addStoredBlock: blockMap updated: 127.0.0.1:54342 is added to blk_9095666949317832943_1001 size 5120
+2011-08-09 19:32:49,243 DEBUG hdfs.DFSClient (DFSClient.java:run(3072)) - DFSClient received ack for seqno 2
+2011-08-09 19:32:49,243 DEBUG hdfs.DFSClient (DFSClient.java:run(2999)) - Closing old block blk_9095666949317832943_1001
+2011-08-09 19:32:49,244 DEBUG hdfs.DFSClient (DFSClient.java:run(2932)) - Allocating new block
+2011-08-09 19:32:49,245 INFO  hdfs.StateChange (FSNamesystem.java:allocateBlock(1930)) - BLOCK* NameSystem.allocateBlock: /user/jeff/filelocal.dat. blk_8711314748119029199_1001
+2011-08-09 19:32:49,245 DEBUG hdfs.DFSClient (DFSClient.java:createBlockOutputStream(3504)) - pipeline = 127.0.0.1:54342
+2011-08-09 19:32:49,246 DEBUG hdfs.DFSClient (DFSClient.java:createBlockOutputStream(3513)) - Connecting to 127.0.0.1:54342
+2011-08-09 19:32:49,246 DEBUG hdfs.DFSClient (DFSClient.java:createBlockOutputStream(3520)) - Send buf size 131071
+2011-08-09 19:32:49,247 INFO  datanode.DataNode (DataXceiver.java:writeBlock(254)) - Receiving block blk_8711314748119029199_1001 src: /127.0.0.1:51215 dest: /127.0.0.1:54342
+2011-08-09 19:32:49,250 DEBUG hdfs.DFSClient (DFSClient.java:run(2969)) - DataStreamer block blk_8711314748119029199_1001 wrote packet seqno:3 size:129 offsetInBlock:0 lastPacketInBlock:true
+2011-08-09 19:32:49,251 INFO  DataNode.clienttrace (BlockReceiver.java:lastDataNodeRun(820)) - src: /127.0.0.1:51215, dest: /127.0.0.1:54342, bytes: 100, op: HDFS_WRITE, cliID: DFSClient_1397139370, offset: 0, srvID: DS-880697237-10.0.62.238-54342-1312911168918, blockid: blk_8711314748119029199_1001, duration: 2495496
+2011-08-09 19:32:49,251 INFO  datanode.DataNode (BlockReceiver.java:lastDataNodeRun(851)) - PacketResponder 0 for block blk_8711314748119029199_1001 terminating
+2011-08-09 19:32:49,253 DEBUG hdfs.DFSClient (DFSClient.java:run(3072)) - DFSClient received ack for seqno 3
+2011-08-09 19:32:49,253 DEBUG hdfs.DFSClient (DFSClient.java:run(2999)) - Closing old block blk_8711314748119029199_1001
+2011-08-09 19:32:49,254 INFO  hdfs.StateChange (FSNamesystem.java:addStoredBlock(3893)) - BLOCK* NameSystem.addStoredBlock: blockMap updated: 127.0.0.1:54342 is added to blk_8711314748119029199_1001 size 100
+2011-08-09 19:32:49,260 DEBUG namenode.FSNamesystem (FSEditLog.java:write(200)) - Transaction written: [9, 0, 0, 0, 5, 0, 24, 47, 117, 115, 101, 114, 47, 106, 101, 102, 102, 47, 102, 105, 108, 101, 108, 111, 99, 97, 108, 46, 100, 97, 116, 0, 1, 49, 0, 13, 49, 51, 49, 50, 57, 49, 49, 49, 54, 57, 50, 54, 48, 0, 13, 49, 51, 49, 50, 57, 49, 49, 49, 54, 57, 48, 49, 56, 0, 4, 53, 49, 50, 48, 0, 0, 0, 4, 38, -22, 125, -32, -1, -10, -81, 30, 0, 0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 3, -23, 33, -80, 107, 58, -61, -28, -121, -73, 0, 0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 3, -23, 126, 58, 76, -26, 69, 89, -80, -17, 0, 0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 3, -23, 120, -28, -50, -101, -32, 65, -107, -49, 0, 0, 0, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0, 3, -23, 4, 106, 101, 102, 102, 10, 115, 117, 112, 101, 114, 103, 114, 111, 117, 112, 1, -92]
+2011-08-09 19:32:49,260 DEBUG namenode.FSNamesystem (FSEditLog.java:write(200)) - Transaction written: [9, 0, 0, 0, 5, 0, 24, 47, 117, 115, 101, 114, 47, 106, 101, 102, 102, 47, 102, 105, 108, 101, 108, 111, 99, 97, 108, 46, 100, 97, 116, 0, 1, 49, 0, 13, 49, 51, 49, 50, 57, 49, 49, 49, 54, 57, 50, 54, 48, 0, 13, 49, 51, 49, 50, 57, 49, 49, 49, 54, 57, 48, 49, 56, 0, 4, 53, 49, 50, 48, 0, 0, 0, 4, 38, -22, 125, -32, -1, -10, -81, 30, 0, 0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 3, -23, 33, -80, 107, 58, -61, -28, -121, -73, 0, 0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 3, -23, 126, 58, 76, -26, 69, 89, -80, -17, 0, 0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 3, -23, 120, -28, -50, -101, -32, 65, -107, -49, 0, 0, 0, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0, 3, -23, 4, 106, 101, 102, 102, 10, 115, 117, 112, 101, 114, 103, 114, 111, 117, 112, 1, -92]
+2011-08-09 19:32:49,261 INFO  hdfs.StateChange (FSNamesystem.java:completeFileInternal(1886)) - DIR* NameSystem.completeFile: file /user/jeff/filelocal.dat is closed by DFSClient_1397139370
+2011-08-09 19:32:49,262 DEBUG namenode.FSNamesystem (FSEditLog.java:flushAndSync(261)) - Flushing buffer of size: 193
+2011-08-09 19:32:49,263 DEBUG namenode.FSNamesystem (FSEditLog.java:flushAndSync(261)) - Flushing buffer of size: 193
+2011-08-09 19:32:50,276 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/user/jeff/filelocal.dat	dst=null	perm=null
+2011-08-09 19:32:50,282 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/user/jeff/filelocal.dat	dst=null	perm=null
+2011-08-09 19:32:50,284 INFO  hdfs.AppendTestUtil (AppendTestUtil.java:randomBytes(70)) - seed=3735928559, size=15360
+Verifying file 
+2011-08-09 19:32:50,286 DEBUG hdfs.DFSClient (DFSClient.java:fetchBlockByteRange(2402)) - fetchBlockByteRange shortCircuitLocalReads true localhst alexandria-dev/10.0.62.238 targetAddr /127.0.0.1:54342
+2011-08-09 19:32:50,341 DEBUG hdfs.DFSClient (BlockReaderLocal.java:<init>(133)) - BlockChecksumFileSystem constructor for file /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data1/current/blk_2804192123312058142 of size 5120 startOffset 0 length 5120
+2011-08-09 19:32:50,342 DEBUG hdfs.DFSClient (BlockReaderLocal.java:read(144)) - BlockChecksumFileSystem read off 0 len 5120
+2011-08-09 19:32:50,342 DEBUG hdfs.DFSClient (BlockReaderLocal.java:close(180)) - BlockChecksumFileSystem close
+2011-08-09 19:32:50,342 DEBUG hdfs.DFSClient (DFSClient.java:fetchBlockByteRange(2402)) - fetchBlockByteRange shortCircuitLocalReads true localhst alexandria-dev/10.0.62.238 targetAddr /127.0.0.1:54342
+2011-08-09 19:32:50,344 DEBUG hdfs.DFSClient (BlockReaderLocal.java:<init>(133)) - BlockChecksumFileSystem constructor for file /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data2/current/blk_2427558099291506615 of size 5120 startOffset 0 length 5120
+2011-08-09 19:32:50,344 DEBUG hdfs.DFSClient (BlockReaderLocal.java:read(144)) - BlockChecksumFileSystem read off 5120 len 5120
+2011-08-09 19:32:50,344 DEBUG hdfs.DFSClient (BlockReaderLocal.java:close(180)) - BlockChecksumFileSystem close
+2011-08-09 19:32:50,344 DEBUG hdfs.DFSClient (DFSClient.java:fetchBlockByteRange(2402)) - fetchBlockByteRange shortCircuitLocalReads true localhst alexandria-dev/10.0.62.238 targetAddr /127.0.0.1:54342
+2011-08-09 19:32:50,346 DEBUG hdfs.DFSClient (BlockReaderLocal.java:<init>(133)) - BlockChecksumFileSystem constructor for file /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data1/current/blk_9095666949317832943 of size 5120 startOffset 0 length 5120
+2011-08-09 19:32:50,346 DEBUG hdfs.DFSClient (BlockReaderLocal.java:read(144)) - BlockChecksumFileSystem read off 10240 len 5120
+2011-08-09 19:32:50,346 DEBUG hdfs.DFSClient (BlockReaderLocal.java:close(180)) - BlockChecksumFileSystem close
+Shutting down the Mini HDFS Cluster
+Shutting down DataNode 0
+2011-08-09 19:32:50,417 INFO  mortbay.log (Slf4jLog.java:info(67)) - Stopped SelectChannelConnector@localhost:0
+2011-08-09 19:32:50,518 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 53855
+2011-08-09 19:32:50,518 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 0 on 53855: exiting
+2011-08-09 19:32:50,518 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 1 on 53855: exiting
+2011-08-09 19:32:50,519 INFO  ipc.Server (Server.java:run(646)) - Stopping IPC Server Responder
+2011-08-09 19:32:50,519 INFO  ipc.Server (Server.java:run(447)) - Stopping IPC Server listener on 53855
+2011-08-09 19:32:50,519 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 1
+2011-08-09 19:32:50,519 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 2 on 53855: exiting
+2011-08-09 19:32:50,520 WARN  datanode.DataNode (DataXceiverServer.java:run(138)) - DatanodeRegistration(127.0.0.1:54342, storageID=DS-880697237-10.0.62.238-54342-1312911168918, infoPort=34253, ipcPort=53855):DataXceiveServer: java.nio.channels.AsynchronousCloseException
+	at java.nio.channels.spi.AbstractInterruptibleChannel.end(AbstractInterruptibleChannel.java:185)
+	at sun.nio.ch.ServerSocketChannelImpl.accept(ServerSocketChannelImpl.java:152)
+	at sun.nio.ch.ServerSocketAdaptor.accept(ServerSocketAdaptor.java:84)
+	at org.apache.hadoop.hdfs.server.datanode.DataXceiverServer.run(DataXceiverServer.java:131)
+	at java.lang.Thread.run(Thread.java:662)
+
+2011-08-09 19:32:51,027 INFO  datanode.DataBlockScanner (DataBlockScanner.java:run(604)) - Exiting DataBlockScanner thread.
+2011-08-09 19:32:51,520 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 0
+2011-08-09 19:32:51,521 INFO  datanode.DataNode (DataNode.java:run(1294)) - DatanodeRegistration(127.0.0.1:54342, storageID=DS-880697237-10.0.62.238-54342-1312911168918, infoPort=34253, ipcPort=53855):Finishing DataNode in: FSDataset{dirpath='/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data1/current,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data2/current'}
+2011-08-09 19:32:51,521 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 53855
+2011-08-09 19:32:51,521 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 0
+2011-08-09 19:32:51,522 INFO  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(128)) - Shutting down all async disk service threads...
+2011-08-09 19:32:51,522 INFO  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(137)) - All async disk service threads have been shut down.
+2011-08-09 19:32:51,522 WARN  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(125)) - AsyncDiskService has already shut down.
+2011-08-09 19:32:51,542 INFO  mortbay.log (Slf4jLog.java:info(67)) - Stopped SelectChannelConnector@localhost:0
+2011-08-09 19:32:51,643 DEBUG namenode.FSNamesystem (PendingReplicationBlocks.java:run(188)) - PendingReplicationMonitor thread received exception. java.lang.InterruptedException: sleep interrupted
+2011-08-09 19:32:51,643 WARN  namenode.FSNamesystem (FSNamesystem.java:run(3042)) - ReplicationMonitor thread received InterruptedException.java.lang.InterruptedException: sleep interrupted
+2011-08-09 19:32:51,645 INFO  namenode.DecommissionManager (DecommissionManager.java:waitForWork(254)) - Interrupted Monitor
+java.lang.InterruptedException
+	at java.lang.Object.wait(Native Method)
+	at java.lang.Object.wait(Object.java:485)
+	at org.apache.hadoop.hdfs.server.namenode.DecommissionManager$Monitor.waitForWork(DecommissionManager.java:244)
+	at org.apache.hadoop.hdfs.server.namenode.DecommissionManager$Monitor.run(DecommissionManager.java:267)
+	at java.lang.Thread.run(Thread.java:662)
+2011-08-09 19:32:51,646 DEBUG namenode.LeaseManager (LeaseManager.java:run(374)) - Monitor is interrupted
+java.lang.InterruptedException: sleep interrupted
+	at java.lang.Thread.sleep(Native Method)
+	at org.apache.hadoop.hdfs.server.namenode.LeaseManager$Monitor.run(LeaseManager.java:371)
+	at java.lang.Thread.run(Thread.java:662)
+2011-08-09 19:32:51,646 INFO  namenode.FSNamesystem (FSEditLog.java:printStatistics(1125)) - Number of transactions: 5 Total time for transactions(ms): 3 Number of transactions batched in Syncs: 0 Number of syncs: 2 SyncTimes(ms):  /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name1/current/edits:12  /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name2/current/edits:4 
+2011-08-09 19:32:51,647 DEBUG namenode.FSNamesystem (FSEditLog.java:flushAndSync(261)) - Flushing buffer of size: 1
+2011-08-09 19:32:51,648 DEBUG namenode.FSNamesystem (FSEditLog.java:flushAndSync(261)) - Flushing buffer of size: 1
+2011-08-09 19:32:51,649 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 36183
+2011-08-09 19:32:51,649 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 1 on 36183: exiting
+2011-08-09 19:32:51,649 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 3 on 36183: exiting
+2011-08-09 19:32:51,649 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 2 on 36183: exiting
+2011-08-09 19:32:51,649 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 0 on 36183: exiting
+2011-08-09 19:32:51,649 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 4 on 36183: exiting
+2011-08-09 19:32:51,650 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 5 on 36183: exiting
+2011-08-09 19:32:51,650 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 6 on 36183: exiting
+2011-08-09 19:32:51,650 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 7 on 36183: exiting
+2011-08-09 19:32:51,651 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 8 on 36183: exiting
+2011-08-09 19:32:51,651 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 9 on 36183: exiting
+2011-08-09 19:32:51,651 INFO  ipc.Server (Server.java:run(447)) - Stopping IPC Server listener on 36183
+2011-08-09 19:32:51,652 INFO  ipc.Server (Server.java:run(646)) - Stopping IPC Server Responder
+------------- ---------------- ---------------
+
+Testcase: testFileLocalRead took 58.056 sec

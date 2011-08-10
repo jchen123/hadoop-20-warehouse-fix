@@ -1,0 +1,34 @@
+Testsuite: org.apache.hadoop.fs.s3native.TestInMemoryNativeS3FileSystemContract
+Tests run: 28, Failures: 0, Errors: 0, Time elapsed: 0.824 sec
+------------- Standard Output ---------------
+2011-08-09 18:22:08,044 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+------------- ---------------- ---------------
+
+Testcase: testListStatusForRoot took 0.227 sec
+Testcase: testWorkingDirectory took 0.026 sec
+Testcase: testMkdirs took 0.022 sec
+Testcase: testMkdirsFailsForSubdirectoryOfExistingFile took 0.048 sec
+Testcase: testGetFileStatusThrowsExceptionForNonExistentFile took 0.02 sec
+Testcase: testListStatusReturnsNullForNonExistentFile took 0.022 sec
+Testcase: testListStatus took 0.023 sec
+Testcase: testWriteReadAndDeleteEmptyFile took 0.021 sec
+Testcase: testWriteReadAndDeleteHalfABlock took 0.02 sec
+Testcase: testWriteReadAndDeleteOneBlock took 0.053 sec
+Testcase: testWriteReadAndDeleteOneAndAHalfBlocks took 0.026 sec
+Testcase: testWriteReadAndDeleteTwoBlocks took 0.024 sec
+Testcase: testOverwrite took 0.019 sec
+Testcase: testWriteInNonExistentDirectory took 0.022 sec
+Testcase: testDeleteNonExistentFile took 0.017 sec
+Testcase: testDeleteRecursively took 0.019 sec
+Testcase: testDeleteEmptyDirectory took 0.016 sec
+Testcase: testRenameNonExistentPath took 0.016 sec
+Testcase: testRenameFileMoveToNonExistentDirectory took 0.016 sec
+Testcase: testRenameFileMoveToExistingDirectory took 0.017 sec
+Testcase: testRenameFileAsExistingFile took 0.014 sec
+Testcase: testRenameFileAsExistingDirectory took 0.014 sec
+Testcase: testRenameDirectoryMoveToNonExistentDirectory took 0.013 sec
+Testcase: testRenameDirectoryMoveToExistingDirectory took 0.016 sec
+Testcase: testRenameDirectoryAsExistingFile took 0.013 sec
+Testcase: testRenameDirectoryAsExistingDirectory took 0.017 sec
+Testcase: testInputStreamClosedTwice took 0.012 sec
+Testcase: testOutputStreamClosedTwice took 0.012 sec

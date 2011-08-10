@@ -1,0 +1,9 @@
+Testsuite: org.apache.hadoop.hdfs.server.namenode.TestINodeFile
+Tests run: 6, Failures: 0, Errors: 0, Time elapsed: 0.242 sec
+
+Testcase: testReplication took 0.21 sec
+Testcase: testReplicationBelowLowerBound took 0.001 sec
+Testcase: testPreferredBlockSize took 0 sec
+Testcase: testPreferredBlockSizeUpperBound took 0 sec
+Testcase: testPreferredBlockSizeBelowLowerBound took 0.001 sec
+Testcase: testPreferredBlockSizeAboveUpperBound took 0 sec

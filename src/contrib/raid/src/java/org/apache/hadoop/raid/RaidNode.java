@@ -224,20 +224,13 @@ public abstract class RaidNode implements RaidProtocol {
     }
   }
 
-  public long getProtocolVersion(String protocol,
-                                 long clientVersion) throws IOException {
-    if (protocol.equals(RaidProtocol.class.getName())) {
-      return RaidProtocol.versionID;
-    } else {
-      throw new IOException("Unknown protocol to name node: " + protocol);
-    }
-  }
-
-  @Override
-  public ProtocolSignature getProtocolSignature(String protocol,
-      long clientVersion, int clientMethodsHash) throws IOException {
-    return ProtocolSignature.getProtocolSignature(
-        this, protocol, clientVersion, clientMethodsHash);
+  /**
+   * This is broken.
+   *
+   */
+  public static ParityFilePair getParityFile(Path path, Path srcPath,
+      Configuration conf) throws IOException {
+          return null;
   }
   
   /**

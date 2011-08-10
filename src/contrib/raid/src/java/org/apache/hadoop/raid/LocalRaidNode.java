@@ -29,6 +29,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.FileStatus;
 
+import org.apache.hadoop.ipc.ProtocolSignature;
+import org.apache.hadoop.ipc.RPC;
+
 import org.apache.hadoop.raid.protocol.PolicyInfo;
 
 /**
@@ -64,4 +67,18 @@ public class LocalRaidNode extends RaidNode {
   public String raidJobsHtmlTable(boolean running) {
     return "";
   }
+  @Override
+  public ProtocolSignature getProtocolSignature(String protocol, 
+long clientVersion,
+int clientMethodsHash) throws IOException {
+    return new ProtocolSignature();
+    }
+ 
+  @Override
+  public long getProtocolVersion(String protocol, long clientVersion)
+  throws RPC.VersionIncompatible, IOException {
+       return 0;
+  }
+
+
 }

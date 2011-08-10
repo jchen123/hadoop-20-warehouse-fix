@@ -1,0 +1,12 @@
+2011-08-09 18:17:58,940 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+2011-08-09 18:17:59,600 WARN  conf.Configuration (Configuration.java:loadResource(1203)) - /home/jeff/hadoop-20-warehouse/build/test/mapred/local/0_0/taskTracker/jobcache/job_20110809181702144_0002/attempt_20110809181702144_0002_m_000004_0/job.xml:a attempt to override final parameter: hadoop.tmp.dir;  Ignoring.
+2011-08-09 18:17:59,627 INFO  jvm.JvmMetrics (JvmMetrics.java:init(71)) - Initializing JVM Metrics with processName=MAP, sessionId=
+2011-08-09 18:17:59,837 WARN  conf.Configuration (Configuration.java:loadResource(1203)) - /home/jeff/hadoop-20-warehouse/build/test/mapred/local/0_0/taskTracker/jobcache/job_20110809181702144_0002/attempt_20110809181702144_0002_m_000004_0/job.xml:a attempt to override final parameter: hadoop.tmp.dir;  Ignoring.
+2011-08-09 18:17:59,978 INFO  util.ProcessTree (ProcessTree.java:isSetsidSupported(51)) - setsid exited with exit code 0
+2011-08-09 18:18:00,099 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@1de58cb8
+2011-08-09 18:18:00,214 INFO  mapred.Task (Task.java:runJobCleanupTask(912)) - Cleaning up job
+2011-08-09 18:18:00,214 INFO  mapred.Task (Task.java:runJobCleanupTask(918)) - Committing job
+2011-08-09 18:18:00,222 WARN  hdfs.DFSClient (DFSClient.java:deleteUsingTrash(323)) - File /user/jeff/tmp/foo.har/_temporary is being deleted only through Trash org.apache.hadoop.fs.FsShell.delete because all deletes must go through Trash.
+Deleted /user/jeff/tmp/foo.har/_temporary
+2011-08-09 18:18:00,284 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_20110809181702144_0002_m_000004_0 is done. And is in the process of commiting
+2011-08-09 18:18:00,331 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_20110809181702144_0002_m_000004_0' done.

@@ -1,0 +1,690 @@
+Testsuite: org.apache.hadoop.hdfs.server.datanode.TestBlockReplacement
+Tests run: 2, Failures: 0, Errors: 0, Time elapsed: 75.409 sec
+------------- Standard Output ---------------
+2011-08-09 20:21:37,292 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+2011-08-09 20:21:43,776 INFO  util.GSet (BlocksMap.java:computeCapacity(342)) - VM type       = 64-bit
+2011-08-09 20:21:43,778 INFO  util.GSet (BlocksMap.java:computeCapacity(343)) - 2% max memory = 9.89875 MB
+2011-08-09 20:21:43,779 INFO  util.GSet (BlocksMap.java:computeCapacity(344)) - capacity      = 2^20 = 1048576 entries
+2011-08-09 20:21:43,789 INFO  util.GSet (LightWeightGSet.java:<init>(79)) - recommended=1048576, actual=1048576
+2011-08-09 20:21:43,827 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(521)) - fsOwner=jeff,jeff
+2011-08-09 20:21:43,828 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(527)) - supergroup=supergroup
+2011-08-09 20:21:43,828 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(528)) - isPermissionEnabled=true
+2011-08-09 20:21:44,029 INFO  namenode.NameNode (FSDirectory.java:<init>(126)) - Caching file names occuring more than 10 times 
+2011-08-09 20:21:44,107 INFO  common.Storage (FSImage.java:saveFSImage(1268)) - Image file of size 95 saved in 0 seconds.
+2011-08-09 20:21:44,110 INFO  namenode.FSNamesystem (FSEditLog.java:<init>(157)) - Edit Log preallocate size for /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name1/current/edits is 1048576 bytes  and initial size of edits buffer is 524288 bytes. Max number of buffered transactions is 10000
+2011-08-09 20:21:44,134 INFO  common.Storage (FSImage.java:format(1394)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name1 has been successfully formatted.
+2011-08-09 20:21:44,154 INFO  common.Storage (FSImage.java:saveFSImage(1268)) - Image file of size 95 saved in 0 seconds.
+2011-08-09 20:21:44,154 INFO  namenode.FSNamesystem (FSEditLog.java:<init>(157)) - Edit Log preallocate size for /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name2/current/edits is 1048576 bytes  and initial size of edits buffer is 524288 bytes. Max number of buffered transactions is 10000
+2011-08-09 20:21:44,182 INFO  common.Storage (FSImage.java:format(1394)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name2 has been successfully formatted.
+2011-08-09 20:21:44,201 INFO  jvm.JvmMetrics (JvmMetrics.java:init(71)) - Initializing JVM Metrics with processName=NameNode, sessionId=null
+2011-08-09 20:21:44,276 INFO  metrics.NameNodeMetrics (NameNodeMetrics.java:<init>(145)) - Initializing NameNodeMeterics using context object:org.apache.hadoop.metrics.spi.NullContext
+2011-08-09 20:21:44,277 INFO  util.GSet (BlocksMap.java:computeCapacity(342)) - VM type       = 64-bit
+2011-08-09 20:21:44,277 INFO  util.GSet (BlocksMap.java:computeCapacity(343)) - 2% max memory = 9.89875 MB
+2011-08-09 20:21:44,277 INFO  util.GSet (BlocksMap.java:computeCapacity(344)) - capacity      = 2^20 = 1048576 entries
+2011-08-09 20:21:44,278 INFO  util.GSet (LightWeightGSet.java:<init>(79)) - recommended=1048576, actual=1048576
+2011-08-09 20:21:44,356 WARN  namenode.FSNamesystem (ConfigManager.java:<init>(56)) - No whitelist file specified in dfs.namenode.whitelist.file. The namenode will allow deletion/renaming of any directory.
+2011-08-09 20:21:44,356 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(521)) - fsOwner=jeff,jeff
+2011-08-09 20:21:44,357 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(527)) - supergroup=supergroup
+2011-08-09 20:21:44,357 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(528)) - isPermissionEnabled=true
+2011-08-09 20:21:44,382 INFO  metrics.FSNamesystemMetrics (FSNamesystemMetrics.java:<init>(71)) - Initializing FSNamesystemMetrics using context object:org.apache.hadoop.metrics.spi.NullContext
+2011-08-09 20:21:44,383 INFO  namenode.FSNamesystem (FSNamesystem.java:registerMBean(5940)) - Registered FSNamesystemStatusMBean
+2011-08-09 20:21:44,393 INFO  namenode.NameNode (FSDirectory.java:<init>(126)) - Caching file names occuring more than 10 times 
+2011-08-09 20:21:44,400 INFO  common.Storage (FSImage.java:loadFSImage(1034)) - Number of files = 1
+2011-08-09 20:21:44,401 INFO  common.Storage (FSImage.java:loadFilesUnderConstruction(1499)) - Number of files under construction = 0
+2011-08-09 20:21:44,401 INFO  common.Storage (FSImage.java:loadFSImage(1144)) - Image file of size 95 loaded in 0 seconds.
+2011-08-09 20:21:44,403 INFO  common.Storage (FSEditLog.java:loadFSEdits(886)) - Edits file /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name1/current/edits of size 4 edits # 0 loaded in 0 seconds.
+2011-08-09 20:21:44,405 INFO  namenode.FSNamesystem (FSEditLog.java:<init>(157)) - Edit Log preallocate size for /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name1/current/edits is 1048576 bytes  and initial size of edits buffer is 524288 bytes. Max number of buffered transactions is 10000
+2011-08-09 20:21:44,405 INFO  namenode.FSNamesystem (FSEditLog.java:<init>(157)) - Edit Log preallocate size for /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name2/current/edits is 1048576 bytes  and initial size of edits buffer is 524288 bytes. Max number of buffered transactions is 10000
+2011-08-09 20:21:44,411 INFO  namenode.NameCache (NameCache.java:initialized(143)) - initialized with 0 entries 0 lookups
+2011-08-09 20:21:44,412 INFO  namenode.FSNamesystem (FSNamesystem.java:initialize(372)) - Finished loading FSImage in 58 msecs
+2011-08-09 20:21:44,413 INFO  namenode.FSNamesystem (FSNamesystem.java:initializeReplQueues(5294)) - initializing replication queues
+2011-08-09 20:21:44,423 INFO  namenode.FSNamesystem (FSNamesystem.java:processMisReplicatedBlocks(4047)) - Total number of blocks = 0
+2011-08-09 20:21:44,424 INFO  namenode.FSNamesystem (FSNamesystem.java:processMisReplicatedBlocks(4048)) - Number of invalid blocks = 0
+2011-08-09 20:21:44,424 INFO  namenode.FSNamesystem (FSNamesystem.java:processMisReplicatedBlocks(4049)) - Number of under-replicated blocks = 0
+2011-08-09 20:21:44,425 INFO  namenode.FSNamesystem (FSNamesystem.java:processMisReplicatedBlocks(4050)) - Number of  over-replicated blocks = 0
+2011-08-09 20:21:44,425 INFO  hdfs.StateChange (FSNamesystem.java:leave(5269)) - STATE* Leaving safe mode after 0 secs.
+2011-08-09 20:21:44,452 INFO  ipc.Server (Server.java:run(307)) - Starting SocketReader
+2011-08-09 20:21:44,470 INFO  metrics.RpcMetrics (RpcMetrics.java:<init>(59)) - Initializing RPC Metrics with hostName=NameNode, port=34320
+2011-08-09 20:21:44,474 INFO  namenode.NameNode (NameNode.java:startServerForClientRequests(396)) - Namenode up at: localhost/127.0.0.1:34320
+2011-08-09 20:21:44,475 INFO  ipc.Server (Server.java:run(581)) - IPC Server Responder: starting
+2011-08-09 20:21:44,476 INFO  ipc.Server (Server.java:run(408)) - IPC Server listener on 34320: starting
+2011-08-09 20:21:44,479 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 0 on 34320: starting
+2011-08-09 20:21:44,489 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 1 on 34320: starting
+2011-08-09 20:21:44,489 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 3 on 34320: starting
+2011-08-09 20:21:44,490 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 4 on 34320: starting
+2011-08-09 20:21:44,490 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 5 on 34320: starting
+2011-08-09 20:21:44,490 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 6 on 34320: starting
+2011-08-09 20:21:44,496 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 7 on 34320: starting
+2011-08-09 20:21:44,498 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 9 on 34320: starting
+2011-08-09 20:21:44,498 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 2 on 34320: starting
+2011-08-09 20:21:44,496 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 8 on 34320: starting
+2011-08-09 20:21:44,631 WARN  fs.Trash (Trash.java:<init>(232)) - The configured interval for checkpoint is 0 minutes. Using interval of 0 minutes that is used for deletion instead
+2011-08-09 20:21:44,632 INFO  hdfs.StateChange (FSNamesystem.java:leave(5283)) - STATE* Network topology has 0 racks and 0 datanodes
+2011-08-09 20:21:44,633 INFO  hdfs.StateChange (FSNamesystem.java:leave(5286)) - STATE* UnderReplicatedBlocks has 0 blocks
+2011-08-09 20:21:44,633 INFO  namenode.FSNamesystem (FSNamesystem.java:initialize(388)) - Skip counting items in the file tree
+2011-08-09 20:21:44,688 INFO  util.HostsFileReader (HostsFileReader.java:refresh(80)) - Refreshing hosts (include/exclude) list
+2011-08-09 20:21:44,760 INFO  mortbay.log (Slf4jLog.java:info(67)) - Logging to org.slf4j.impl.Log4jLoggerAdapter(org.mortbay.log) via org.mortbay.log.Slf4jLog
+2011-08-09 20:21:44,917 INFO  http.HttpServer (HttpServer.java:addGlobalFilter(297)) - Added global filtersafety (class=org.apache.hadoop.http.HttpServer$QuotingInputFilter)
+2011-08-09 20:21:44,925 INFO  http.HttpServer (HttpServer.java:start(437)) - Port returned by webServer.getConnectors()[0].getLocalPort() before open() is -1. Opening the listener on 0
+2011-08-09 20:21:44,926 INFO  http.HttpServer (HttpServer.java:start(442)) - listener.getLocalPort() returned 33443 webServer.getConnectors()[0].getLocalPort() returned 33443
+2011-08-09 20:21:44,926 INFO  http.HttpServer (HttpServer.java:start(475)) - Jetty bound to port 33443
+2011-08-09 20:21:44,927 INFO  mortbay.log (Slf4jLog.java:info(67)) - jetty-6.1.26
+2011-08-09 20:21:45,406 INFO  mortbay.log (Slf4jLog.java:info(67)) - Started SelectChannelConnector@localhost:33443
+2011-08-09 20:21:45,407 INFO  namenode.NameNode (NameNode.java:startHttpServer(329)) - Web-server up at: localhost:33443
+Generating host names for datanodes
+Starting DataNode 0 with dfs.data.dir: /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data1,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data2
+Starting DataNode 0 with hostname set to: host0.foo.com
+Adding node with hostname : host0.foo.com to rack /RACK0
+2011-08-09 20:21:45,500 INFO  common.Storage (DataStorage.java:recoverTransitionRead(124)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data1 is not formatted.
+2011-08-09 20:21:45,500 INFO  common.Storage (DataStorage.java:recoverTransitionRead(125)) - Formatting ...
+2011-08-09 20:21:45,526 INFO  common.Storage (DataStorage.java:recoverTransitionRead(124)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data2 is not formatted.
+2011-08-09 20:21:45,527 INFO  common.Storage (DataStorage.java:recoverTransitionRead(125)) - Formatting ...
+2011-08-09 20:21:45,738 INFO  datanode.DataNode (FSDataset.java:registerMBean(1597)) - Registered FSDatasetStatusMBean
+2011-08-09 20:21:45,740 INFO  datanode.DataNode (DataNode.java:startDataNode(327)) - Opened info server at 55274
+2011-08-09 20:21:45,742 INFO  datanode.DataNode (DataXceiverServer.java:<init>(75)) - Balancing bandwith is 1048576 bytes/s
+2011-08-09 20:21:45,748 INFO  http.HttpServer (HttpServer.java:addGlobalFilter(297)) - Added global filtersafety (class=org.apache.hadoop.http.HttpServer$QuotingInputFilter)
+2011-08-09 20:21:45,751 INFO  http.HttpServer (HttpServer.java:start(437)) - Port returned by webServer.getConnectors()[0].getLocalPort() before open() is -1. Opening the listener on 0
+2011-08-09 20:21:45,752 INFO  http.HttpServer (HttpServer.java:start(442)) - listener.getLocalPort() returned 44175 webServer.getConnectors()[0].getLocalPort() returned 44175
+2011-08-09 20:21:45,753 INFO  http.HttpServer (HttpServer.java:start(475)) - Jetty bound to port 44175
+2011-08-09 20:21:45,753 INFO  mortbay.log (Slf4jLog.java:info(67)) - jetty-6.1.26
+2011-08-09 20:21:45,993 INFO  mortbay.log (Slf4jLog.java:info(67)) - Started SelectChannelConnector@localhost:44175
+2011-08-09 20:21:46,017 INFO  jvm.JvmMetrics (JvmMetrics.java:init(66)) - Cannot initialize JVM Metrics with processName=DataNode, sessionId=null - already initialized
+2011-08-09 20:21:46,047 INFO  ipc.Server (Server.java:run(307)) - Starting SocketReader
+2011-08-09 20:21:46,050 INFO  metrics.RpcMetrics (RpcMetrics.java:<init>(59)) - Initializing RPC Metrics with hostName=DataNode, port=60884
+2011-08-09 20:21:46,051 INFO  ipc.Server (Server.java:run(581)) - IPC Server Responder: starting
+2011-08-09 20:21:46,052 INFO  ipc.Server (Server.java:run(408)) - IPC Server listener on 60884: starting
+2011-08-09 20:21:46,053 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 0 on 60884: starting
+2011-08-09 20:21:46,053 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 1 on 60884: starting
+2011-08-09 20:21:46,053 INFO  datanode.DataNode (DataNode.java:startDataNode(418)) - dnRegistration = DatanodeRegistration(host0.foo.com:55274, storageID=, infoPort=44175, ipcPort=60884)
+Adding node with IP:port : 127.0.0.1:55274 to rack /RACK0
+2011-08-09 20:21:46,058 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 2 on 60884: starting
+2011-08-09 20:22:37,115 INFO  hdfs.StateChange (FSNamesystem.java:registerDatanode(2757)) - BLOCK* NameSystem.registerDatanode: node registration from 127.0.0.1:55274 storage DS-425336585-10.0.62.238-55274-1312914157107
+2011-08-09 20:22:37,119 INFO  net.NetworkTopology (NetworkTopology.java:add(328)) - Adding a new node: /RACK0/127.0.0.1:55274
+2011-08-09 20:22:37,126 INFO  datanode.DataNode (DataNode.java:register(592)) - New storage id DS-425336585-10.0.62.238-55274-1312914157107 is assigned to data-node 127.0.0.1:55274
+2011-08-09 20:22:37,126 INFO  datanode.DataNode (DataNode.java:run(1274)) - DatanodeRegistration(127.0.0.1:55274, storageID=DS-425336585-10.0.62.238-55274-1312914157107, infoPort=44175, ipcPort=60884)In DataNode.run, data = FSDataset{dirpath='/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data1/current,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data2/current'}
+2011-08-09 20:22:37,127 INFO  datanode.DataNode (DataNode.java:offerService(756)) - using BLOCKREPORT_INTERVAL of 500msec Initial delay: 0msec
+Starting DataNode 1 with dfs.data.dir: /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data3,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data4
+Starting DataNode 1 with hostname set to: host1.foo.com
+Adding node with hostname : host1.foo.com to rack /RACK1
+2011-08-09 20:22:37,178 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:37,179 INFO  hdfs.StateChange (FSNamesystem.java:processReport(3701)) - BLOCK* NameSystem.processReport: from 127.0.0.1:55274 0 blocks shortCircuit first report.
+2011-08-09 20:22:37,180 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 0 blocks got processed in 3 msecs
+2011-08-09 20:22:37,180 INFO  datanode.DataNode (DataNode.java:offerService(864)) - Starting Periodic block scanner.
+2011-08-09 20:22:37,181 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:37,184 INFO  common.Storage (DataStorage.java:recoverTransitionRead(124)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data3 is not formatted.
+2011-08-09 20:22:37,185 INFO  common.Storage (DataStorage.java:recoverTransitionRead(125)) - Formatting ...
+2011-08-09 20:22:37,201 INFO  common.Storage (DataStorage.java:recoverTransitionRead(124)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data4 is not formatted.
+2011-08-09 20:22:37,202 INFO  common.Storage (DataStorage.java:recoverTransitionRead(125)) - Formatting ...
+2011-08-09 20:22:37,383 INFO  datanode.DataNode (FSDataset.java:registerMBean(1597)) - Registered FSDatasetStatusMBean
+2011-08-09 20:22:37,384 INFO  datanode.DataNode (DataNode.java:startDataNode(327)) - Opened info server at 46682
+2011-08-09 20:22:37,385 INFO  datanode.DataNode (DataXceiverServer.java:<init>(75)) - Balancing bandwith is 1048576 bytes/s
+2011-08-09 20:22:37,388 INFO  http.HttpServer (HttpServer.java:addGlobalFilter(297)) - Added global filtersafety (class=org.apache.hadoop.http.HttpServer$QuotingInputFilter)
+2011-08-09 20:22:37,389 INFO  http.HttpServer (HttpServer.java:start(437)) - Port returned by webServer.getConnectors()[0].getLocalPort() before open() is -1. Opening the listener on 0
+2011-08-09 20:22:37,389 INFO  http.HttpServer (HttpServer.java:start(442)) - listener.getLocalPort() returned 42046 webServer.getConnectors()[0].getLocalPort() returned 42046
+2011-08-09 20:22:37,390 INFO  http.HttpServer (HttpServer.java:start(475)) - Jetty bound to port 42046
+2011-08-09 20:22:37,390 INFO  mortbay.log (Slf4jLog.java:info(67)) - jetty-6.1.26
+2011-08-09 20:22:37,742 INFO  mortbay.log (Slf4jLog.java:info(67)) - Started SelectChannelConnector@localhost:42046
+2011-08-09 20:22:37,750 INFO  jvm.JvmMetrics (JvmMetrics.java:init(66)) - Cannot initialize JVM Metrics with processName=DataNode, sessionId=null - already initialized
+2011-08-09 20:22:37,769 INFO  ipc.Server (Server.java:run(307)) - Starting SocketReader
+2011-08-09 20:22:37,792 INFO  metrics.RpcMetrics (RpcMetrics.java:<init>(59)) - Initializing RPC Metrics with hostName=DataNode, port=40838
+2011-08-09 20:22:37,793 INFO  ipc.Server (Server.java:run(581)) - IPC Server Responder: starting
+2011-08-09 20:22:37,794 INFO  ipc.Server (Server.java:run(408)) - IPC Server listener on 40838: starting
+2011-08-09 20:22:37,795 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 0 on 40838: starting
+2011-08-09 20:22:37,797 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 1 on 40838: starting
+2011-08-09 20:22:37,797 INFO  datanode.DataNode (DataNode.java:startDataNode(418)) - dnRegistration = DatanodeRegistration(host1.foo.com:46682, storageID=, infoPort=42046, ipcPort=40838)
+Adding node with IP:port : 127.0.0.1:46682 to rack /RACK1
+2011-08-09 20:22:37,798 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 2 on 40838: starting
+2011-08-09 20:22:37,810 INFO  hdfs.StateChange (FSNamesystem.java:registerDatanode(2757)) - BLOCK* NameSystem.registerDatanode: node registration from 127.0.0.1:46682 storage DS-472789087-10.0.62.238-46682-1312914157808
+2011-08-09 20:22:37,811 INFO  net.NetworkTopology (NetworkTopology.java:add(328)) - Adding a new node: /RACK1/127.0.0.1:46682
+2011-08-09 20:22:37,819 INFO  datanode.DataNode (DataNode.java:register(592)) - New storage id DS-472789087-10.0.62.238-46682-1312914157808 is assigned to data-node 127.0.0.1:46682
+Starting DataNode 2 with dfs.data.dir: /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data5,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data6
+Starting DataNode 2 with hostname set to: host2.foo.com
+Adding node with hostname : host2.foo.com to rack /RACK2
+2011-08-09 20:22:37,822 INFO  datanode.DataNode (DataNode.java:run(1274)) - DatanodeRegistration(127.0.0.1:46682, storageID=DS-472789087-10.0.62.238-46682-1312914157808, infoPort=42046, ipcPort=40838)In DataNode.run, data = FSDataset{dirpath='/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data3/current,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data4/current'}
+2011-08-09 20:22:37,824 INFO  datanode.DataNode (DataNode.java:offerService(756)) - using BLOCKREPORT_INTERVAL of 500msec Initial delay: 0msec
+2011-08-09 20:22:37,828 INFO  common.Storage (DataStorage.java:recoverTransitionRead(124)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data5 is not formatted.
+2011-08-09 20:22:37,828 INFO  common.Storage (DataStorage.java:recoverTransitionRead(125)) - Formatting ...
+2011-08-09 20:22:37,829 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:37,832 INFO  hdfs.StateChange (FSNamesystem.java:processReport(3701)) - BLOCK* NameSystem.processReport: from 127.0.0.1:46682 0 blocks shortCircuit first report.
+2011-08-09 20:22:37,847 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 0 blocks got processed in 18 msecs
+2011-08-09 20:22:37,853 INFO  datanode.DataNode (DataNode.java:offerService(864)) - Starting Periodic block scanner.
+2011-08-09 20:22:37,854 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:37,861 INFO  common.Storage (DataStorage.java:recoverTransitionRead(124)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data6 is not formatted.
+2011-08-09 20:22:37,861 INFO  common.Storage (DataStorage.java:recoverTransitionRead(125)) - Formatting ...
+2011-08-09 20:22:38,030 INFO  datanode.DataNode (FSDataset.java:registerMBean(1597)) - Registered FSDatasetStatusMBean
+2011-08-09 20:22:38,032 INFO  datanode.DataNode (DataNode.java:startDataNode(327)) - Opened info server at 52064
+2011-08-09 20:22:38,032 INFO  datanode.DataNode (DataXceiverServer.java:<init>(75)) - Balancing bandwith is 1048576 bytes/s
+2011-08-09 20:22:38,035 INFO  http.HttpServer (HttpServer.java:addGlobalFilter(297)) - Added global filtersafety (class=org.apache.hadoop.http.HttpServer$QuotingInputFilter)
+2011-08-09 20:22:38,036 INFO  http.HttpServer (HttpServer.java:start(437)) - Port returned by webServer.getConnectors()[0].getLocalPort() before open() is -1. Opening the listener on 0
+2011-08-09 20:22:38,037 INFO  http.HttpServer (HttpServer.java:start(442)) - listener.getLocalPort() returned 56102 webServer.getConnectors()[0].getLocalPort() returned 56102
+2011-08-09 20:22:38,037 INFO  http.HttpServer (HttpServer.java:start(475)) - Jetty bound to port 56102
+2011-08-09 20:22:38,038 INFO  mortbay.log (Slf4jLog.java:info(67)) - jetty-6.1.26
+2011-08-09 20:22:38,233 INFO  mortbay.log (Slf4jLog.java:info(67)) - Started SelectChannelConnector@localhost:56102
+2011-08-09 20:22:38,235 INFO  jvm.JvmMetrics (JvmMetrics.java:init(66)) - Cannot initialize JVM Metrics with processName=DataNode, sessionId=null - already initialized
+2011-08-09 20:22:38,241 INFO  ipc.Server (Server.java:run(307)) - Starting SocketReader
+2011-08-09 20:22:38,243 INFO  metrics.RpcMetrics (RpcMetrics.java:<init>(59)) - Initializing RPC Metrics with hostName=DataNode, port=52295
+2011-08-09 20:22:38,244 INFO  ipc.Server (Server.java:run(581)) - IPC Server Responder: starting
+2011-08-09 20:22:38,244 INFO  ipc.Server (Server.java:run(408)) - IPC Server listener on 52295: starting
+2011-08-09 20:22:38,245 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 0 on 52295: starting
+2011-08-09 20:22:38,271 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 1 on 52295: starting
+2011-08-09 20:22:38,272 INFO  datanode.DataNode (DataNode.java:startDataNode(418)) - dnRegistration = DatanodeRegistration(host2.foo.com:52064, storageID=, infoPort=56102, ipcPort=52295)
+Adding node with IP:port : 127.0.0.1:52064 to rack /RACK2
+2011-08-09 20:22:38,272 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 2 on 52295: starting
+2011-08-09 20:22:38,277 INFO  hdfs.StateChange (FSNamesystem.java:registerDatanode(2757)) - BLOCK* NameSystem.registerDatanode: node registration from 127.0.0.1:52064 storage DS-1400881117-10.0.62.238-52064-1312914158275
+2011-08-09 20:22:38,278 INFO  net.NetworkTopology (NetworkTopology.java:add(328)) - Adding a new node: /RACK2/127.0.0.1:52064
+2011-08-09 20:22:38,284 INFO  datanode.DataNode (DataNode.java:register(592)) - New storage id DS-1400881117-10.0.62.238-52064-1312914158275 is assigned to data-node 127.0.0.1:52064
+2011-08-09 20:22:38,285 INFO  datanode.DataNode (DataNode.java:run(1274)) - DatanodeRegistration(127.0.0.1:52064, storageID=DS-1400881117-10.0.62.238-52064-1312914158275, infoPort=56102, ipcPort=52295)In DataNode.run, data = FSDataset{dirpath='/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data5/current,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data6/current'}
+2011-08-09 20:22:38,286 INFO  datanode.DataNode (DataNode.java:offerService(756)) - using BLOCKREPORT_INTERVAL of 500msec Initial delay: 0msec
+2011-08-09 20:22:38,290 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:38,293 INFO  hdfs.StateChange (FSNamesystem.java:processReport(3701)) - BLOCK* NameSystem.processReport: from 127.0.0.1:52064 0 blocks shortCircuit first report.
+2011-08-09 20:22:38,296 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 0 blocks got processed in 6 msecs
+2011-08-09 20:22:38,296 INFO  datanode.DataNode (DataNode.java:offerService(864)) - Starting Periodic block scanner.
+2011-08-09 20:22:38,339 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:38,369 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=mkdirs	src=/	dst=null	perm=jeff:supergroup:rwxr-xr-x
+2011-08-09 20:22:38,384 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=create	src=/tmp.txt	dst=null	perm=jeff:supergroup:rw-r--r--
+2011-08-09 20:22:38,435 INFO  hdfs.StateChange (FSNamesystem.java:allocateBlock(1930)) - BLOCK* NameSystem.allocateBlock: /tmp.txt. blk_-7452952362776134700_1001
+2011-08-09 20:22:38,496 INFO  datanode.DataNode (DataXceiver.java:writeBlock(254)) - Receiving block blk_-7452952362776134700_1001 src: /127.0.0.1:36349 dest: /127.0.0.1:46682
+2011-08-09 20:22:38,506 INFO  datanode.DataNode (DataXceiver.java:writeBlock(254)) - Receiving block blk_-7452952362776134700_1001 src: /127.0.0.1:43243 dest: /127.0.0.1:52064
+2011-08-09 20:22:38,508 INFO  datanode.DataNode (DataXceiver.java:writeBlock(254)) - Receiving block blk_-7452952362776134700_1001 src: /127.0.0.1:58068 dest: /127.0.0.1:55274
+2011-08-09 20:22:38,521 INFO  DataNode.clienttrace (BlockReceiver.java:lastDataNodeRun(820)) - src: /127.0.0.1:58068, dest: /127.0.0.1:55274, bytes: 1024, op: HDFS_WRITE, cliID: DFSClient_2130303848, offset: 0, srvID: DS-425336585-10.0.62.238-55274-1312914157107, blockid: blk_-7452952362776134700_1001, duration: 3208749
+2011-08-09 20:22:38,521 INFO  datanode.DataNode (BlockReceiver.java:lastDataNodeRun(851)) - PacketResponder 0 for block blk_-7452952362776134700_1001 terminating
+2011-08-09 20:22:38,523 INFO  hdfs.StateChange (FSNamesystem.java:addStoredBlock(3893)) - BLOCK* NameSystem.addStoredBlock: blockMap updated: 127.0.0.1:55274 is added to blk_-7452952362776134700_1001 size 1024
+2011-08-09 20:22:38,525 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:38,536 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 1 blocks got processed in 11 msecs
+2011-08-09 20:22:38,537 INFO  DataNode.clienttrace (BlockReceiver.java:run(953)) - src: /127.0.0.1:43243, dest: /127.0.0.1:52064, bytes: 1024, op: HDFS_WRITE, cliID: DFSClient_2130303848, offset: 0, srvID: DS-1400881117-10.0.62.238-52064-1312914158275, blockid: blk_-7452952362776134700_1001, duration: 22700219
+2011-08-09 20:22:38,538 INFO  hdfs.StateChange (FSNamesystem.java:addStoredBlock(3893)) - BLOCK* NameSystem.addStoredBlock: blockMap updated: 127.0.0.1:52064 is added to blk_-7452952362776134700_1001 size 1024
+2011-08-09 20:22:38,538 INFO  datanode.DataNode (BlockReceiver.java:run(1023)) - PacketResponder 1 for block blk_-7452952362776134700_1001 terminating
+2011-08-09 20:22:38,541 INFO  DataNode.clienttrace (BlockReceiver.java:run(953)) - src: /127.0.0.1:36349, dest: /127.0.0.1:46682, bytes: 1024, op: HDFS_WRITE, cliID: DFSClient_2130303848, offset: 0, srvID: DS-472789087-10.0.62.238-46682-1312914157808, blockid: blk_-7452952362776134700_1001, duration: 27100788
+2011-08-09 20:22:38,541 INFO  datanode.DataNode (BlockReceiver.java:run(1023)) - PacketResponder 2 for block blk_-7452952362776134700_1001 terminating
+2011-08-09 20:22:38,543 INFO  hdfs.StateChange (FSNamesystem.java:addStoredBlock(3893)) - BLOCK* NameSystem.addStoredBlock: blockMap updated: 127.0.0.1:46682 is added to blk_-7452952362776134700_1001 size 1024
+2011-08-09 20:22:38,576 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:38,577 INFO  hdfs.StateChange (FSNamesystem.java:completeFileInternal(1886)) - DIR* NameSystem.completeFile: file /tmp.txt is closed by DFSClient_2130303848
+2011-08-09 20:22:38,581 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 1 blocks got processed in 37 msecs
+2011-08-09 20:22:38,585 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:38,594 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+Generating host names for datanodes
+Starting DataNode 3 with dfs.data.dir: /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data7,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data8
+Starting DataNode 3 with hostname set to: host3.foo.com
+Adding node with hostname : host3.foo.com to rack /RACK2
+2011-08-09 20:22:38,608 INFO  common.Storage (DataStorage.java:recoverTransitionRead(124)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data7 is not formatted.
+2011-08-09 20:22:38,609 INFO  common.Storage (DataStorage.java:recoverTransitionRead(125)) - Formatting ...
+2011-08-09 20:22:38,630 INFO  common.Storage (DataStorage.java:recoverTransitionRead(124)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data8 is not formatted.
+2011-08-09 20:22:38,630 INFO  common.Storage (DataStorage.java:recoverTransitionRead(125)) - Formatting ...
+2011-08-09 20:22:38,772 INFO  datanode.DataNode (FSDataset.java:registerMBean(1597)) - Registered FSDatasetStatusMBean
+2011-08-09 20:22:38,773 INFO  datanode.DataNode (DataNode.java:startDataNode(327)) - Opened info server at 42921
+2011-08-09 20:22:38,773 INFO  datanode.DataNode (DataXceiverServer.java:<init>(75)) - Balancing bandwith is 1048576 bytes/s
+2011-08-09 20:22:38,777 INFO  http.HttpServer (HttpServer.java:addGlobalFilter(297)) - Added global filtersafety (class=org.apache.hadoop.http.HttpServer$QuotingInputFilter)
+2011-08-09 20:22:38,778 INFO  http.HttpServer (HttpServer.java:start(437)) - Port returned by webServer.getConnectors()[0].getLocalPort() before open() is -1. Opening the listener on 0
+2011-08-09 20:22:38,778 INFO  http.HttpServer (HttpServer.java:start(442)) - listener.getLocalPort() returned 34390 webServer.getConnectors()[0].getLocalPort() returned 34390
+2011-08-09 20:22:38,778 INFO  http.HttpServer (HttpServer.java:start(475)) - Jetty bound to port 34390
+2011-08-09 20:22:38,779 INFO  mortbay.log (Slf4jLog.java:info(67)) - jetty-6.1.26
+2011-08-09 20:22:38,893 INFO  mortbay.log (Slf4jLog.java:info(67)) - Started SelectChannelConnector@localhost:34390
+2011-08-09 20:22:38,894 INFO  jvm.JvmMetrics (JvmMetrics.java:init(66)) - Cannot initialize JVM Metrics with processName=DataNode, sessionId=null - already initialized
+2011-08-09 20:22:38,903 INFO  ipc.Server (Server.java:run(307)) - Starting SocketReader
+2011-08-09 20:22:38,905 INFO  metrics.RpcMetrics (RpcMetrics.java:<init>(59)) - Initializing RPC Metrics with hostName=DataNode, port=37876
+2011-08-09 20:22:38,906 INFO  ipc.Server (Server.java:run(581)) - IPC Server Responder: starting
+2011-08-09 20:22:38,907 INFO  ipc.Server (Server.java:run(408)) - IPC Server listener on 37876: starting
+2011-08-09 20:22:38,908 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 0 on 37876: starting
+2011-08-09 20:22:38,908 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 1 on 37876: starting
+2011-08-09 20:22:38,908 INFO  datanode.DataNode (DataNode.java:startDataNode(418)) - dnRegistration = DatanodeRegistration(host3.foo.com:42921, storageID=, infoPort=34390, ipcPort=37876)
+Adding node with IP:port : 127.0.0.1:42921 to rack /RACK2
+2011-08-09 20:22:38,908 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 2 on 37876: starting
+2011-08-09 20:22:38,913 INFO  hdfs.StateChange (FSNamesystem.java:registerDatanode(2757)) - BLOCK* NameSystem.registerDatanode: node registration from 127.0.0.1:42921 storage DS-1298660834-10.0.62.238-42921-1312914158911
+2011-08-09 20:22:38,914 INFO  net.NetworkTopology (NetworkTopology.java:add(328)) - Adding a new node: /RACK2/127.0.0.1:42921
+2011-08-09 20:22:38,919 INFO  datanode.DataNode (DataNode.java:register(592)) - New storage id DS-1298660834-10.0.62.238-42921-1312914158911 is assigned to data-node 127.0.0.1:42921
+2011-08-09 20:22:38,920 INFO  datanode.DataNode (DataNode.java:run(1274)) - DatanodeRegistration(127.0.0.1:42921, storageID=DS-1298660834-10.0.62.238-42921-1312914158911, infoPort=34390, ipcPort=37876)In DataNode.run, data = FSDataset{dirpath='/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data7/current,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data8/current'}
+2011-08-09 20:22:38,921 INFO  datanode.DataNode (DataNode.java:offerService(756)) - using BLOCKREPORT_INTERVAL of 500msec Initial delay: 0msec
+2011-08-09 20:22:38,925 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:38,927 INFO  hdfs.StateChange (FSNamesystem.java:processReport(3701)) - BLOCK* NameSystem.processReport: from 127.0.0.1:42921 0 blocks shortCircuit first report.
+2011-08-09 20:22:38,928 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 0 blocks got processed in 4 msecs
+2011-08-09 20:22:38,928 INFO  datanode.DataNode (DataNode.java:offerService(864)) - Starting Periodic block scanner.
+2011-08-09 20:22:38,929 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:38,940 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:testBlockReplacement(156)) - Testcase 1: Proxy 127.0.0.1:42921 does not contain the block blk_-7452952362776134700
+2011-08-09 20:22:38,950 ERROR datanode.DataNode (DataXceiver.java:run(154)) - DatanodeRegistration(127.0.0.1:42921, storageID=DS-1298660834-10.0.62.238-42921-1312914158911, infoPort=34390, ipcPort=37876):DataXceiver
+java.io.IOException: Block blk_-7452952362776134700_1001 is not valid.
+	at org.apache.hadoop.hdfs.server.datanode.FSDataset.getBlockFile(FSDataset.java:872)
+	at org.apache.hadoop.hdfs.server.datanode.FSDataset.getLength(FSDataset.java:860)
+	at org.apache.hadoop.hdfs.server.datanode.BlockSender.<init>(BlockSender.java:88)
+	at org.apache.hadoop.hdfs.server.datanode.BlockSender.<init>(BlockSender.java:80)
+	at org.apache.hadoop.hdfs.server.datanode.DataXceiver.copyBlock(DataXceiver.java:521)
+	at org.apache.hadoop.hdfs.server.datanode.DataXceiver.run(DataXceiver.java:137)
+	at java.lang.Thread.run(Thread.java:662)
+2011-08-09 20:22:38,952 WARN  datanode.DataNode (BlockReceiver.java:<init>(122)) - IOException in BlockReceiver constructor. Cause is 
+2011-08-09 20:22:38,952 ERROR datanode.DataNode (DataXceiver.java:run(154)) - DatanodeRegistration(127.0.0.1:55274, storageID=DS-425336585-10.0.62.238-55274-1312914157107, infoPort=44175, ipcPort=60884):DataXceiver
+java.io.EOFException
+	at java.io.DataInputStream.readByte(DataInputStream.java:250)
+	at org.apache.hadoop.util.DataChecksum.newDataChecksum(DataChecksum.java:84)
+	at org.apache.hadoop.hdfs.server.datanode.BlockReceiver.<init>(BlockReceiver.java:94)
+	at org.apache.hadoop.hdfs.server.datanode.DataXceiver.replaceBlock(DataXceiver.java:610)
+	at org.apache.hadoop.hdfs.server.datanode.DataXceiver.run(DataXceiver.java:132)
+	at java.lang.Thread.run(Thread.java:662)
+2011-08-09 20:22:38,952 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:testBlockReplacement(160)) - Testcase 2: Destination 127.0.0.1:46682 contains the block blk_-7452952362776134700
+2011-08-09 20:22:38,957 ERROR datanode.DataNode (DataXceiver.java:run(154)) - DatanodeRegistration(127.0.0.1:46682, storageID=DS-472789087-10.0.62.238-46682-1312914157808, infoPort=42046, ipcPort=40838):DataXceiver
+org.apache.hadoop.hdfs.server.datanode.BlockAlreadyExistsException: Block blk_-7452952362776134700_1001 is valid, and cannot be written to.
+	at org.apache.hadoop.hdfs.server.datanode.FSDataset.writeToBlock(FSDataset.java:1120)
+	at org.apache.hadoop.hdfs.server.datanode.BlockReceiver.<init>(BlockReceiver.java:100)
+	at org.apache.hadoop.hdfs.server.datanode.DataXceiver.replaceBlock(DataXceiver.java:610)
+	at org.apache.hadoop.hdfs.server.datanode.DataXceiver.run(DataXceiver.java:132)
+	at java.lang.Thread.run(Thread.java:662)
+2011-08-09 20:22:38,958 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:testBlockReplacement(164)) - Testcase 3: Proxy=127.0.0.1:52064 source=127.0.0.1:55274 destination=127.0.0.1:42921
+2011-08-09 20:22:38,958 ERROR datanode.DataNode (DataXceiver.java:run(154)) - DatanodeRegistration(127.0.0.1:55274, storageID=DS-425336585-10.0.62.238-55274-1312914157107, infoPort=44175, ipcPort=60884):DataXceiver
+java.net.SocketException: Original Exception : java.io.IOException: Connection reset by peer
+	at sun.nio.ch.FileChannelImpl.transferTo0(Native Method)
+	at sun.nio.ch.FileChannelImpl.transferToDirectly(FileChannelImpl.java:415)
+	at sun.nio.ch.FileChannelImpl.transferTo(FileChannelImpl.java:516)
+	at org.apache.hadoop.net.SocketOutputStream.transferToFully(SocketOutputStream.java:199)
+	at org.apache.hadoop.hdfs.server.datanode.BlockSender.sendChunks(BlockSender.java:337)
+	at org.apache.hadoop.hdfs.server.datanode.BlockSender.sendBlock(BlockSender.java:425)
+	at org.apache.hadoop.hdfs.server.datanode.DataXceiver.copyBlock(DataXceiver.java:531)
+	at org.apache.hadoop.hdfs.server.datanode.DataXceiver.run(DataXceiver.java:137)
+	at java.lang.Thread.run(Thread.java:662)
+Caused by: java.io.IOException: Connection reset by peer
+	... 9 more
+2011-08-09 20:22:38,963 INFO  datanode.DataNode (DataXceiver.java:copyBlock(537)) - Copied block blk_-7452952362776134700_1001 to /127.0.0.1:58074
+2011-08-09 20:22:38,985 INFO  datanode.DataNode (DataXceiver.java:replaceBlock(622)) - Moved block blk_-7452952362776134700_1001 from /127.0.0.1:54421
+2011-08-09 20:22:38,987 INFO  hdfs.StateChange (FSNamesystem.java:addStoredBlock(3893)) - BLOCK* NameSystem.addStoredBlock: blockMap updated: 127.0.0.1:42921 is added to blk_-7452952362776134700_1001 size 1024
+2011-08-09 20:22:38,987 INFO  hdfs.StateChange (FSNamesystem.java:chooseExcessReplicates(4344)) - BLOCK* NameSystem.chooseExcessReplicates: (127.0.0.1:52064, blk_-7452952362776134700_1001) is added to excessReplicateMapTmp
+2011-08-09 20:22:38,988 INFO  hdfs.StateChange (FSNamesystem.java:processOverReplicatedBlock(4175)) - BLOCK* NameSystem.chooseExcessReplicates: (127.0.0.1:52064, blk_-7452952362776134700_1001) is added to excessReplicateMap
+2011-08-09 20:22:38,988 INFO  hdfs.StateChange (FSNamesystem.java:processOverReplicatedBlock(4190)) - BLOCK* NameSystem.chooseExcessReplicates: (127.0.0.1:52064, blk_-7452952362776134700_1001) is added to recentInvalidateSets
+2011-08-09 20:22:39,087 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:39,088 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:39,189 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:39,190 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:39,291 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:39,295 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:39,396 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:39,396 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:39,497 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:39,498 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:39,600 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:39,601 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:39,702 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:39,703 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:39,804 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:39,804 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:39,905 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:39,906 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:40,007 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:40,008 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:40,109 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:40,109 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:40,128 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:40,129 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 1 blocks got processed in 1 msecs
+2011-08-09 20:22:40,210 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:40,211 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:40,312 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:40,313 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:40,413 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:40,414 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:40,515 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:40,516 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:40,617 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:40,622 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:40,724 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:40,724 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:40,824 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:40,825 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:40,826 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 1 blocks got processed in 2 msecs
+2011-08-09 20:22:40,826 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:40,928 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:40,928 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:41,029 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:41,030 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:41,131 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:41,132 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:41,233 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:41,233 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:41,286 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:41,287 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 1 blocks got processed in 1 msecs
+2011-08-09 20:22:41,334 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:41,335 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:41,436 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:41,436 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:41,537 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:41,538 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:41,639 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:41,639 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:41,728 INFO  hdfs.StateChange (FSNamesystem.java:invalidateWorkForOneNode(3486)) - BLOCK* ask 127.0.0.1:52064 to delete  blk_-7452952362776134700_1001
+2011-08-09 20:22:41,740 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:41,741 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:41,842 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:41,843 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:41,922 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:41,922 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 1 blocks got processed in 1 msecs
+2011-08-09 20:22:41,943 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:41,944 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:42,045 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:42,046 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:42,147 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:42,147 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:42,248 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:42,249 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:42,350 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:42,350 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:42,451 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:42,452 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:42,552 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:42,553 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:42,654 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:42,654 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:42,755 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:42,756 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:42,857 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:42,857 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:42,958 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:42,959 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:43,059 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:43,060 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:43,130 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:43,131 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 1 blocks got processed in 1 msecs
+2011-08-09 20:22:43,161 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:43,162 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:43,263 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:43,264 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:43,364 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:43,365 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:43,466 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:43,467 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:43,568 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:43,569 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:43,670 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:43,670 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:43,771 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:43,785 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:43,826 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:43,827 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 1 blocks got processed in 1 msecs
+2011-08-09 20:22:43,886 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:43,887 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:43,988 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:43,989 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:44,090 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:44,091 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:44,191 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:44,192 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:44,288 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:44,289 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 1 blocks got processed in 2 msecs
+2011-08-09 20:22:44,293 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:44,293 INFO  datanode.DataNode (FSDatasetAsyncDiskService.java:deleteAsync(147)) - Scheduling block blk_-7452952362776134700_1001 file /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data5/current/blk_-7452952362776134700 for deletion
+2011-08-09 20:22:44,295 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:44,295 INFO  datanode.DataNode (FSDatasetAsyncDiskService.java:run(193)) - Deleted block blk_-7452952362776134700_1001 at file /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data5/current/blk_-7452952362776134700
+2011-08-09 20:22:44,396 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:44,396 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:44,497 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:44,498 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:44,598 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:44,599 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:44,700 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:44,700 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:44,801 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:44,802 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:44,903 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:44,904 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:44,922 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:44,923 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 1 blocks got processed in 1 msecs
+2011-08-09 20:22:45,005 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:45,005 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:45,106 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:45,107 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:45,208 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:45,208 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:45,309 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:45,310 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:45,411 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:45,411 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:45,512 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:45,513 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:45,618 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:45,618 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:45,719 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:45,720 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:45,821 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:45,822 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:45,922 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:45,923 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:46,024 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:46,024 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:46,125 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:46,126 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:46,131 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:46,132 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 1 blocks got processed in 1 msecs
+2011-08-09 20:22:46,227 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:46,227 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:46,328 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:46,329 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:46,429 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:46,430 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:46,531 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:46,532 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:46,632 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:46,633 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:46,734 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:46,744 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:46,828 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:46,830 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 1 blocks got processed in 2 msecs
+2011-08-09 20:22:46,845 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:46,845 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:46,946 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:46,947 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:47,048 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:47,048 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:47,149 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:47,150 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:47,250 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:47,251 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:47,289 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:47,290 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 0 blocks got processed in 1 msecs
+2011-08-09 20:22:47,352 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:47,352 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:testBlockReplacement(172)) - Testcase 4: invalid del hint 127.0.0.1:55274
+2011-08-09 20:22:47,356 INFO  datanode.DataNode (DataXceiver.java:copyBlock(537)) - Copied block blk_-7452952362776134700_1001 to /127.0.0.1:58076
+2011-08-09 20:22:47,359 INFO  datanode.DataNode (DataXceiver.java:replaceBlock(622)) - Moved block blk_-7452952362776134700_1001 from /127.0.0.1:43251
+2011-08-09 20:22:47,359 INFO  hdfs.StateChange (FSNamesystem.java:addStoredBlock(3893)) - BLOCK* NameSystem.addStoredBlock: blockMap updated: 127.0.0.1:52064 is added to blk_-7452952362776134700_1001 size 1024
+2011-08-09 20:22:47,359 INFO  hdfs.StateChange (FSNamesystem.java:chooseExcessReplicates(4344)) - BLOCK* NameSystem.chooseExcessReplicates: (127.0.0.1:42921, blk_-7452952362776134700_1001) is added to excessReplicateMapTmp
+2011-08-09 20:22:47,360 INFO  hdfs.StateChange (FSNamesystem.java:processOverReplicatedBlock(4175)) - BLOCK* NameSystem.chooseExcessReplicates: (127.0.0.1:42921, blk_-7452952362776134700_1001) is added to excessReplicateMap
+2011-08-09 20:22:47,360 INFO  hdfs.StateChange (FSNamesystem.java:processOverReplicatedBlock(4190)) - BLOCK* NameSystem.chooseExcessReplicates: (127.0.0.1:42921, blk_-7452952362776134700_1001) is added to recentInvalidateSets
+2011-08-09 20:22:47,460 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:47,460 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:47,561 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:47,562 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:47,663 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:47,663 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:47,729 INFO  hdfs.StateChange (FSNamesystem.java:invalidateWorkForOneNode(3486)) - BLOCK* ask 127.0.0.1:42921 to delete  blk_-7452952362776134700_1001
+2011-08-09 20:22:47,764 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:47,765 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:47,865 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:47,866 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:47,923 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:47,924 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 1 blocks got processed in 1 msecs
+2011-08-09 20:22:47,927 INFO  datanode.DataNode (FSDatasetAsyncDiskService.java:deleteAsync(147)) - Scheduling block blk_-7452952362776134700_1001 file /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data7/current/blk_-7452952362776134700 for deletion
+2011-08-09 20:22:47,928 INFO  datanode.DataNode (FSDatasetAsyncDiskService.java:run(193)) - Deleted block blk_-7452952362776134700_1001 at file /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data7/current/blk_-7452952362776134700
+2011-08-09 20:22:47,967 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:47,968 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:48,069 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:48,069 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:48,170 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:48,171 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:48,271 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:48,272 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:48,373 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:48,374 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:48,474 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:48,475 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:48,577 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:48,578 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:48,679 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:48,679 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:48,780 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:48,780 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:48,881 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:48,882 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:48,982 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:48,983 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:49,084 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:49,084 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:49,132 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:49,133 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 1 blocks got processed in 1 msecs
+2011-08-09 20:22:49,185 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:49,185 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:49,286 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:49,290 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:49,391 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:49,391 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:49,492 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:49,492 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:49,593 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:49,594 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:49,694 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:49,695 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:49,796 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:49,797 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:49,830 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:49,831 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 1 blocks got processed in 1 msecs
+2011-08-09 20:22:49,897 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:49,898 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:49,999 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:49,999 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:50,100 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:50,101 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:50,201 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:50,202 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:50,292 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:50,295 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 1 blocks got processed in 4 msecs
+2011-08-09 20:22:50,303 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:50,303 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:50,404 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:50,404 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:50,505 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:50,506 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:50,606 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:50,607 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:50,708 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:50,712 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:50,812 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:50,813 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:50,914 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+2011-08-09 20:22:50,914 INFO  hdfs.TestBlockReplacement (TestBlockReplacement.java:checkBlocks(200)) - Expected replication factor is 3 but the real replication factor is 4
+2011-08-09 20:22:50,924 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:50,925 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 0 blocks got processed in 1 msecs
+2011-08-09 20:22:51,015 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/tmp.txt	dst=null	perm=null
+Shutting down the Mini HDFS Cluster
+Shutting down DataNode 3
+2011-08-09 20:22:51,110 INFO  mortbay.log (Slf4jLog.java:info(67)) - Stopped SelectChannelConnector@localhost:0
+2011-08-09 20:22:51,211 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 37876
+2011-08-09 20:22:51,211 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 1 on 37876: exiting
+2011-08-09 20:22:51,211 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 0 on 37876: exiting
+2011-08-09 20:22:51,211 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 2 on 37876: exiting
+2011-08-09 20:22:51,212 INFO  ipc.Server (Server.java:run(447)) - Stopping IPC Server listener on 37876
+2011-08-09 20:22:51,215 INFO  ipc.Server (Server.java:run(646)) - Stopping IPC Server Responder
+2011-08-09 20:22:51,216 WARN  datanode.DataNode (DataXceiverServer.java:run(138)) - DatanodeRegistration(127.0.0.1:42921, storageID=DS-1298660834-10.0.62.238-42921-1312914158911, infoPort=34390, ipcPort=37876):DataXceiveServer: java.nio.channels.AsynchronousCloseException
+	at java.nio.channels.spi.AbstractInterruptibleChannel.end(AbstractInterruptibleChannel.java:185)
+	at sun.nio.ch.ServerSocketChannelImpl.accept(ServerSocketChannelImpl.java:152)
+	at sun.nio.ch.ServerSocketAdaptor.accept(ServerSocketAdaptor.java:84)
+	at org.apache.hadoop.hdfs.server.datanode.DataXceiverServer.run(DataXceiverServer.java:131)
+	at java.lang.Thread.run(Thread.java:662)
+
+2011-08-09 20:22:51,217 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 0
+2011-08-09 20:22:51,217 INFO  datanode.DataBlockScanner (DataBlockScanner.java:run(604)) - Exiting DataBlockScanner thread.
+2011-08-09 20:22:51,218 INFO  datanode.DataNode (DataNode.java:run(1294)) - DatanodeRegistration(127.0.0.1:42921, storageID=DS-1298660834-10.0.62.238-42921-1312914158911, infoPort=34390, ipcPort=37876):Finishing DataNode in: FSDataset{dirpath='/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data7/current,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data8/current'}
+2011-08-09 20:22:51,218 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 37876
+2011-08-09 20:22:51,219 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 0
+2011-08-09 20:22:51,220 INFO  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(128)) - Shutting down all async disk service threads...
+2011-08-09 20:22:51,220 INFO  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(137)) - All async disk service threads have been shut down.
+2011-08-09 20:22:51,222 WARN  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(125)) - AsyncDiskService has already shut down.
+Shutting down DataNode 2
+2011-08-09 20:22:51,269 INFO  mortbay.log (Slf4jLog.java:info(67)) - Stopped SelectChannelConnector@localhost:0
+2011-08-09 20:22:51,370 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 52295
+2011-08-09 20:22:51,370 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 2 on 52295: exiting
+2011-08-09 20:22:51,371 INFO  ipc.Server (Server.java:run(447)) - Stopping IPC Server listener on 52295
+2011-08-09 20:22:51,371 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 1 on 52295: exiting
+2011-08-09 20:22:51,371 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 0 on 52295: exiting
+2011-08-09 20:22:51,372 WARN  datanode.DataNode (DataXceiverServer.java:run(138)) - DatanodeRegistration(127.0.0.1:52064, storageID=DS-1400881117-10.0.62.238-52064-1312914158275, infoPort=56102, ipcPort=52295):DataXceiveServer: java.nio.channels.AsynchronousCloseException
+	at java.nio.channels.spi.AbstractInterruptibleChannel.end(AbstractInterruptibleChannel.java:185)
+	at sun.nio.ch.ServerSocketChannelImpl.accept(ServerSocketChannelImpl.java:152)
+	at sun.nio.ch.ServerSocketAdaptor.accept(ServerSocketAdaptor.java:84)
+	at org.apache.hadoop.hdfs.server.datanode.DataXceiverServer.run(DataXceiverServer.java:131)
+	at java.lang.Thread.run(Thread.java:662)
+
+2011-08-09 20:22:51,372 INFO  ipc.Server (Server.java:run(646)) - Stopping IPC Server Responder
+2011-08-09 20:22:51,373 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 0
+2011-08-09 20:22:51,374 INFO  datanode.DataBlockScanner (DataBlockScanner.java:run(604)) - Exiting DataBlockScanner thread.
+2011-08-09 20:22:51,374 INFO  datanode.DataNode (DataNode.java:run(1294)) - DatanodeRegistration(127.0.0.1:52064, storageID=DS-1400881117-10.0.62.238-52064-1312914158275, infoPort=56102, ipcPort=52295):Finishing DataNode in: FSDataset{dirpath='/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data5/current,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data6/current'}
+2011-08-09 20:22:51,375 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 52295
+2011-08-09 20:22:51,375 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 0
+2011-08-09 20:22:51,375 INFO  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(128)) - Shutting down all async disk service threads...
+2011-08-09 20:22:51,375 INFO  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(137)) - All async disk service threads have been shut down.
+2011-08-09 20:22:51,377 WARN  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(125)) - AsyncDiskService has already shut down.
+Shutting down DataNode 1
+2011-08-09 20:22:51,399 INFO  mortbay.log (Slf4jLog.java:info(67)) - Stopped SelectChannelConnector@localhost:0
+2011-08-09 20:22:51,400 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 40838
+2011-08-09 20:22:51,400 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 0 on 40838: exiting
+2011-08-09 20:22:51,401 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 1 on 40838: exiting
+2011-08-09 20:22:51,401 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 2 on 40838: exiting
+2011-08-09 20:22:51,402 INFO  ipc.Server (Server.java:run(447)) - Stopping IPC Server listener on 40838
+2011-08-09 20:22:51,403 INFO  ipc.Server (Server.java:run(646)) - Stopping IPC Server Responder
+2011-08-09 20:22:51,403 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 1
+2011-08-09 20:22:51,403 WARN  datanode.DataNode (DataXceiverServer.java:run(138)) - DatanodeRegistration(127.0.0.1:46682, storageID=DS-472789087-10.0.62.238-46682-1312914157808, infoPort=42046, ipcPort=40838):DataXceiveServer: java.nio.channels.AsynchronousCloseException
+	at java.nio.channels.spi.AbstractInterruptibleChannel.end(AbstractInterruptibleChannel.java:185)
+	at sun.nio.ch.ServerSocketChannelImpl.accept(ServerSocketChannelImpl.java:152)
+	at sun.nio.ch.ServerSocketAdaptor.accept(ServerSocketAdaptor.java:84)
+	at org.apache.hadoop.hdfs.server.datanode.DataXceiverServer.run(DataXceiverServer.java:131)
+	at java.lang.Thread.run(Thread.java:662)
+
+2011-08-09 20:22:51,856 INFO  datanode.DataBlockScanner (DataBlockScanner.java:run(604)) - Exiting DataBlockScanner thread.
+2011-08-09 20:22:52,133 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 20:22:52,135 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 1 blocks got processed in 2 msecs
+2011-08-09 20:22:52,403 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 0
+2011-08-09 20:22:52,404 INFO  datanode.DataNode (DataNode.java:run(1294)) - DatanodeRegistration(127.0.0.1:46682, storageID=DS-472789087-10.0.62.238-46682-1312914157808, infoPort=42046, ipcPort=40838):Finishing DataNode in: FSDataset{dirpath='/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data3/current,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data4/current'}
+2011-08-09 20:22:52,404 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 40838
+2011-08-09 20:22:52,404 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 0
+2011-08-09 20:22:52,405 INFO  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(128)) - Shutting down all async disk service threads...
+2011-08-09 20:22:52,405 INFO  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(137)) - All async disk service threads have been shut down.
+2011-08-09 20:22:52,406 WARN  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(125)) - AsyncDiskService has already shut down.
+Shutting down DataNode 0
+2011-08-09 20:22:52,420 INFO  mortbay.log (Slf4jLog.java:info(67)) - Stopped SelectChannelConnector@localhost:0
+2011-08-09 20:22:52,521 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 60884
+2011-08-09 20:22:52,521 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 0 on 60884: exiting
+2011-08-09 20:22:52,522 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 1 on 60884: exiting
+2011-08-09 20:22:52,522 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 2 on 60884: exiting
+2011-08-09 20:22:52,524 INFO  ipc.Server (Server.java:run(447)) - Stopping IPC Server listener on 60884
+2011-08-09 20:22:52,525 INFO  ipc.Server (Server.java:run(646)) - Stopping IPC Server Responder
+2011-08-09 20:22:52,526 WARN  datanode.DataNode (DataXceiverServer.java:run(138)) - DatanodeRegistration(127.0.0.1:55274, storageID=DS-425336585-10.0.62.238-55274-1312914157107, infoPort=44175, ipcPort=60884):DataXceiveServer: java.nio.channels.AsynchronousCloseException
+	at java.nio.channels.spi.AbstractInterruptibleChannel.end(AbstractInterruptibleChannel.java:185)
+	at sun.nio.ch.ServerSocketChannelImpl.accept(ServerSocketChannelImpl.java:152)
+	at sun.nio.ch.ServerSocketAdaptor.accept(ServerSocketAdaptor.java:84)
+	at org.apache.hadoop.hdfs.server.datanode.DataXceiverServer.run(DataXceiverServer.java:131)
+	at java.lang.Thread.run(Thread.java:662)
+
+2011-08-09 20:22:52,526 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 0
+2011-08-09 20:22:52,527 INFO  datanode.DataBlockScanner (DataBlockScanner.java:run(604)) - Exiting DataBlockScanner thread.
+2011-08-09 20:22:52,527 INFO  datanode.DataNode (DataNode.java:run(1294)) - DatanodeRegistration(127.0.0.1:55274, storageID=DS-425336585-10.0.62.238-55274-1312914157107, infoPort=44175, ipcPort=60884):Finishing DataNode in: FSDataset{dirpath='/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data1/current,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data2/current'}
+2011-08-09 20:22:52,528 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 60884
+2011-08-09 20:22:52,528 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 0
+2011-08-09 20:22:52,528 INFO  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(128)) - Shutting down all async disk service threads...
+2011-08-09 20:22:52,528 INFO  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(137)) - All async disk service threads have been shut down.
+2011-08-09 20:22:52,530 WARN  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(125)) - AsyncDiskService has already shut down.
+2011-08-09 20:22:52,552 INFO  mortbay.log (Slf4jLog.java:info(67)) - Stopped SelectChannelConnector@localhost:0
+2011-08-09 20:22:52,654 WARN  namenode.FSNamesystem (FSNamesystem.java:run(3042)) - ReplicationMonitor thread received InterruptedException.java.lang.InterruptedException: sleep interrupted
+2011-08-09 20:22:52,654 INFO  namenode.DecommissionManager (DecommissionManager.java:waitForWork(254)) - Interrupted Monitor
+java.lang.InterruptedException
+	at java.lang.Object.wait(Native Method)
+	at java.lang.Object.wait(Object.java:485)
+	at org.apache.hadoop.hdfs.server.namenode.DecommissionManager$Monitor.waitForWork(DecommissionManager.java:244)
+	at org.apache.hadoop.hdfs.server.namenode.DecommissionManager$Monitor.run(DecommissionManager.java:267)
+	at java.lang.Thread.run(Thread.java:662)
+2011-08-09 20:22:52,654 INFO  namenode.FSNamesystem (FSEditLog.java:printStatistics(1125)) - Number of transactions: 3 Total time for transactions(ms): 17 Number of transactions batched in Syncs: 0 Number of syncs: 3 SyncTimes(ms):  /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name1/current/edits:7  /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name2/current/edits:3 
+2011-08-09 20:22:52,658 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 34320
+2011-08-09 20:22:52,658 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 0 on 34320: exiting
+2011-08-09 20:22:52,658 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 1 on 34320: exiting
+2011-08-09 20:22:52,658 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 2 on 34320: exiting
+2011-08-09 20:22:52,658 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 3 on 34320: exiting
+2011-08-09 20:22:52,659 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 4 on 34320: exiting
+2011-08-09 20:22:52,659 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 5 on 34320: exiting
+2011-08-09 20:22:52,659 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 6 on 34320: exiting
+2011-08-09 20:22:52,659 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 7 on 34320: exiting
+2011-08-09 20:22:52,659 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 8 on 34320: exiting
+2011-08-09 20:22:52,660 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 9 on 34320: exiting
+2011-08-09 20:22:52,661 INFO  ipc.Server (Server.java:run(447)) - Stopping IPC Server listener on 34320
+2011-08-09 20:22:52,663 INFO  ipc.Server (Server.java:run(646)) - Stopping IPC Server Responder
+------------- ---------------- ---------------
+
+Testcase: testThrottler took 6.144 sec
+Testcase: testBlockReplacement took 69.242 sec

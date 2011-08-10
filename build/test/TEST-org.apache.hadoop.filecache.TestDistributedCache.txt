@@ -1,0 +1,21 @@
+Testsuite: org.apache.hadoop.filecache.TestDistributedCache
+Tests run: 1, Failures: 0, Errors: 0, Time elapsed: 1.011 sec
+------------- Standard Output ---------------
+2011-08-09 18:08:22,979 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+2011-08-09 18:08:23,303 INFO  fs.FileSystem (TestDistributedCache.java:createTempFile(116)) - created: /home/jeff/hadoop-20-warehouse/build/test/data/firstcachefile, size=4096
+2011-08-09 18:08:23,309 INFO  fs.FileSystem (TestDistributedCache.java:createTempFile(116)) - created: /home/jeff/hadoop-20-warehouse/build/test/data/secondcachefile, size=2048
+2011-08-09 18:08:23,312 INFO  fs.FileSystem (TestDistributedCache.java:createTempFile(116)) - created: /home/jeff/hadoop-20-warehouse/build/test/data/thirdcachefile, size=1
+2011-08-09 18:08:23,315 INFO  fs.FileSystem (TestDistributedCache.java:createTempFile(116)) - created: /home/jeff/hadoop-20-warehouse/build/test/data/fourthcachefile, size=1
+2011-08-09 18:08:23,373 INFO  filecache.DistributedCache (DistributedCache.java:localizeCache(591)) - Doing chmod on localdir :/home/jeff/hadoop-20-warehouse/build/test/data/mapred/local/cachebasedir/-4533848113691687972
+2011-08-09 18:08:23,446 INFO  filecache.DistributedCache (DistributedCache.java:localizeCache(591)) - Doing chmod on localdir :/home/jeff/hadoop-20-warehouse/build/test/data/mapred/local/cachebasedir/-4671848810734751060
+2011-08-09 18:08:23,497 INFO  filecache.DistributedCache (DistributedCache.java:run(414)) - Deleting local cached path: /home/jeff/hadoop-20-warehouse/build/test/data/mapred/local/cachebasedir/-4533848113691687972
+2011-08-09 18:08:23,501 INFO  filecache.DistributedCache (DistributedCache.java:deleteLocalPath(474)) - Deleted path /home/jeff/hadoop-20-warehouse/build/test/data/mapred/local/cachebasedir/-4533848113691687972
+2011-08-09 18:08:23,502 INFO  filecache.DistributedCache (DistributedCache.java:run(418)) - Removed cache /home/jeff/hadoop-20-warehouse/build/test/data/mapred/local/cachebasedir/-4533848113691687972/file/home/jeff/hadoop-20-warehouse/build/test/data/firstcachefile
+2011-08-09 18:08:23,613 INFO  filecache.DistributedCache (DistributedCache.java:localizeCache(591)) - Doing chmod on localdir :/home/jeff/hadoop-20-warehouse/build/test/data/mapred/local/cachebasedir/7177301517523474225
+2011-08-09 18:08:23,668 INFO  filecache.DistributedCache (DistributedCache.java:localizeCache(591)) - Doing chmod on localdir :/home/jeff/hadoop-20-warehouse/build/test/data/mapred/local/cachebasedir/8597982260229319287
+2011-08-09 18:08:23,725 INFO  filecache.DistributedCache (DistributedCache.java:run(414)) - Deleting local cached path: /home/jeff/hadoop-20-warehouse/build/test/data/mapred/local/cachebasedir/7177301517523474225
+2011-08-09 18:08:23,729 INFO  filecache.DistributedCache (DistributedCache.java:deleteLocalPath(474)) - Deleted path /home/jeff/hadoop-20-warehouse/build/test/data/mapred/local/cachebasedir/7177301517523474225
+2011-08-09 18:08:23,729 INFO  filecache.DistributedCache (DistributedCache.java:run(418)) - Removed cache /home/jeff/hadoop-20-warehouse/build/test/data/mapred/local/cachebasedir/7177301517523474225/file/home/jeff/hadoop-20-warehouse/build/test/data/thirdcachefile
+------------- ---------------- ---------------
+
+Testcase: testDeleteCache took 0.987 sec

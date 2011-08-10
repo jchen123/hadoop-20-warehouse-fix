@@ -1,0 +1,33 @@
+Testsuite: org.apache.hadoop.fs.TestTrash
+Tests run: 3, Failures: 0, Errors: 0, Time elapsed: 20.868 sec
+------------- Standard Output ---------------
+2011-08-09 18:19:55,893 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+Moved to trash: file:/home/jeff/hadoop-20-warehouse/build/test/data/testTrash/test/mkdirs/myFile
+Moved to trash: file:/home/jeff/hadoop-20-warehouse/build/test/data/testTrash/test/mkdirs/myFile
+Moved to trash: file:/home/jeff/hadoop-20-warehouse/build/test/data/testTrash/test/mkdirs
+Moved to trash: file:/home/jeff/hadoop-20-warehouse/build/test/data/testTrash/test/mkdirs
+Deleted file:/home/jeff/hadoop-20-warehouse/build/test/data/testTrash/user/test/.Trash/Current/toErase
+2011-08-09 18:19:56,393 INFO  fs.Trash (Trash.java:checkpoint(164)) - Created trash checkpoint: /home/jeff/hadoop-20-warehouse/build/test/data/testTrash/user/test/.Trash/110809181956
+Moved to trash: file:/home/jeff/hadoop-20-warehouse/build/test/data/testTrash/test/mkdirs/myFile
+Moved to trash: file:/home/jeff/hadoop-20-warehouse/build/test/data/testTrash/test/mkdirs
+2011-08-09 18:19:56,442 INFO  fs.Trash (Trash.java:checkpoint(164)) - Created trash checkpoint: /home/jeff/hadoop-20-warehouse/build/test/data/testTrash/user/test/.Trash/110809181956
+Deleted file:/home/jeff/hadoop-20-warehouse/build/test/data/testTrash/test/mkdirs/myFile
+Deleted file:/home/jeff/hadoop-20-warehouse/build/test/data/testTrash/test/mkdirs
+Moved to trash: file:/home/jeff/hadoop-20-warehouse/build/test/data/testTrash/test/mkdirs/myFile0
+2011-08-09 18:20:00,002 INFO  fs.Trash (Trash.java:checkpoint(164)) - Created trash checkpoint: /home/jeff/hadoop-20-warehouse/build/test/data/testTrash/user/test/.Trash/110809182000
+Moved to trash: file:/home/jeff/hadoop-20-warehouse/build/test/data/testTrash/test/mkdirs/myFile1
+2011-08-09 18:20:06,004 INFO  fs.Trash (Trash.java:checkpoint(164)) - Created trash checkpoint: /home/jeff/hadoop-20-warehouse/build/test/data/testTrash/user/test/.Trash/110809182006
+Moved to trash: file:/home/jeff/hadoop-20-warehouse/build/test/data/testTrash/test/mkdirs/myFile2
+Moved to trash: file:/home/jeff/hadoop-20-warehouse/build/test/data/testTrash/test/mkdirs/myFile3
+2011-08-09 18:20:12,005 INFO  fs.Trash (Trash.java:expunge(196)) - Deleted trash checkpoint: /home/jeff/hadoop-20-warehouse/build/test/data/testTrash/user/test/.Trash/110809182000
+2011-08-09 18:20:12,006 INFO  fs.Trash (Trash.java:checkpoint(164)) - Created trash checkpoint: /home/jeff/hadoop-20-warehouse/build/test/data/testTrash/user/test/.Trash/110809182012
+Moved to trash: file:/home/jeff/hadoop-20-warehouse/build/test/data/testTrash/test/mkdirs/myFile4
+------------- ---------------- ---------------
+------------- Standard Error -----------------
+Problem with Trash.. Consider using -skipTrash option
+rmr: Cannot move "file:/home/jeff/hadoop-20-warehouse/build/test/data/testTrash/user/test" to the trash, as it contains the trash
+------------- ---------------- ---------------
+
+Testcase: testTrash took 0.674 sec
+Testcase: testNonDefaultFS took 0.059 sec
+Testcase: testTrashEmptier took 20.115 sec

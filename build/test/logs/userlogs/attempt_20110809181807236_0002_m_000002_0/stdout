@@ -1,0 +1,16 @@
+2011-08-09 18:18:44,185 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+2011-08-09 18:18:46,380 WARN  conf.Configuration (Configuration.java:loadResource(1203)) - /home/jeff/hadoop-20-warehouse/build/test/mapred/local/1_0/taskTracker/jobcache/job_20110809181807236_0002/attempt_20110809181807236_0002_m_000002_0/job.xml:a attempt to override final parameter: hadoop.tmp.dir;  Ignoring.
+2011-08-09 18:18:46,463 INFO  jvm.JvmMetrics (JvmMetrics.java:init(71)) - Initializing JVM Metrics with processName=MAP, sessionId=
+2011-08-09 18:18:47,104 WARN  conf.Configuration (Configuration.java:loadResource(1203)) - /home/jeff/hadoop-20-warehouse/build/test/mapred/local/1_0/taskTracker/jobcache/job_20110809181807236_0002/attempt_20110809181807236_0002_m_000002_0/job.xml:a attempt to override final parameter: hadoop.tmp.dir;  Ignoring.
+2011-08-09 18:18:47,577 INFO  util.ProcessTree (ProcessTree.java:isSetsidSupported(51)) - setsid exited with exit code 0
+2011-08-09 18:18:47,953 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@97d01f
+2011-08-09 18:18:48,190 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: har://hdfs-localhost:54883/user/jeff/tmp/foo.har/user/jeff/test/c c:0+1
+2011-08-09 18:18:48,888 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:18:48,899 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:18:48,929 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:18:48,929 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:18:48,996 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:18:49,163 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:18:49,302 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_20110809181807236_0002_m_000002_0 is done. And is in the process of commiting
+2011-08-09 18:18:49,466 WARN  util.ProcfsBasedProcessTree (ProcfsBasedProcessTree.java:constructProcessInfo(515)) - The process 25629 may have finished in the interim.
+2011-08-09 18:18:49,551 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_20110809181807236_0002_m_000002_0' done.

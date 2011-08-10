@@ -62,6 +62,13 @@ public class DirectoryTraversal {
   /**
    * Filters the elements to output
    */
+  public interface FileFilter {
+    boolean check(FileStatus f) throws IOException;
+  }
+
+  /**
+   * Filters the elements to output
+   */
   public interface Filter {
     boolean check(FileStatus f) throws IOException;
   }

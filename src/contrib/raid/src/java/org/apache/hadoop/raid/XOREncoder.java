@@ -60,4 +60,14 @@ public class XOREncoder extends Encoder {
   public Path getParityTempPath() {
     return new Path(RaidNode.xorTempPrefix(conf));
   }
+    
+    @Override
+    protected void encodeStripeImpl(
+    InputStream[] blocks,
+    long stripeStartOffset,
+    long blockSize,
+    OutputStream[] outs,
+    Progressable reporter) throws IOException {
+    }
+
 }

@@ -24,7 +24,7 @@ import java.io.IOException;
 
 import static org.junit.Assert.*;
 import org.junit.Test;
-
+import org.apache.hadoop.hdfs.protocol.CorruptFileBlocks;
 import org.apache.hadoop.io.DataOutputBuffer;
 
 public class TestCorruptFileBlocks {

@@ -1,0 +1,24 @@
+Testsuite: org.apache.hadoop.hdfs.TestDefaultNameNodePort
+Tests run: 3, Failures: 0, Errors: 0, Time elapsed: 1.847 sec
+------------- Standard Output ---------------
+2011-08-09 19:16:32,473 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+2011-08-09 19:16:32,510 INFO  net.InetSocketAddressFactory (InetSocketAddressFactory.java:createWithResolveRetry(57)) - failed to resolve host foo, attempt 1
+2011-08-09 19:16:32,611 INFO  net.InetSocketAddressFactory (InetSocketAddressFactory.java:createWithResolveRetry(57)) - failed to resolve host foo, attempt 2
+2011-08-09 19:16:32,715 INFO  net.InetSocketAddressFactory (InetSocketAddressFactory.java:createWithResolveRetry(57)) - failed to resolve host foo, attempt 1
+2011-08-09 19:16:32,816 INFO  net.InetSocketAddressFactory (InetSocketAddressFactory.java:createWithResolveRetry(57)) - failed to resolve host foo, attempt 2
+2011-08-09 19:16:32,916 INFO  net.InetSocketAddressFactory (InetSocketAddressFactory.java:createWithResolveRetry(57)) - failed to resolve host foo, attempt 1
+2011-08-09 19:16:33,017 INFO  net.InetSocketAddressFactory (InetSocketAddressFactory.java:createWithResolveRetry(57)) - failed to resolve host foo, attempt 2
+2011-08-09 19:16:33,118 INFO  net.InetSocketAddressFactory (InetSocketAddressFactory.java:createWithResolveRetry(57)) - failed to resolve host foo, attempt 1
+2011-08-09 19:16:33,218 INFO  net.InetSocketAddressFactory (InetSocketAddressFactory.java:createWithResolveRetry(57)) - failed to resolve host foo, attempt 2
+2011-08-09 19:16:33,460 INFO  net.InetSocketAddressFactory (InetSocketAddressFactory.java:createWithResolveRetry(57)) - failed to resolve host foo, attempt 1
+2011-08-09 19:16:33,560 INFO  net.InetSocketAddressFactory (InetSocketAddressFactory.java:createWithResolveRetry(57)) - failed to resolve host foo, attempt 2
+2011-08-09 19:16:33,661 INFO  net.InetSocketAddressFactory (InetSocketAddressFactory.java:createWithResolveRetry(57)) - failed to resolve host foo, attempt 1
+2011-08-09 19:16:33,762 INFO  net.InetSocketAddressFactory (InetSocketAddressFactory.java:createWithResolveRetry(57)) - failed to resolve host foo, attempt 2
+2011-08-09 19:16:33,862 WARN  fs.FileSystem (FileSystem.java:fixName(155)) - "foo" is a deprecated filesystem name. Use "hdfs://foo/" instead.
+2011-08-09 19:16:33,863 INFO  net.InetSocketAddressFactory (InetSocketAddressFactory.java:createWithResolveRetry(57)) - failed to resolve host foo, attempt 1
+2011-08-09 19:16:33,963 INFO  net.InetSocketAddressFactory (InetSocketAddressFactory.java:createWithResolveRetry(57)) - failed to resolve host foo, attempt 2
+------------- ---------------- ---------------
+
+Testcase: testGetAddressFromString took 1.083 sec
+Testcase: testGetAddressFromConf took 0.74 sec
+Testcase: testGetUri took 0.001 sec

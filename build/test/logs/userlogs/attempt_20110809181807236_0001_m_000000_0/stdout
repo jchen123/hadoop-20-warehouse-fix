@@ -1,0 +1,19 @@
+2011-08-09 18:18:15,369 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+2011-08-09 18:18:16,417 WARN  conf.Configuration (Configuration.java:loadResource(1203)) - /home/jeff/hadoop-20-warehouse/build/test/mapred/local/0_0/taskTracker/jobcache/job_20110809181807236_0001/attempt_20110809181807236_0001_m_000000_0/job.xml:a attempt to override final parameter: hadoop.tmp.dir;  Ignoring.
+2011-08-09 18:18:16,469 INFO  jvm.JvmMetrics (JvmMetrics.java:init(71)) - Initializing JVM Metrics with processName=MAP, sessionId=
+2011-08-09 18:18:16,726 WARN  conf.Configuration (Configuration.java:loadResource(1203)) - /home/jeff/hadoop-20-warehouse/build/test/mapred/local/0_0/taskTracker/jobcache/job_20110809181807236_0001/attempt_20110809181807236_0001_m_000000_0/job.xml:a attempt to override final parameter: hadoop.tmp.dir;  Ignoring.
+2011-08-09 18:18:16,915 INFO  util.ProcessTree (ProcessTree.java:isSetsidSupported(51)) - setsid exited with exit code 0
+2011-08-09 18:18:17,006 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@4cb9e45a
+2011-08-09 18:18:17,099 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: hdfs://localhost:54883/user/jeff/build/test/mapred/system/har_ggm43n/_har_src_files:0+518
+2011-08-09 18:18:17,156 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:18:17,167 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:18:17,187 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:18:17,188 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:18:17,411 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:18:17,485 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:18:17,491 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_20110809181807236_0001_m_000000_0 is done. And is in the process of commiting
+2011-08-09 18:18:20,553 INFO  mapred.Task (Task.java:commit(864)) - Task attempt_20110809181807236_0001_m_000000_0 is allowed to commit now
+2011-08-09 18:18:20,569 WARN  hdfs.DFSClient (DFSClient.java:deleteUsingTrash(323)) - File /user/jeff/tmp/foo.har/_temporary/_attempt_20110809181807236_0001_m_000000_0 is being deleted only through Trash org.apache.hadoop.fs.FsShell.delete because all deletes must go through Trash.
+Deleted /user/jeff/tmp/foo.har/_temporary/_attempt_20110809181807236_0001_m_000000_0
+2011-08-09 18:18:20,616 INFO  mapred.FileOutputCommitter (FileOutputCommitter.java:commitTask(138)) - Saved output of task 'attempt_20110809181807236_0001_m_000000_0' to hdfs://localhost:54883/user/jeff/tmp/foo.har
+2011-08-09 18:18:20,624 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_20110809181807236_0001_m_000000_0' done.

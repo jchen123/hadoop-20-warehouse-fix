@@ -1,0 +1,9 @@
+Testsuite: org.apache.hadoop.fs.TestGetFileBlockLocations
+Tests run: 3, Failures: 0, Errors: 0, Time elapsed: 0.808 sec
+------------- Standard Output ---------------
+2011-08-09 18:13:00,564 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+------------- ---------------- ---------------
+
+Testcase: testFailureNegativeParameters took 0.51 sec
+Testcase: testGetFileBlockLocations1 took 0.157 sec
+Testcase: testGetFileBlockLocations2 took 0.117 sec

@@ -1,0 +1,330 @@
+Testsuite: org.apache.hadoop.hdfs.TestDatanodeReport
+Tests run: 1, Failures: 0, Errors: 0, Time elapsed: 36.203 sec
+------------- Standard Output ---------------
+2011-08-09 19:14:46,351 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+2011-08-09 19:14:46,818 INFO  util.GSet (BlocksMap.java:computeCapacity(342)) - VM type       = 64-bit
+2011-08-09 19:14:46,820 INFO  util.GSet (BlocksMap.java:computeCapacity(343)) - 2% max memory = 9.89875 MB
+2011-08-09 19:14:46,821 INFO  util.GSet (BlocksMap.java:computeCapacity(344)) - capacity      = 2^20 = 1048576 entries
+2011-08-09 19:14:46,821 INFO  util.GSet (LightWeightGSet.java:<init>(79)) - recommended=1048576, actual=1048576
+2011-08-09 19:14:46,865 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(521)) - fsOwner=jeff,jeff
+2011-08-09 19:14:46,865 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(527)) - supergroup=supergroup
+2011-08-09 19:14:46,869 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(528)) - isPermissionEnabled=true
+2011-08-09 19:14:47,007 INFO  namenode.NameNode (FSDirectory.java:<init>(126)) - Caching file names occuring more than 10 times 
+2011-08-09 19:14:47,089 INFO  common.Storage (FSImage.java:saveFSImage(1268)) - Image file of size 95 saved in 0 seconds.
+2011-08-09 19:14:47,092 INFO  namenode.FSNamesystem (FSEditLog.java:<init>(157)) - Edit Log preallocate size for /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name1/current/edits is 1048576 bytes  and initial size of edits buffer is 524288 bytes. Max number of buffered transactions is 10000
+2011-08-09 19:14:47,119 INFO  common.Storage (FSImage.java:format(1394)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name1 has been successfully formatted.
+2011-08-09 19:14:47,139 INFO  common.Storage (FSImage.java:saveFSImage(1268)) - Image file of size 95 saved in 0 seconds.
+2011-08-09 19:14:47,139 INFO  namenode.FSNamesystem (FSEditLog.java:<init>(157)) - Edit Log preallocate size for /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name2/current/edits is 1048576 bytes  and initial size of edits buffer is 524288 bytes. Max number of buffered transactions is 10000
+2011-08-09 19:14:47,159 INFO  common.Storage (FSImage.java:format(1394)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name2 has been successfully formatted.
+2011-08-09 19:14:47,178 INFO  jvm.JvmMetrics (JvmMetrics.java:init(71)) - Initializing JVM Metrics with processName=NameNode, sessionId=null
+2011-08-09 19:14:47,248 INFO  metrics.NameNodeMetrics (NameNodeMetrics.java:<init>(145)) - Initializing NameNodeMeterics using context object:org.apache.hadoop.metrics.spi.NullContext
+2011-08-09 19:14:47,248 INFO  util.GSet (BlocksMap.java:computeCapacity(342)) - VM type       = 64-bit
+2011-08-09 19:14:47,249 INFO  util.GSet (BlocksMap.java:computeCapacity(343)) - 2% max memory = 9.89875 MB
+2011-08-09 19:14:47,254 INFO  util.GSet (BlocksMap.java:computeCapacity(344)) - capacity      = 2^20 = 1048576 entries
+2011-08-09 19:14:47,255 INFO  util.GSet (LightWeightGSet.java:<init>(79)) - recommended=1048576, actual=1048576
+2011-08-09 19:14:47,325 WARN  namenode.FSNamesystem (ConfigManager.java:<init>(56)) - No whitelist file specified in dfs.namenode.whitelist.file. The namenode will allow deletion/renaming of any directory.
+2011-08-09 19:14:47,325 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(521)) - fsOwner=jeff,jeff
+2011-08-09 19:14:47,326 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(527)) - supergroup=supergroup
+2011-08-09 19:14:47,326 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(528)) - isPermissionEnabled=true
+2011-08-09 19:14:47,352 INFO  metrics.FSNamesystemMetrics (FSNamesystemMetrics.java:<init>(71)) - Initializing FSNamesystemMetrics using context object:org.apache.hadoop.metrics.spi.NullContext
+2011-08-09 19:14:47,353 INFO  namenode.FSNamesystem (FSNamesystem.java:registerMBean(5940)) - Registered FSNamesystemStatusMBean
+2011-08-09 19:14:47,363 INFO  namenode.NameNode (FSDirectory.java:<init>(126)) - Caching file names occuring more than 10 times 
+2011-08-09 19:14:47,370 INFO  common.Storage (FSImage.java:loadFSImage(1034)) - Number of files = 1
+2011-08-09 19:14:47,370 INFO  common.Storage (FSImage.java:loadFilesUnderConstruction(1499)) - Number of files under construction = 0
+2011-08-09 19:14:47,371 INFO  common.Storage (FSImage.java:loadFSImage(1144)) - Image file of size 95 loaded in 0 seconds.
+2011-08-09 19:14:47,373 INFO  common.Storage (FSEditLog.java:loadFSEdits(886)) - Edits file /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name1/current/edits of size 4 edits # 0 loaded in 0 seconds.
+2011-08-09 19:14:47,375 INFO  namenode.FSNamesystem (FSEditLog.java:<init>(157)) - Edit Log preallocate size for /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name1/current/edits is 1048576 bytes  and initial size of edits buffer is 524288 bytes. Max number of buffered transactions is 10000
+2011-08-09 19:14:47,375 INFO  namenode.FSNamesystem (FSEditLog.java:<init>(157)) - Edit Log preallocate size for /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name2/current/edits is 1048576 bytes  and initial size of edits buffer is 524288 bytes. Max number of buffered transactions is 10000
+2011-08-09 19:14:47,381 INFO  namenode.NameCache (NameCache.java:initialized(143)) - initialized with 0 entries 0 lookups
+2011-08-09 19:14:47,382 INFO  namenode.FSNamesystem (FSNamesystem.java:initialize(372)) - Finished loading FSImage in 59 msecs
+2011-08-09 19:14:47,384 INFO  namenode.FSNamesystem (FSNamesystem.java:initializeReplQueues(5294)) - initializing replication queues
+2011-08-09 19:14:47,393 INFO  namenode.FSNamesystem (FSNamesystem.java:processMisReplicatedBlocks(4047)) - Total number of blocks = 0
+2011-08-09 19:14:47,394 INFO  namenode.FSNamesystem (FSNamesystem.java:processMisReplicatedBlocks(4048)) - Number of invalid blocks = 0
+2011-08-09 19:14:47,394 INFO  namenode.FSNamesystem (FSNamesystem.java:processMisReplicatedBlocks(4049)) - Number of under-replicated blocks = 0
+2011-08-09 19:14:47,395 INFO  namenode.FSNamesystem (FSNamesystem.java:processMisReplicatedBlocks(4050)) - Number of  over-replicated blocks = 0
+2011-08-09 19:14:47,395 INFO  hdfs.StateChange (FSNamesystem.java:leave(5269)) - STATE* Leaving safe mode after 0 secs.
+2011-08-09 19:14:47,421 INFO  ipc.Server (Server.java:run(307)) - Starting SocketReader
+2011-08-09 19:14:47,426 INFO  metrics.RpcMetrics (RpcMetrics.java:<init>(59)) - Initializing RPC Metrics with hostName=NameNode, port=32860
+2011-08-09 19:14:47,430 INFO  namenode.NameNode (NameNode.java:startServerForClientRequests(396)) - Namenode up at: localhost/127.0.0.1:32860
+2011-08-09 19:14:47,430 INFO  ipc.Server (Server.java:run(581)) - IPC Server Responder: starting
+2011-08-09 19:14:47,432 INFO  ipc.Server (Server.java:run(408)) - IPC Server listener on 32860: starting
+2011-08-09 19:14:47,432 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 0 on 32860: starting
+2011-08-09 19:14:47,433 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 1 on 32860: starting
+2011-08-09 19:14:47,442 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 2 on 32860: starting
+2011-08-09 19:14:47,442 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 3 on 32860: starting
+2011-08-09 19:14:47,443 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 4 on 32860: starting
+2011-08-09 19:14:47,443 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 5 on 32860: starting
+2011-08-09 19:14:47,443 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 6 on 32860: starting
+2011-08-09 19:14:47,444 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 7 on 32860: starting
+2011-08-09 19:14:47,444 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 8 on 32860: starting
+2011-08-09 19:14:47,451 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 9 on 32860: starting
+2011-08-09 19:14:47,588 WARN  fs.Trash (Trash.java:<init>(232)) - The configured interval for checkpoint is 0 minutes. Using interval of 0 minutes that is used for deletion instead
+2011-08-09 19:14:47,589 INFO  hdfs.StateChange (FSNamesystem.java:leave(5283)) - STATE* Network topology has 0 racks and 0 datanodes
+2011-08-09 19:14:47,589 INFO  hdfs.StateChange (FSNamesystem.java:leave(5286)) - STATE* UnderReplicatedBlocks has 0 blocks
+2011-08-09 19:14:47,590 INFO  namenode.FSNamesystem (FSNamesystem.java:initialize(388)) - Skip counting items in the file tree
+2011-08-09 19:14:47,599 INFO  util.HostsFileReader (HostsFileReader.java:refresh(80)) - Refreshing hosts (include/exclude) list
+2011-08-09 19:14:47,710 INFO  mortbay.log (Slf4jLog.java:info(67)) - Logging to org.slf4j.impl.Log4jLoggerAdapter(org.mortbay.log) via org.mortbay.log.Slf4jLog
+2011-08-09 19:14:47,793 INFO  http.HttpServer (HttpServer.java:addGlobalFilter(297)) - Added global filtersafety (class=org.apache.hadoop.http.HttpServer$QuotingInputFilter)
+2011-08-09 19:14:47,860 INFO  http.HttpServer (HttpServer.java:start(437)) - Port returned by webServer.getConnectors()[0].getLocalPort() before open() is -1. Opening the listener on 0
+2011-08-09 19:14:47,860 INFO  http.HttpServer (HttpServer.java:start(442)) - listener.getLocalPort() returned 34725 webServer.getConnectors()[0].getLocalPort() returned 34725
+2011-08-09 19:14:47,861 INFO  http.HttpServer (HttpServer.java:start(475)) - Jetty bound to port 34725
+2011-08-09 19:14:47,861 INFO  mortbay.log (Slf4jLog.java:info(67)) - jetty-6.1.26
+2011-08-09 19:14:48,362 INFO  mortbay.log (Slf4jLog.java:info(67)) - Started SelectChannelConnector@localhost:34725
+2011-08-09 19:14:48,363 INFO  namenode.NameNode (NameNode.java:startHttpServer(329)) - Web-server up at: localhost:34725
+Starting DataNode 0 with dfs.data.dir: /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data1,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data2
+2011-08-09 19:14:48,428 INFO  common.Storage (DataStorage.java:recoverTransitionRead(124)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data1 is not formatted.
+2011-08-09 19:14:48,428 INFO  common.Storage (DataStorage.java:recoverTransitionRead(125)) - Formatting ...
+2011-08-09 19:14:48,448 INFO  common.Storage (DataStorage.java:recoverTransitionRead(124)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data2 is not formatted.
+2011-08-09 19:14:48,448 INFO  common.Storage (DataStorage.java:recoverTransitionRead(125)) - Formatting ...
+2011-08-09 19:14:48,582 INFO  datanode.DataNode (FSDataset.java:registerMBean(1597)) - Registered FSDatasetStatusMBean
+2011-08-09 19:14:48,586 INFO  datanode.DataNode (DataNode.java:startDataNode(327)) - Opened info server at 45823
+2011-08-09 19:14:48,590 INFO  datanode.DataNode (DataXceiverServer.java:<init>(75)) - Balancing bandwith is 1048576 bytes/s
+2011-08-09 19:14:48,602 INFO  http.HttpServer (HttpServer.java:addGlobalFilter(297)) - Added global filtersafety (class=org.apache.hadoop.http.HttpServer$QuotingInputFilter)
+2011-08-09 19:14:48,607 INFO  http.HttpServer (HttpServer.java:start(437)) - Port returned by webServer.getConnectors()[0].getLocalPort() before open() is -1. Opening the listener on 0
+2011-08-09 19:14:48,608 INFO  http.HttpServer (HttpServer.java:start(442)) - listener.getLocalPort() returned 45915 webServer.getConnectors()[0].getLocalPort() returned 45915
+2011-08-09 19:14:48,609 INFO  http.HttpServer (HttpServer.java:start(475)) - Jetty bound to port 45915
+2011-08-09 19:14:48,610 INFO  mortbay.log (Slf4jLog.java:info(67)) - jetty-6.1.26
+2011-08-09 19:14:48,812 INFO  mortbay.log (Slf4jLog.java:info(67)) - Started SelectChannelConnector@localhost:45915
+2011-08-09 19:14:48,814 INFO  jvm.JvmMetrics (JvmMetrics.java:init(66)) - Cannot initialize JVM Metrics with processName=DataNode, sessionId=null - already initialized
+2011-08-09 19:14:48,831 INFO  ipc.Server (Server.java:run(307)) - Starting SocketReader
+2011-08-09 19:14:48,834 INFO  metrics.RpcMetrics (RpcMetrics.java:<init>(59)) - Initializing RPC Metrics with hostName=DataNode, port=40883
+2011-08-09 19:14:48,837 INFO  ipc.Server (Server.java:run(581)) - IPC Server Responder: starting
+2011-08-09 19:14:48,837 INFO  ipc.Server (Server.java:run(408)) - IPC Server listener on 40883: starting
+2011-08-09 19:14:48,838 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 0 on 40883: starting
+2011-08-09 19:14:48,840 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 1 on 40883: starting
+2011-08-09 19:14:48,840 INFO  datanode.DataNode (DataNode.java:startDataNode(418)) - dnRegistration = DatanodeRegistration(m3vm6.tuenti.local:45823, storageID=, infoPort=45915, ipcPort=40883)
+2011-08-09 19:14:48,841 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 2 on 40883: starting
+2011-08-09 19:14:48,864 INFO  hdfs.StateChange (FSNamesystem.java:registerDatanode(2757)) - BLOCK* NameSystem.registerDatanode: node registration from 127.0.0.1:45823 storage DS-117162616-10.0.62.238-45823-1312910088860
+2011-08-09 19:14:48,870 INFO  net.NetworkTopology (NetworkTopology.java:add(328)) - Adding a new node: /default-rack/127.0.0.1:45823
+2011-08-09 19:14:48,899 INFO  datanode.DataNode (DataNode.java:register(592)) - New storage id DS-117162616-10.0.62.238-45823-1312910088860 is assigned to data-node 127.0.0.1:45823
+Starting DataNode 1 with dfs.data.dir: /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data3,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data4
+2011-08-09 19:14:48,925 INFO  datanode.DataNode (DataNode.java:run(1274)) - DatanodeRegistration(127.0.0.1:45823, storageID=DS-117162616-10.0.62.238-45823-1312910088860, infoPort=45915, ipcPort=40883)In DataNode.run, data = FSDataset{dirpath='/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data1/current,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data2/current'}
+2011-08-09 19:14:48,947 INFO  datanode.DataNode (DataNode.java:offerService(756)) - using BLOCKREPORT_INTERVAL of 3600000msec Initial delay: 0msec
+2011-08-09 19:14:48,955 INFO  common.Storage (DataStorage.java:recoverTransitionRead(124)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data3 is not formatted.
+2011-08-09 19:14:48,956 INFO  common.Storage (DataStorage.java:recoverTransitionRead(125)) - Formatting ...
+2011-08-09 19:14:48,964 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 19:14:48,967 INFO  hdfs.StateChange (FSNamesystem.java:processReport(3701)) - BLOCK* NameSystem.processReport: from 127.0.0.1:45823 0 blocks shortCircuit first report.
+2011-08-09 19:14:48,968 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 0 blocks got processed in 4 msecs
+2011-08-09 19:14:48,968 INFO  datanode.DataNode (DataNode.java:offerService(864)) - Starting Periodic block scanner.
+2011-08-09 19:14:48,974 INFO  common.Storage (DataStorage.java:recoverTransitionRead(124)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data4 is not formatted.
+2011-08-09 19:14:48,975 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 19:14:48,975 INFO  common.Storage (DataStorage.java:recoverTransitionRead(125)) - Formatting ...
+2011-08-09 19:14:49,094 INFO  datanode.DataNode (FSDataset.java:registerMBean(1597)) - Registered FSDatasetStatusMBean
+2011-08-09 19:14:49,096 INFO  datanode.DataNode (DataNode.java:startDataNode(327)) - Opened info server at 38202
+2011-08-09 19:14:49,096 INFO  datanode.DataNode (DataXceiverServer.java:<init>(75)) - Balancing bandwith is 1048576 bytes/s
+2011-08-09 19:14:49,100 INFO  http.HttpServer (HttpServer.java:addGlobalFilter(297)) - Added global filtersafety (class=org.apache.hadoop.http.HttpServer$QuotingInputFilter)
+2011-08-09 19:14:49,102 INFO  http.HttpServer (HttpServer.java:start(437)) - Port returned by webServer.getConnectors()[0].getLocalPort() before open() is -1. Opening the listener on 0
+2011-08-09 19:14:49,102 INFO  http.HttpServer (HttpServer.java:start(442)) - listener.getLocalPort() returned 56919 webServer.getConnectors()[0].getLocalPort() returned 56919
+2011-08-09 19:14:49,103 INFO  http.HttpServer (HttpServer.java:start(475)) - Jetty bound to port 56919
+2011-08-09 19:14:49,104 INFO  mortbay.log (Slf4jLog.java:info(67)) - jetty-6.1.26
+2011-08-09 19:14:49,258 INFO  mortbay.log (Slf4jLog.java:info(67)) - Started SelectChannelConnector@localhost:56919
+2011-08-09 19:14:49,259 INFO  jvm.JvmMetrics (JvmMetrics.java:init(66)) - Cannot initialize JVM Metrics with processName=DataNode, sessionId=null - already initialized
+2011-08-09 19:14:49,297 INFO  metrics.RpcMetrics (RpcMetrics.java:<init>(59)) - Initializing RPC Metrics with hostName=DataNode, port=44529
+2011-08-09 19:14:49,319 INFO  ipc.Server (Server.java:run(581)) - IPC Server Responder: starting
+2011-08-09 19:14:49,319 INFO  ipc.Server (Server.java:run(307)) - Starting SocketReader
+2011-08-09 19:14:49,340 INFO  ipc.Server (Server.java:run(408)) - IPC Server listener on 44529: starting
+2011-08-09 19:14:49,360 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 1 on 44529: starting
+2011-08-09 19:14:49,361 INFO  datanode.DataNode (DataNode.java:startDataNode(418)) - dnRegistration = DatanodeRegistration(m3vm6.tuenti.local:38202, storageID=, infoPort=56919, ipcPort=44529)
+2011-08-09 19:14:49,362 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 2 on 44529: starting
+2011-08-09 19:14:49,362 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 0 on 44529: starting
+2011-08-09 19:14:49,378 INFO  hdfs.StateChange (FSNamesystem.java:registerDatanode(2757)) - BLOCK* NameSystem.registerDatanode: node registration from 127.0.0.1:38202 storage DS-817214674-10.0.62.238-38202-1312910089374
+2011-08-09 19:14:49,379 INFO  net.NetworkTopology (NetworkTopology.java:add(328)) - Adding a new node: /default-rack/127.0.0.1:38202
+2011-08-09 19:14:49,385 INFO  datanode.DataNode (DataNode.java:register(592)) - New storage id DS-817214674-10.0.62.238-38202-1312910089374 is assigned to data-node 127.0.0.1:38202
+2011-08-09 19:14:49,414 INFO  datanode.DataNode (DataNode.java:run(1274)) - DatanodeRegistration(127.0.0.1:38202, storageID=DS-817214674-10.0.62.238-38202-1312910089374, infoPort=56919, ipcPort=44529)In DataNode.run, data = FSDataset{dirpath='/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data3/current,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data4/current'}
+Starting DataNode 2 with dfs.data.dir: /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data5,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data6
+2011-08-09 19:14:49,436 INFO  datanode.DataNode (DataNode.java:offerService(756)) - using BLOCKREPORT_INTERVAL of 3600000msec Initial delay: 0msec
+2011-08-09 19:14:49,449 INFO  common.Storage (DataStorage.java:recoverTransitionRead(124)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data5 is not formatted.
+2011-08-09 19:14:49,450 INFO  common.Storage (DataStorage.java:recoverTransitionRead(125)) - Formatting ...
+2011-08-09 19:14:49,451 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 19:14:49,460 INFO  hdfs.StateChange (FSNamesystem.java:processReport(3701)) - BLOCK* NameSystem.processReport: from 127.0.0.1:38202 0 blocks shortCircuit first report.
+2011-08-09 19:14:49,461 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 0 blocks got processed in 10 msecs
+2011-08-09 19:14:49,461 INFO  datanode.DataNode (DataNode.java:offerService(864)) - Starting Periodic block scanner.
+2011-08-09 19:14:49,462 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 19:14:49,471 INFO  common.Storage (DataStorage.java:recoverTransitionRead(124)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data6 is not formatted.
+2011-08-09 19:14:49,471 INFO  common.Storage (DataStorage.java:recoverTransitionRead(125)) - Formatting ...
+2011-08-09 19:14:49,592 INFO  datanode.DataNode (FSDataset.java:registerMBean(1597)) - Registered FSDatasetStatusMBean
+2011-08-09 19:14:49,593 INFO  datanode.DataNode (DataNode.java:startDataNode(327)) - Opened info server at 50167
+2011-08-09 19:14:49,594 INFO  datanode.DataNode (DataXceiverServer.java:<init>(75)) - Balancing bandwith is 1048576 bytes/s
+2011-08-09 19:14:49,597 INFO  http.HttpServer (HttpServer.java:addGlobalFilter(297)) - Added global filtersafety (class=org.apache.hadoop.http.HttpServer$QuotingInputFilter)
+2011-08-09 19:14:49,598 INFO  http.HttpServer (HttpServer.java:start(437)) - Port returned by webServer.getConnectors()[0].getLocalPort() before open() is -1. Opening the listener on 0
+2011-08-09 19:14:49,599 INFO  http.HttpServer (HttpServer.java:start(442)) - listener.getLocalPort() returned 46736 webServer.getConnectors()[0].getLocalPort() returned 46736
+2011-08-09 19:14:49,599 INFO  http.HttpServer (HttpServer.java:start(475)) - Jetty bound to port 46736
+2011-08-09 19:14:49,600 INFO  mortbay.log (Slf4jLog.java:info(67)) - jetty-6.1.26
+2011-08-09 19:14:49,800 INFO  mortbay.log (Slf4jLog.java:info(67)) - Started SelectChannelConnector@localhost:46736
+2011-08-09 19:14:49,800 INFO  jvm.JvmMetrics (JvmMetrics.java:init(66)) - Cannot initialize JVM Metrics with processName=DataNode, sessionId=null - already initialized
+2011-08-09 19:14:49,810 INFO  ipc.Server (Server.java:run(307)) - Starting SocketReader
+2011-08-09 19:14:49,813 INFO  metrics.RpcMetrics (RpcMetrics.java:<init>(59)) - Initializing RPC Metrics with hostName=DataNode, port=47967
+2011-08-09 19:14:49,815 INFO  ipc.Server (Server.java:run(581)) - IPC Server Responder: starting
+2011-08-09 19:14:49,816 INFO  ipc.Server (Server.java:run(408)) - IPC Server listener on 47967: starting
+2011-08-09 19:14:49,816 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 0 on 47967: starting
+2011-08-09 19:14:49,817 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 1 on 47967: starting
+2011-08-09 19:14:49,818 INFO  datanode.DataNode (DataNode.java:startDataNode(418)) - dnRegistration = DatanodeRegistration(m3vm6.tuenti.local:50167, storageID=, infoPort=46736, ipcPort=47967)
+2011-08-09 19:14:49,818 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 2 on 47967: starting
+2011-08-09 19:14:49,824 INFO  hdfs.StateChange (FSNamesystem.java:registerDatanode(2757)) - BLOCK* NameSystem.registerDatanode: node registration from 127.0.0.1:50167 storage DS-759215973-10.0.62.238-50167-1312910089821
+2011-08-09 19:14:49,824 INFO  net.NetworkTopology (NetworkTopology.java:add(328)) - Adding a new node: /default-rack/127.0.0.1:50167
+2011-08-09 19:14:49,830 INFO  datanode.DataNode (DataNode.java:register(592)) - New storage id DS-759215973-10.0.62.238-50167-1312910089821 is assigned to data-node 127.0.0.1:50167
+2011-08-09 19:14:49,831 INFO  datanode.DataNode (DataNode.java:run(1274)) - DatanodeRegistration(127.0.0.1:50167, storageID=DS-759215973-10.0.62.238-50167-1312910089821, infoPort=46736, ipcPort=47967)In DataNode.run, data = FSDataset{dirpath='/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data5/current,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data6/current'}
+Starting DataNode 3 with dfs.data.dir: /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data7,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data8
+2011-08-09 19:14:49,832 INFO  datanode.DataNode (DataNode.java:offerService(756)) - using BLOCKREPORT_INTERVAL of 3600000msec Initial delay: 0msec
+2011-08-09 19:14:49,836 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 19:14:49,838 INFO  hdfs.StateChange (FSNamesystem.java:processReport(3701)) - BLOCK* NameSystem.processReport: from 127.0.0.1:50167 0 blocks shortCircuit first report.
+2011-08-09 19:14:49,840 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 0 blocks got processed in 5 msecs
+2011-08-09 19:14:49,840 INFO  datanode.DataNode (DataNode.java:offerService(864)) - Starting Periodic block scanner.
+2011-08-09 19:14:49,842 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 19:14:49,843 INFO  common.Storage (DataStorage.java:recoverTransitionRead(124)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data7 is not formatted.
+2011-08-09 19:14:49,843 INFO  common.Storage (DataStorage.java:recoverTransitionRead(125)) - Formatting ...
+2011-08-09 19:14:49,860 INFO  common.Storage (DataStorage.java:recoverTransitionRead(124)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data8 is not formatted.
+2011-08-09 19:14:49,860 INFO  common.Storage (DataStorage.java:recoverTransitionRead(125)) - Formatting ...
+2011-08-09 19:14:49,981 INFO  datanode.DataNode (FSDataset.java:registerMBean(1597)) - Registered FSDatasetStatusMBean
+2011-08-09 19:14:49,983 INFO  datanode.DataNode (DataNode.java:startDataNode(327)) - Opened info server at 39372
+2011-08-09 19:14:49,983 INFO  datanode.DataNode (DataXceiverServer.java:<init>(75)) - Balancing bandwith is 1048576 bytes/s
+2011-08-09 19:14:49,986 INFO  http.HttpServer (HttpServer.java:addGlobalFilter(297)) - Added global filtersafety (class=org.apache.hadoop.http.HttpServer$QuotingInputFilter)
+2011-08-09 19:14:49,987 INFO  http.HttpServer (HttpServer.java:start(437)) - Port returned by webServer.getConnectors()[0].getLocalPort() before open() is -1. Opening the listener on 0
+2011-08-09 19:14:49,988 INFO  http.HttpServer (HttpServer.java:start(442)) - listener.getLocalPort() returned 44366 webServer.getConnectors()[0].getLocalPort() returned 44366
+2011-08-09 19:14:49,988 INFO  http.HttpServer (HttpServer.java:start(475)) - Jetty bound to port 44366
+2011-08-09 19:14:49,989 INFO  mortbay.log (Slf4jLog.java:info(67)) - jetty-6.1.26
+2011-08-09 19:14:50,086 INFO  mortbay.log (Slf4jLog.java:info(67)) - Started SelectChannelConnector@localhost:44366
+2011-08-09 19:14:50,086 INFO  jvm.JvmMetrics (JvmMetrics.java:init(66)) - Cannot initialize JVM Metrics with processName=DataNode, sessionId=null - already initialized
+2011-08-09 19:14:50,091 INFO  ipc.Server (Server.java:run(307)) - Starting SocketReader
+2011-08-09 19:14:50,093 INFO  metrics.RpcMetrics (RpcMetrics.java:<init>(59)) - Initializing RPC Metrics with hostName=DataNode, port=58341
+2011-08-09 19:14:50,094 INFO  ipc.Server (Server.java:run(581)) - IPC Server Responder: starting
+2011-08-09 19:14:50,095 INFO  ipc.Server (Server.java:run(408)) - IPC Server listener on 58341: starting
+2011-08-09 19:14:50,095 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 0 on 58341: starting
+2011-08-09 19:14:50,095 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 1 on 58341: starting
+2011-08-09 19:14:50,095 INFO  datanode.DataNode (DataNode.java:startDataNode(418)) - dnRegistration = DatanodeRegistration(m3vm6.tuenti.local:39372, storageID=, infoPort=44366, ipcPort=58341)
+2011-08-09 19:14:50,096 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 2 on 58341: starting
+2011-08-09 19:14:50,101 INFO  hdfs.StateChange (FSNamesystem.java:registerDatanode(2757)) - BLOCK* NameSystem.registerDatanode: node registration from 127.0.0.1:39372 storage DS-1314205010-10.0.62.238-39372-1312910090098
+2011-08-09 19:14:50,101 INFO  net.NetworkTopology (NetworkTopology.java:add(328)) - Adding a new node: /default-rack/127.0.0.1:39372
+2011-08-09 19:14:50,107 INFO  datanode.DataNode (DataNode.java:register(592)) - New storage id DS-1314205010-10.0.62.238-39372-1312910090098 is assigned to data-node 127.0.0.1:39372
+2011-08-09 19:14:50,108 INFO  datanode.DataNode (DataNode.java:run(1274)) - DatanodeRegistration(127.0.0.1:39372, storageID=DS-1314205010-10.0.62.238-39372-1312910090098, infoPort=44366, ipcPort=58341)In DataNode.run, data = FSDataset{dirpath='/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data7/current,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data8/current'}
+2011-08-09 19:14:50,109 INFO  datanode.DataNode (DataNode.java:offerService(756)) - using BLOCKREPORT_INTERVAL of 3600000msec Initial delay: 0msec
+2011-08-09 19:14:50,125 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 19:14:50,127 INFO  hdfs.StateChange (FSNamesystem.java:processReport(3701)) - BLOCK* NameSystem.processReport: from 127.0.0.1:39372 0 blocks shortCircuit first report.
+2011-08-09 19:14:50,128 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 0 blocks got processed in 4 msecs
+2011-08-09 19:14:50,128 INFO  datanode.DataNode (DataNode.java:offerService(864)) - Starting Periodic block scanner.
+2011-08-09 19:14:50,133 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 19:14:50,156 INFO  mortbay.log (Slf4jLog.java:info(67)) - Stopped SelectChannelConnector@localhost:0
+2011-08-09 19:14:50,157 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 58341
+2011-08-09 19:14:50,157 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 0 on 58341: exiting
+2011-08-09 19:14:50,157 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 1 on 58341: exiting
+2011-08-09 19:14:50,157 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 2 on 58341: exiting
+2011-08-09 19:14:50,158 INFO  ipc.Server (Server.java:run(447)) - Stopping IPC Server listener on 58341
+2011-08-09 19:14:50,159 INFO  ipc.Server (Server.java:run(646)) - Stopping IPC Server Responder
+2011-08-09 19:14:50,160 WARN  datanode.DataNode (DataXceiverServer.java:run(138)) - DatanodeRegistration(127.0.0.1:39372, storageID=DS-1314205010-10.0.62.238-39372-1312910090098, infoPort=44366, ipcPort=58341):DataXceiveServer: java.nio.channels.AsynchronousCloseException
+	at java.nio.channels.spi.AbstractInterruptibleChannel.end(AbstractInterruptibleChannel.java:185)
+	at sun.nio.ch.ServerSocketChannelImpl.accept(ServerSocketChannelImpl.java:152)
+	at sun.nio.ch.ServerSocketAdaptor.accept(ServerSocketAdaptor.java:84)
+	at org.apache.hadoop.hdfs.server.datanode.DataXceiverServer.run(DataXceiverServer.java:131)
+	at java.lang.Thread.run(Thread.java:662)
+
+2011-08-09 19:14:50,160 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 0
+2011-08-09 19:14:50,160 INFO  datanode.DataBlockScanner (DataBlockScanner.java:run(604)) - Exiting DataBlockScanner thread.
+2011-08-09 19:14:50,163 INFO  datanode.DataNode (DataNode.java:run(1294)) - DatanodeRegistration(127.0.0.1:39372, storageID=DS-1314205010-10.0.62.238-39372-1312910090098, infoPort=44366, ipcPort=58341):Finishing DataNode in: FSDataset{dirpath='/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data7/current,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data8/current'}
+2011-08-09 19:14:50,163 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 58341
+2011-08-09 19:14:50,163 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 0
+2011-08-09 19:14:50,164 INFO  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(128)) - Shutting down all async disk service threads...
+2011-08-09 19:14:50,164 INFO  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(137)) - All async disk service threads have been shut down.
+2011-08-09 19:14:50,164 WARN  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(125)) - AsyncDiskService has already shut down.
+Shutting down the Mini HDFS Cluster
+Shutting down DataNode 3
+2011-08-09 19:15:21,242 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 58341
+2011-08-09 19:15:21,243 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 0
+2011-08-09 19:15:21,243 WARN  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(125)) - AsyncDiskService has already shut down.
+Shutting down DataNode 2
+2011-08-09 19:15:21,298 INFO  mortbay.log (Slf4jLog.java:info(67)) - Stopped SelectChannelConnector@localhost:0
+2011-08-09 19:15:21,299 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 47967
+2011-08-09 19:15:21,300 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 0 on 47967: exiting
+2011-08-09 19:15:21,300 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 1 on 47967: exiting
+2011-08-09 19:15:21,301 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 2 on 47967: exiting
+2011-08-09 19:15:21,301 INFO  ipc.Server (Server.java:run(447)) - Stopping IPC Server listener on 47967
+2011-08-09 19:15:21,302 INFO  ipc.Server (Server.java:run(646)) - Stopping IPC Server Responder
+2011-08-09 19:15:21,302 WARN  datanode.DataNode (DataXceiverServer.java:run(138)) - DatanodeRegistration(127.0.0.1:50167, storageID=DS-759215973-10.0.62.238-50167-1312910089821, infoPort=46736, ipcPort=47967):DataXceiveServer: java.nio.channels.AsynchronousCloseException
+	at java.nio.channels.spi.AbstractInterruptibleChannel.end(AbstractInterruptibleChannel.java:185)
+	at sun.nio.ch.ServerSocketChannelImpl.accept(ServerSocketChannelImpl.java:152)
+	at sun.nio.ch.ServerSocketAdaptor.accept(ServerSocketAdaptor.java:84)
+	at org.apache.hadoop.hdfs.server.datanode.DataXceiverServer.run(DataXceiverServer.java:131)
+	at java.lang.Thread.run(Thread.java:662)
+
+2011-08-09 19:15:21,302 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 0
+2011-08-09 19:15:21,303 INFO  datanode.DataBlockScanner (DataBlockScanner.java:run(604)) - Exiting DataBlockScanner thread.
+2011-08-09 19:15:21,304 INFO  datanode.DataNode (DataNode.java:run(1294)) - DatanodeRegistration(127.0.0.1:50167, storageID=DS-759215973-10.0.62.238-50167-1312910089821, infoPort=46736, ipcPort=47967):Finishing DataNode in: FSDataset{dirpath='/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data5/current,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data6/current'}
+2011-08-09 19:15:21,304 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 47967
+2011-08-09 19:15:21,304 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 0
+2011-08-09 19:15:21,304 INFO  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(128)) - Shutting down all async disk service threads...
+2011-08-09 19:15:21,304 INFO  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(137)) - All async disk service threads have been shut down.
+2011-08-09 19:15:21,305 WARN  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(125)) - AsyncDiskService has already shut down.
+Shutting down DataNode 1
+2011-08-09 19:15:21,306 INFO  mortbay.log (Slf4jLog.java:info(67)) - Stopped SelectChannelConnector@localhost:0
+2011-08-09 19:15:21,407 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 44529
+2011-08-09 19:15:21,408 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 0 on 44529: exiting
+2011-08-09 19:15:21,408 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 1 on 44529: exiting
+2011-08-09 19:15:21,408 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 2 on 44529: exiting
+2011-08-09 19:15:21,409 INFO  ipc.Server (Server.java:run(447)) - Stopping IPC Server listener on 44529
+2011-08-09 19:15:21,410 INFO  ipc.Server (Server.java:run(646)) - Stopping IPC Server Responder
+2011-08-09 19:15:21,410 WARN  datanode.DataNode (DataXceiverServer.java:run(138)) - DatanodeRegistration(127.0.0.1:38202, storageID=DS-817214674-10.0.62.238-38202-1312910089374, infoPort=56919, ipcPort=44529):DataXceiveServer: java.nio.channels.AsynchronousCloseException
+	at java.nio.channels.spi.AbstractInterruptibleChannel.end(AbstractInterruptibleChannel.java:185)
+	at sun.nio.ch.ServerSocketChannelImpl.accept(ServerSocketChannelImpl.java:152)
+	at sun.nio.ch.ServerSocketAdaptor.accept(ServerSocketAdaptor.java:84)
+	at org.apache.hadoop.hdfs.server.datanode.DataXceiverServer.run(DataXceiverServer.java:131)
+	at java.lang.Thread.run(Thread.java:662)
+
+2011-08-09 19:15:21,410 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 0
+2011-08-09 19:15:21,411 INFO  datanode.DataBlockScanner (DataBlockScanner.java:run(604)) - Exiting DataBlockScanner thread.
+2011-08-09 19:15:21,411 INFO  datanode.DataNode (DataNode.java:run(1294)) - DatanodeRegistration(127.0.0.1:38202, storageID=DS-817214674-10.0.62.238-38202-1312910089374, infoPort=56919, ipcPort=44529):Finishing DataNode in: FSDataset{dirpath='/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data3/current,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data4/current'}
+2011-08-09 19:15:21,411 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 44529
+2011-08-09 19:15:21,412 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 0
+2011-08-09 19:15:21,412 INFO  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(128)) - Shutting down all async disk service threads...
+2011-08-09 19:15:21,412 INFO  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(137)) - All async disk service threads have been shut down.
+2011-08-09 19:15:21,413 WARN  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(125)) - AsyncDiskService has already shut down.
+Shutting down DataNode 0
+2011-08-09 19:15:21,455 INFO  mortbay.log (Slf4jLog.java:info(67)) - Stopped SelectChannelConnector@localhost:0
+2011-08-09 19:15:21,556 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 40883
+2011-08-09 19:15:21,557 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 0 on 40883: exiting
+2011-08-09 19:15:21,557 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 1 on 40883: exiting
+2011-08-09 19:15:21,558 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 2 on 40883: exiting
+2011-08-09 19:15:21,559 INFO  ipc.Server (Server.java:run(447)) - Stopping IPC Server listener on 40883
+2011-08-09 19:15:21,560 INFO  ipc.Server (Server.java:run(646)) - Stopping IPC Server Responder
+2011-08-09 19:15:21,560 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 1
+2011-08-09 19:15:21,561 WARN  datanode.DataNode (DataXceiverServer.java:run(138)) - DatanodeRegistration(127.0.0.1:45823, storageID=DS-117162616-10.0.62.238-45823-1312910088860, infoPort=45915, ipcPort=40883):DataXceiveServer: java.nio.channels.AsynchronousCloseException
+	at java.nio.channels.spi.AbstractInterruptibleChannel.end(AbstractInterruptibleChannel.java:185)
+	at sun.nio.ch.ServerSocketChannelImpl.accept(ServerSocketChannelImpl.java:152)
+	at sun.nio.ch.ServerSocketAdaptor.accept(ServerSocketAdaptor.java:84)
+	at org.apache.hadoop.hdfs.server.datanode.DataXceiverServer.run(DataXceiverServer.java:131)
+	at java.lang.Thread.run(Thread.java:662)
+
+2011-08-09 19:15:21,609 INFO  hdfs.StateChange (FSNamesystem.java:heartbeatCheck(3654)) - BLOCK* NameSystem.heartbeatCheck: lost heartbeat from 127.0.0.1:39372
+2011-08-09 19:15:21,610 INFO  net.NetworkTopology (NetworkTopology.java:remove(350)) - Removing a node: /default-rack/127.0.0.1:39372
+2011-08-09 19:15:21,958 INFO  datanode.DataNode (DataNode.java:run(1294)) - DatanodeRegistration(127.0.0.1:45823, storageID=DS-117162616-10.0.62.238-45823-1312910088860, infoPort=45915, ipcPort=40883):Finishing DataNode in: FSDataset{dirpath='/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data1/current,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data2/current'}
+2011-08-09 19:15:21,959 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 40883
+2011-08-09 19:15:21,959 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 0
+2011-08-09 19:15:21,959 INFO  datanode.DataBlockScanner (DataBlockScanner.java:run(604)) - Exiting DataBlockScanner thread.
+2011-08-09 19:15:21,959 INFO  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(128)) - Shutting down all async disk service threads...
+2011-08-09 19:15:21,960 INFO  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(137)) - All async disk service threads have been shut down.
+2011-08-09 19:15:22,561 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 0
+2011-08-09 19:15:22,561 WARN  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(125)) - AsyncDiskService has already shut down.
+2011-08-09 19:15:22,576 INFO  mortbay.log (Slf4jLog.java:info(67)) - Stopped SelectChannelConnector@localhost:0
+2011-08-09 19:15:22,578 WARN  namenode.FSNamesystem (FSNamesystem.java:run(3042)) - ReplicationMonitor thread received InterruptedException.java.lang.InterruptedException: sleep interrupted
+2011-08-09 19:15:22,579 INFO  namenode.DecommissionManager (DecommissionManager.java:waitForWork(254)) - Interrupted Monitor
+java.lang.InterruptedException
+	at java.lang.Object.wait(Native Method)
+	at java.lang.Object.wait(Object.java:485)
+	at org.apache.hadoop.hdfs.server.namenode.DecommissionManager$Monitor.waitForWork(DecommissionManager.java:244)
+	at org.apache.hadoop.hdfs.server.namenode.DecommissionManager$Monitor.run(DecommissionManager.java:267)
+	at java.lang.Thread.run(Thread.java:662)
+2011-08-09 19:15:22,581 INFO  namenode.FSNamesystem (FSEditLog.java:printStatistics(1125)) - Number of transactions: 0 Total time for transactions(ms): 0 Number of transactions batched in Syncs: 0 Number of syncs: 0 SyncTimes(ms):  /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name1/current/edits:0  /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name2/current/edits:0 
+2011-08-09 19:15:22,588 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 32860
+2011-08-09 19:15:22,588 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 1 on 32860: exiting
+2011-08-09 19:15:22,589 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 3 on 32860: exiting
+2011-08-09 19:15:22,589 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 4 on 32860: exiting
+2011-08-09 19:15:22,589 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 0 on 32860: exiting
+2011-08-09 19:15:22,588 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 2 on 32860: exiting
+2011-08-09 19:15:22,590 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 5 on 32860: exiting
+2011-08-09 19:15:22,590 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 7 on 32860: exiting
+2011-08-09 19:15:22,590 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 8 on 32860: exiting
+2011-08-09 19:15:22,590 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 6 on 32860: exiting
+2011-08-09 19:15:22,591 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 9 on 32860: exiting
+2011-08-09 19:15:22,591 INFO  ipc.Server (Server.java:run(447)) - Stopping IPC Server listener on 32860
+2011-08-09 19:15:22,592 INFO  ipc.Server (Server.java:run(646)) - Stopping IPC Server Responder
+------------- ---------------- ---------------
+
+Testcase: testDatanodeReport took 36.18 sec

@@ -1,0 +1,7 @@
+Testsuite: org.apache.hadoop.hdfs.server.namenode.TestNameCache
+Tests run: 1, Failures: 0, Errors: 0, Time elapsed: 0.213 sec
+------------- Standard Output ---------------
+2011-08-09 20:53:50,198 INFO  namenode.NameCache (NameCache.java:initialized(143)) - initialized with 5 entries 10 lookups
+------------- ---------------- ---------------
+
+Testcase: testDictionary took 0.187 sec

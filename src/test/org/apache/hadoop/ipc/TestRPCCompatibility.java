@@ -68,6 +68,7 @@ public class TestRPCCompatibility {
   }
   
   public static class TestImpl implements TestProtocol2 {
+   
     int fastPingCounter = 0;
     
     @Override
@@ -82,6 +83,13 @@ public class TestRPCCompatibility {
       return TestProtocol2.versionID;
     }
 
+  @Override
+  public ProtocolSignature getProtocolSignature(String protocol, 
+long clientVersion,
+int clientMethodsHash) throws IOException {
+    return new ProtocolSignature();
+    }
+ 
     @Override
     public String echo(String value) { return value; }
 
@@ -171,6 +179,13 @@ public class TestRPCCompatibility {
       proxy3 = (TestProtocol3) proxy;
     }
     
+  @Override
+  public ProtocolSignature getProtocolSignature(String protocol, 
+long clientVersion,
+int clientMethodsHash) throws IOException {
+    return new ProtocolSignature();
+    }
+
     @Override
     public int echo(int value) throws IOException, NumberFormatException {
       if (serverVersion == versionID) { // same version
@@ -211,4 +226,5 @@ public class TestRPCCompatibility {
     assertEquals(3, client.echo(3));
     client.ping();
   }
+
 }

@@ -1,0 +1,5 @@
+Testsuite: org.apache.hadoop.fs.TestGlobExpander
+Tests run: 2, Failures: 0, Errors: 0, Time elapsed: 0.03 sec
+
+Testcase: testExpansionIsIdentical took 0.006 sec
+Testcase: testExpansion took 0 sec

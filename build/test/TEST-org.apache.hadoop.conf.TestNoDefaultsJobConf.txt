@@ -1,0 +1,547 @@
+Testsuite: org.apache.hadoop.conf.TestNoDefaultsJobConf
+Tests run: 1, Failures: 0, Errors: 0, Time elapsed: 28.344 sec
+------------- Standard Output ---------------
+2011-08-09 18:07:52,345 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+2011-08-09 18:07:52,716 INFO  util.GSet (BlocksMap.java:computeCapacity(342)) - VM type       = 64-bit
+2011-08-09 18:07:52,718 INFO  util.GSet (BlocksMap.java:computeCapacity(343)) - 2% max memory = 9.89875 MB
+2011-08-09 18:07:52,718 INFO  util.GSet (BlocksMap.java:computeCapacity(344)) - capacity      = 2^20 = 1048576 entries
+2011-08-09 18:07:52,719 INFO  util.GSet (LightWeightGSet.java:<init>(79)) - recommended=1048576, actual=1048576
+2011-08-09 18:07:52,754 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(521)) - fsOwner=jeff,jeff
+2011-08-09 18:07:52,754 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(527)) - supergroup=supergroup
+2011-08-09 18:07:52,755 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(528)) - isPermissionEnabled=true
+2011-08-09 18:07:52,784 INFO  namenode.NameNode (FSDirectory.java:<init>(126)) - Caching file names occuring more than 10 times 
+2011-08-09 18:07:52,885 INFO  common.Storage (FSImage.java:saveFSImage(1268)) - Image file of size 95 saved in 0 seconds.
+2011-08-09 18:07:52,888 INFO  namenode.FSNamesystem (FSEditLog.java:<init>(157)) - Edit Log preallocate size for /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name1/current/edits is 1048576 bytes  and initial size of edits buffer is 524288 bytes. Max number of buffered transactions is 10000
+2011-08-09 18:07:52,915 INFO  common.Storage (FSImage.java:format(1394)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name1 has been successfully formatted.
+2011-08-09 18:07:52,936 INFO  common.Storage (FSImage.java:saveFSImage(1268)) - Image file of size 95 saved in 0 seconds.
+2011-08-09 18:07:52,936 INFO  namenode.FSNamesystem (FSEditLog.java:<init>(157)) - Edit Log preallocate size for /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name2/current/edits is 1048576 bytes  and initial size of edits buffer is 524288 bytes. Max number of buffered transactions is 10000
+2011-08-09 18:07:52,952 INFO  common.Storage (FSImage.java:format(1394)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name2 has been successfully formatted.
+2011-08-09 18:07:52,971 INFO  jvm.JvmMetrics (JvmMetrics.java:init(71)) - Initializing JVM Metrics with processName=NameNode, sessionId=null
+2011-08-09 18:07:53,041 INFO  metrics.NameNodeMetrics (NameNodeMetrics.java:<init>(145)) - Initializing NameNodeMeterics using context object:org.apache.hadoop.metrics.spi.NullContext
+2011-08-09 18:07:53,041 INFO  util.GSet (BlocksMap.java:computeCapacity(342)) - VM type       = 64-bit
+2011-08-09 18:07:53,041 INFO  util.GSet (BlocksMap.java:computeCapacity(343)) - 2% max memory = 9.89875 MB
+2011-08-09 18:07:53,041 INFO  util.GSet (BlocksMap.java:computeCapacity(344)) - capacity      = 2^20 = 1048576 entries
+2011-08-09 18:07:53,042 INFO  util.GSet (LightWeightGSet.java:<init>(79)) - recommended=1048576, actual=1048576
+2011-08-09 18:07:53,114 WARN  namenode.FSNamesystem (ConfigManager.java:<init>(56)) - No whitelist file specified in dfs.namenode.whitelist.file. The namenode will allow deletion/renaming of any directory.
+2011-08-09 18:07:53,114 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(521)) - fsOwner=jeff,jeff
+2011-08-09 18:07:53,115 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(527)) - supergroup=supergroup
+2011-08-09 18:07:53,115 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(528)) - isPermissionEnabled=true
+2011-08-09 18:07:53,141 INFO  metrics.FSNamesystemMetrics (FSNamesystemMetrics.java:<init>(71)) - Initializing FSNamesystemMetrics using context object:org.apache.hadoop.metrics.spi.NullContext
+2011-08-09 18:07:53,142 INFO  namenode.FSNamesystem (FSNamesystem.java:registerMBean(5940)) - Registered FSNamesystemStatusMBean
+2011-08-09 18:07:53,151 INFO  namenode.NameNode (FSDirectory.java:<init>(126)) - Caching file names occuring more than 10 times 
+2011-08-09 18:07:53,158 INFO  common.Storage (FSImage.java:loadFSImage(1034)) - Number of files = 1
+2011-08-09 18:07:53,159 INFO  common.Storage (FSImage.java:loadFilesUnderConstruction(1499)) - Number of files under construction = 0
+2011-08-09 18:07:53,159 INFO  common.Storage (FSImage.java:loadFSImage(1144)) - Image file of size 95 loaded in 0 seconds.
+2011-08-09 18:07:53,162 INFO  common.Storage (FSEditLog.java:loadFSEdits(886)) - Edits file /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name1/current/edits of size 4 edits # 0 loaded in 0 seconds.
+2011-08-09 18:07:53,163 INFO  namenode.FSNamesystem (FSEditLog.java:<init>(157)) - Edit Log preallocate size for /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name1/current/edits is 1048576 bytes  and initial size of edits buffer is 524288 bytes. Max number of buffered transactions is 10000
+2011-08-09 18:07:53,163 INFO  namenode.FSNamesystem (FSEditLog.java:<init>(157)) - Edit Log preallocate size for /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name2/current/edits is 1048576 bytes  and initial size of edits buffer is 524288 bytes. Max number of buffered transactions is 10000
+2011-08-09 18:07:53,164 INFO  namenode.NameCache (NameCache.java:initialized(143)) - initialized with 0 entries 0 lookups
+2011-08-09 18:07:53,165 INFO  namenode.FSNamesystem (FSNamesystem.java:initialize(372)) - Finished loading FSImage in 53 msecs
+2011-08-09 18:07:53,171 INFO  namenode.FSNamesystem (FSNamesystem.java:initializeReplQueues(5294)) - initializing replication queues
+2011-08-09 18:07:53,181 INFO  namenode.FSNamesystem (FSNamesystem.java:processMisReplicatedBlocks(4047)) - Total number of blocks = 0
+2011-08-09 18:07:53,181 INFO  namenode.FSNamesystem (FSNamesystem.java:processMisReplicatedBlocks(4048)) - Number of invalid blocks = 0
+2011-08-09 18:07:53,182 INFO  namenode.FSNamesystem (FSNamesystem.java:processMisReplicatedBlocks(4049)) - Number of under-replicated blocks = 0
+2011-08-09 18:07:53,182 INFO  namenode.FSNamesystem (FSNamesystem.java:processMisReplicatedBlocks(4050)) - Number of  over-replicated blocks = 0
+2011-08-09 18:07:53,182 INFO  hdfs.StateChange (FSNamesystem.java:leave(5269)) - STATE* Leaving safe mode after 0 secs.
+2011-08-09 18:07:53,208 INFO  ipc.Server (Server.java:run(307)) - Starting SocketReader
+2011-08-09 18:07:53,213 INFO  metrics.RpcMetrics (RpcMetrics.java:<init>(59)) - Initializing RPC Metrics with hostName=NameNode, port=56014
+2011-08-09 18:07:53,218 INFO  namenode.NameNode (NameNode.java:startServerForClientRequests(396)) - Namenode up at: localhost/127.0.0.1:56014
+2011-08-09 18:07:53,218 INFO  ipc.Server (Server.java:run(581)) - IPC Server Responder: starting
+2011-08-09 18:07:53,220 INFO  ipc.Server (Server.java:run(408)) - IPC Server listener on 56014: starting
+2011-08-09 18:07:53,220 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 0 on 56014: starting
+2011-08-09 18:07:53,221 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 1 on 56014: starting
+2011-08-09 18:07:53,222 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 2 on 56014: starting
+2011-08-09 18:07:53,222 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 3 on 56014: starting
+2011-08-09 18:07:53,253 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 4 on 56014: starting
+2011-08-09 18:07:53,253 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 5 on 56014: starting
+2011-08-09 18:07:53,254 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 6 on 56014: starting
+2011-08-09 18:07:53,254 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 7 on 56014: starting
+2011-08-09 18:07:53,255 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 8 on 56014: starting
+2011-08-09 18:07:53,264 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 9 on 56014: starting
+2011-08-09 18:07:53,391 WARN  fs.Trash (Trash.java:<init>(232)) - The configured interval for checkpoint is 0 minutes. Using interval of 0 minutes that is used for deletion instead
+2011-08-09 18:07:53,393 INFO  hdfs.StateChange (FSNamesystem.java:leave(5283)) - STATE* Network topology has 0 racks and 0 datanodes
+2011-08-09 18:07:53,393 INFO  hdfs.StateChange (FSNamesystem.java:leave(5286)) - STATE* UnderReplicatedBlocks has 0 blocks
+2011-08-09 18:07:53,393 INFO  namenode.FSNamesystem (FSNamesystem.java:initialize(388)) - Skip counting items in the file tree
+2011-08-09 18:07:53,401 INFO  util.HostsFileReader (HostsFileReader.java:refresh(80)) - Refreshing hosts (include/exclude) list
+2011-08-09 18:07:53,510 INFO  mortbay.log (Slf4jLog.java:info(67)) - Logging to org.slf4j.impl.Log4jLoggerAdapter(org.mortbay.log) via org.mortbay.log.Slf4jLog
+2011-08-09 18:07:53,598 INFO  http.HttpServer (HttpServer.java:addGlobalFilter(297)) - Added global filtersafety (class=org.apache.hadoop.http.HttpServer$QuotingInputFilter)
+2011-08-09 18:07:53,607 INFO  http.HttpServer (HttpServer.java:start(437)) - Port returned by webServer.getConnectors()[0].getLocalPort() before open() is -1. Opening the listener on 0
+2011-08-09 18:07:53,608 INFO  http.HttpServer (HttpServer.java:start(442)) - listener.getLocalPort() returned 48349 webServer.getConnectors()[0].getLocalPort() returned 48349
+2011-08-09 18:07:53,608 INFO  http.HttpServer (HttpServer.java:start(475)) - Jetty bound to port 48349
+2011-08-09 18:07:53,608 INFO  mortbay.log (Slf4jLog.java:info(67)) - jetty-6.1.26
+2011-08-09 18:07:54,137 INFO  mortbay.log (Slf4jLog.java:info(67)) - Started SelectChannelConnector@localhost:48349
+2011-08-09 18:07:54,137 INFO  namenode.NameNode (NameNode.java:startHttpServer(329)) - Web-server up at: localhost:48349
+Starting DataNode 0 with dfs.data.dir: /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data1,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data2
+2011-08-09 18:07:54,181 INFO  common.Storage (DataStorage.java:recoverTransitionRead(124)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data1 is not formatted.
+2011-08-09 18:07:54,182 INFO  common.Storage (DataStorage.java:recoverTransitionRead(125)) - Formatting ...
+2011-08-09 18:07:54,199 INFO  common.Storage (DataStorage.java:recoverTransitionRead(124)) - Storage directory /home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data2 is not formatted.
+2011-08-09 18:07:54,207 INFO  common.Storage (DataStorage.java:recoverTransitionRead(125)) - Formatting ...
+2011-08-09 18:07:54,374 INFO  datanode.DataNode (FSDataset.java:registerMBean(1597)) - Registered FSDatasetStatusMBean
+2011-08-09 18:07:54,377 INFO  datanode.DataNode (DataNode.java:startDataNode(327)) - Opened info server at 47321
+2011-08-09 18:07:54,380 INFO  datanode.DataNode (DataXceiverServer.java:<init>(75)) - Balancing bandwith is 1048576 bytes/s
+2011-08-09 18:07:54,386 INFO  http.HttpServer (HttpServer.java:addGlobalFilter(297)) - Added global filtersafety (class=org.apache.hadoop.http.HttpServer$QuotingInputFilter)
+2011-08-09 18:07:54,390 INFO  http.HttpServer (HttpServer.java:start(437)) - Port returned by webServer.getConnectors()[0].getLocalPort() before open() is -1. Opening the listener on 0
+2011-08-09 18:07:54,398 INFO  http.HttpServer (HttpServer.java:start(442)) - listener.getLocalPort() returned 36584 webServer.getConnectors()[0].getLocalPort() returned 36584
+2011-08-09 18:07:54,398 INFO  http.HttpServer (HttpServer.java:start(475)) - Jetty bound to port 36584
+2011-08-09 18:07:54,398 INFO  mortbay.log (Slf4jLog.java:info(67)) - jetty-6.1.26
+2011-08-09 18:07:54,565 INFO  mortbay.log (Slf4jLog.java:info(67)) - Started SelectChannelConnector@localhost:36584
+2011-08-09 18:07:54,567 INFO  jvm.JvmMetrics (JvmMetrics.java:init(66)) - Cannot initialize JVM Metrics with processName=DataNode, sessionId=null - already initialized
+2011-08-09 18:07:54,575 INFO  ipc.Server (Server.java:run(307)) - Starting SocketReader
+2011-08-09 18:07:54,586 INFO  metrics.RpcMetrics (RpcMetrics.java:<init>(59)) - Initializing RPC Metrics with hostName=DataNode, port=60347
+2011-08-09 18:07:54,587 INFO  ipc.Server (Server.java:run(581)) - IPC Server Responder: starting
+2011-08-09 18:07:54,589 INFO  ipc.Server (Server.java:run(408)) - IPC Server listener on 60347: starting
+2011-08-09 18:07:54,590 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 0 on 60347: starting
+2011-08-09 18:07:54,590 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 1 on 60347: starting
+2011-08-09 18:07:54,591 INFO  datanode.DataNode (DataNode.java:startDataNode(418)) - dnRegistration = DatanodeRegistration(m3vm6.tuenti.local:47321, storageID=, infoPort=36584, ipcPort=60347)
+2011-08-09 18:07:54,593 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 2 on 60347: starting
+2011-08-09 18:07:54,635 INFO  hdfs.StateChange (FSNamesystem.java:registerDatanode(2757)) - BLOCK* NameSystem.registerDatanode: node registration from 127.0.0.1:47321 storage DS-574333976-10.0.62.238-47321-1312906074624
+2011-08-09 18:07:54,640 INFO  net.NetworkTopology (NetworkTopology.java:add(328)) - Adding a new node: /default-rack/127.0.0.1:47321
+2011-08-09 18:07:54,646 INFO  datanode.DataNode (DataNode.java:register(592)) - New storage id DS-574333976-10.0.62.238-47321-1312906074624 is assigned to data-node 127.0.0.1:47321
+2011-08-09 18:07:54,646 INFO  datanode.DataNode (DataNode.java:run(1274)) - DatanodeRegistration(127.0.0.1:47321, storageID=DS-574333976-10.0.62.238-47321-1312906074624, infoPort=36584, ipcPort=60347)In DataNode.run, data = FSDataset{dirpath='/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data1/current,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data2/current'}
+2011-08-09 18:07:54,648 INFO  datanode.DataNode (DataNode.java:offerService(756)) - using BLOCKREPORT_INTERVAL of 3600000msec Initial delay: 0msec
+2011-08-09 18:07:54,653 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+2011-08-09 18:07:54,656 INFO  hdfs.StateChange (FSNamesystem.java:processReport(3701)) - BLOCK* NameSystem.processReport: from 127.0.0.1:47321 0 blocks shortCircuit first report.
+2011-08-09 18:07:54,657 INFO  datanode.DataNode (DataNode.java:offerService(839)) - BlockReport of 0 blocks got processed in 4 msecs
+2011-08-09 18:07:54,657 INFO  datanode.DataNode (DataNode.java:offerService(864)) - Starting Periodic block scanner.
+2011-08-09 18:07:54,658 INFO  datanode.DataNode (FSDataset.java:getBlockInfo(601)) - Finished generating block report for 2 volumes in 0 seconds
+Generating rack names for tasktrackers
+Generating host names for tasktrackers
+2011-08-09 18:07:54,742 WARN  fs.FileSystem (FileSystem.java:fixName(155)) - "localhost:56014" is a deprecated filesystem name. Use "hdfs://localhost:56014/" instead.
+2011-08-09 18:07:54,795 INFO  mapred.JobTracker (JobTracker.java:<init>(1373)) - Starting jobtracker with owner as jeff and supergroup as supergroup
+2011-08-09 18:07:54,796 INFO  mapred.JobTracker (JobTracker.java:initializeTaskMemoryRelatedConfig(4077)) - Scheduler configured with (memSizeForMapSlotOnJT, memSizeForReduceSlotOnJT, limitMaxMemForMapTasks, limitMaxMemForReduceTasks) (-1, -1, -1, -1)
+2011-08-09 18:07:54,796 INFO  util.HostsFileReader (HostsFileReader.java:refresh(80)) - Refreshing hosts (include/exclude) list
+2011-08-09 18:07:54,878 WARN  mapred.JobTracker (JobTracker.java:<init>(1441)) - Resource reporter is not configured. It will be disabled.
+2011-08-09 18:07:54,889 INFO  ipc.Server (Server.java:run(307)) - Starting SocketReader
+2011-08-09 18:07:54,892 INFO  metrics.RpcMetrics (RpcMetrics.java:<init>(59)) - Initializing RPC Metrics with hostName=JobTracker, port=37079
+2011-08-09 18:07:54,894 INFO  http.HttpServer (HttpServer.java:addGlobalFilter(297)) - Added global filtersafety (class=org.apache.hadoop.http.HttpServer$QuotingInputFilter)
+2011-08-09 18:07:54,918 INFO  http.HttpServer (HttpServer.java:start(437)) - Port returned by webServer.getConnectors()[0].getLocalPort() before open() is -1. Opening the listener on 0
+2011-08-09 18:07:54,918 INFO  http.HttpServer (HttpServer.java:start(442)) - listener.getLocalPort() returned 48255 webServer.getConnectors()[0].getLocalPort() returned 48255
+2011-08-09 18:07:54,918 INFO  http.HttpServer (HttpServer.java:start(475)) - Jetty bound to port 48255
+2011-08-09 18:07:54,918 INFO  mortbay.log (Slf4jLog.java:info(67)) - jetty-6.1.26
+2011-08-09 18:07:55,152 INFO  mortbay.log (Slf4jLog.java:info(67)) - Started SelectChannelConnector@localhost:48255
+2011-08-09 18:07:55,155 INFO  jvm.JvmMetrics (JvmMetrics.java:init(66)) - Cannot initialize JVM Metrics with processName=JobTracker, sessionId= - already initialized
+2011-08-09 18:07:55,166 INFO  mapred.JobTracker (JobTracker.java:<init>(1515)) - JobTracker up at: 37079
+2011-08-09 18:07:55,166 INFO  mapred.JobTracker (JobTracker.java:<init>(1519)) - JobTracker webserver: 48255
+2011-08-09 18:07:55,191 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=mkdirs	src=/user/jeff/build/test/mapred/system	dst=null	perm=jeff:supergroup:rwxr-xr-x
+2011-08-09 18:07:55,194 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=setPermission	src=/user/jeff/build/test/mapred/system	dst=null	perm=jeff:supergroup:rwx-wx-wx
+2011-08-09 18:07:55,197 INFO  mapred.CompletedJobStatusStore (CompletedJobStatusStore.java:<init>(80)) - Completed job store is inactive
+2011-08-09 18:07:55,217 INFO  mapred.JobTracker (JobTracker.java:refreshHosts(3840)) - Refreshing hosts information
+2011-08-09 18:07:55,271 INFO  util.HostsFileReader (HostsFileReader.java:setIncludesFile(104)) - Setting the includes file to 
+2011-08-09 18:07:55,272 INFO  util.HostsFileReader (HostsFileReader.java:setExcludesFile(109)) - Setting the excludes file to hosts.exclude
+2011-08-09 18:07:55,272 INFO  util.HostsFileReader (HostsFileReader.java:refresh(80)) - Refreshing hosts (include/exclude) list
+2011-08-09 18:07:55,272 INFO  mapred.JobTracker (JobTracker.java:decommissionNodes(3882)) - Decommissioning 0 nodes
+2011-08-09 18:07:55,278 INFO  ipc.Server (Server.java:run(581)) - IPC Server Responder: starting
+2011-08-09 18:07:55,278 INFO  ipc.Server (Server.java:run(408)) - IPC Server listener on 37079: starting
+2011-08-09 18:07:55,279 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 0 on 37079: starting
+2011-08-09 18:07:55,279 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 1 on 37079: starting
+2011-08-09 18:07:55,279 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 2 on 37079: starting
+2011-08-09 18:07:55,280 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 3 on 37079: starting
+2011-08-09 18:07:55,281 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 4 on 37079: starting
+2011-08-09 18:07:55,281 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 5 on 37079: starting
+2011-08-09 18:07:55,281 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 6 on 37079: starting
+2011-08-09 18:07:55,282 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 7 on 37079: starting
+2011-08-09 18:07:55,282 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 8 on 37079: starting
+2011-08-09 18:07:55,282 INFO  mapred.JobTracker (JobTracker.java:offerService(1712)) - Starting RUNNING
+2011-08-09 18:07:55,282 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 9 on 37079: starting
+2011-08-09 18:07:55,790 WARN  fs.FileSystem (FileSystem.java:fixName(155)) - "localhost:56014" is a deprecated filesystem name. Use "hdfs://localhost:56014/" instead.
+2011-08-09 18:07:55,791 INFO  mapred.MiniMRCluster (MiniMRCluster.java:<init>(179)) - mapred.local.dir is /home/jeff/hadoop-20-warehouse/build/test/mapred/local/0_0
+2011-08-09 18:07:55,869 INFO  util.ProcessTree (ProcessTree.java:isSetsidSupported(51)) - setsid exited with exit code 0
+2011-08-09 18:07:56,046 INFO  mapred.TaskTracker (TaskTracker.java:<init>(1075)) - Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@38a36b53
+2011-08-09 18:07:56,101 INFO  http.HttpServer (HttpServer.java:addGlobalFilter(297)) - Added global filtersafety (class=org.apache.hadoop.http.HttpServer$QuotingInputFilter)
+2011-08-09 18:07:56,121 INFO  http.HttpServer (HttpServer.java:start(437)) - Port returned by webServer.getConnectors()[0].getLocalPort() before open() is -1. Opening the listener on 0
+2011-08-09 18:07:56,122 INFO  http.HttpServer (HttpServer.java:start(442)) - listener.getLocalPort() returned 34566 webServer.getConnectors()[0].getLocalPort() returned 34566
+2011-08-09 18:07:56,123 INFO  http.HttpServer (HttpServer.java:start(475)) - Jetty bound to port 34566
+2011-08-09 18:07:56,123 INFO  mortbay.log (Slf4jLog.java:info(67)) - jetty-6.1.26
+2011-08-09 18:07:56,325 INFO  mortbay.log (Slf4jLog.java:info(67)) - Started SelectChannelConnector@0.0.0.0:34566
+2011-08-09 18:07:56,335 INFO  jvm.JvmMetrics (JvmMetrics.java:init(66)) - Cannot initialize JVM Metrics with processName=TaskTracker, sessionId= - already initialized
+2011-08-09 18:07:56,364 INFO  ipc.Server (Server.java:run(307)) - Starting SocketReader
+2011-08-09 18:07:56,368 INFO  metrics.RpcMetrics (RpcMetrics.java:<init>(59)) - Initializing RPC Metrics with hostName=TaskTracker, port=35047
+2011-08-09 18:07:56,373 INFO  ipc.Server (Server.java:run(581)) - IPC Server Responder: starting
+2011-08-09 18:07:56,374 INFO  ipc.Server (Server.java:run(408)) - IPC Server listener on 35047: starting
+2011-08-09 18:07:56,374 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 0 on 35047: starting
+2011-08-09 18:07:56,422 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 3 on 35047: starting
+2011-08-09 18:07:56,422 INFO  mapred.TaskTracker (TaskTracker.java:initialize(572)) - TaskTracker up at: localhost/127.0.0.1:35047
+2011-08-09 18:07:56,421 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 2 on 35047: starting
+2011-08-09 18:07:56,375 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 1 on 35047: starting
+2011-08-09 18:07:56,428 INFO  mapred.TaskTracker (TaskTracker.java:initialize(575)) - Starting tracker tracker_host0.foo.com:localhost/127.0.0.1:35047
+2011-08-09 18:07:56,441 WARN  mapred.TaskTracker (TaskTracker.java:setTaskMemoryManagerEnabledFlag(3580)) - TaskTracker's totalMemoryAllottedForTasks is -1 and reserved physical memory is not configured. TaskMemoryManager is disabled.
+2011-08-09 18:07:56,443 INFO  mapred.TaskLogsMonitor (TaskLogsMonitor.java:<init>(47)) - Starting logs' monitor with mapRetainSize=-1 and reduceRetainSize=-1
+2011-08-09 18:07:56,443 INFO  mapred.TaskTracker (TaskTracker.java:run(720)) - Starting thread: Map-events fetcher for all reduce tasks on tracker_host0.foo.com:localhost/127.0.0.1:35047
+2011-08-09 18:07:56,444 INFO  mapred.IndexCache (IndexCache.java:<init>(46)) - IndexCache created with max memory = 10485760
+2011-08-09 18:07:56,468 INFO  mapred.JobTracker (JobTracker.java:updateTotalTaskCapacity(4200)) - Changing map slot count due to tracker_host0.foo.com:localhost/127.0.0.1:35047 from 0 to 2
+2011-08-09 18:07:56,469 INFO  mapred.JobTracker (JobTracker.java:updateTotalTaskCapacity(4216)) - Changing reduce slot count due to tracker_host0.foo.com:localhost/127.0.0.1:35047 from 0 to 2
+2011-08-09 18:07:56,470 INFO  net.NetworkTopology (NetworkTopology.java:add(328)) - Adding a new node: /default-rack/host0.foo.com
+2011-08-09 18:07:56,472 INFO  mapred.JobTracker (JobTracker.java:addNewTracker(2234)) - Adding tracker tracker_host0.foo.com:localhost/127.0.0.1:35047 to host host0.foo.com
+2011-08-09 18:07:56,478 WARN  fs.FileSystem (FileSystem.java:fixName(155)) - "localhost:56014" is a deprecated filesystem name. Use "hdfs://localhost:56014/" instead.
+2011-08-09 18:07:56,545 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=create	src=/user/jeff/testing/jobconf/input/text.txt	dst=null	perm=jeff:supergroup:rw-r--r--
+2011-08-09 18:07:56,552 INFO  hdfs.StateChange (FSNamesystem.java:allocateBlock(1930)) - BLOCK* NameSystem.allocateBlock: /user/jeff/testing/jobconf/input/text.txt. blk_57744454645497272_1001
+2011-08-09 18:07:56,575 INFO  datanode.DataNode (DataXceiver.java:writeBlock(254)) - Receiving block blk_57744454645497272_1001 src: /127.0.0.1:38837 dest: /127.0.0.1:47321
+2011-08-09 18:07:56,586 INFO  DataNode.clienttrace (BlockReceiver.java:lastDataNodeRun(820)) - src: /127.0.0.1:38837, dest: /127.0.0.1:47321, bytes: 12, op: HDFS_WRITE, cliID: DFSClient_-1274245210, offset: 0, srvID: DS-574333976-10.0.62.238-47321-1312906074624, blockid: blk_57744454645497272_1001, duration: 1470942
+2011-08-09 18:07:56,586 INFO  datanode.DataNode (BlockReceiver.java:lastDataNodeRun(851)) - PacketResponder 0 for block blk_57744454645497272_1001 terminating
+2011-08-09 18:07:56,588 INFO  hdfs.StateChange (FSNamesystem.java:addStoredBlock(3893)) - BLOCK* NameSystem.addStoredBlock: blockMap updated: 127.0.0.1:47321 is added to blk_57744454645497272_1001 size 12
+2011-08-09 18:07:56,594 INFO  hdfs.StateChange (FSNamesystem.java:completeFileInternal(1886)) - DIR* NameSystem.completeFile: file /user/jeff/testing/jobconf/input/text.txt is closed by DFSClient_-1274245210
+2011-08-09 18:07:56,611 WARN  fs.FileSystem (FileSystem.java:fixName(155)) - "localhost:56014" is a deprecated filesystem name. Use "hdfs://localhost:56014/" instead.
+2011-08-09 18:07:56,640 WARN  fs.FileSystem (FileSystem.java:fixName(155)) - "localhost:56014" is a deprecated filesystem name. Use "hdfs://localhost:56014/" instead.
+2011-08-09 18:07:56,693 INFO  mapred.JobTracker (JobTracker.java:getNewJobId(2980)) - Job id job_20110809180754760_0001 assigned to user jeff
+2011-08-09 18:07:56,696 WARN  mapred.JobClient (JobClient.java:configureCommandLineOptions(656)) - Use GenericOptionsParser for parsing the arguments. Applications should implement Tool for the same.
+2011-08-09 18:07:56,701 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=mkdirs	src=/user/jeff/build/test/mapred/system/job_20110809180754760_0001	dst=null	perm=jeff:supergroup:rwxr-xr-x
+2011-08-09 18:07:56,705 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=setPermission	src=/user/jeff/build/test/mapred/system/job_20110809180754760_0001	dst=null	perm=jeff:supergroup:rwxrwxrwx
+2011-08-09 18:07:56,706 WARN  mapred.JobClient (JobClient.java:configureCommandLineOptions(770)) - No job jar file set. User classes may not be found. See JobConf(Class) or JobConf#setJar(String).
+2011-08-09 18:07:56,721 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=listStatus	src=/user/jeff/testing/jobconf/input	dst=null	perm=null
+2011-08-09 18:07:56,727 INFO  mapred.FileInputFormat (FileInputFormat.java:listLocatedStatus(319)) - Total input paths to process : 1
+2011-08-09 18:07:56,734 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=create	src=/user/jeff/build/test/mapred/system/job_20110809180754760_0001/job.split	dst=null	perm=jeff:supergroup:rw-r--r--
+2011-08-09 18:07:56,737 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=setPermission	src=/user/jeff/build/test/mapred/system/job_20110809180754760_0001/job.split	dst=null	perm=jeff:supergroup:rw-r--r--
+2011-08-09 18:07:56,741 INFO  hdfs.StateChange (FSNamesystem.java:allocateBlock(1930)) - BLOCK* NameSystem.allocateBlock: /user/jeff/build/test/mapred/system/job_20110809180754760_0001/job.split. blk_7338099862257135841_1002
+2011-08-09 18:07:56,743 INFO  datanode.DataNode (DataXceiver.java:writeBlock(254)) - Receiving block blk_7338099862257135841_1002 src: /127.0.0.1:38839 dest: /127.0.0.1:47321
+2011-08-09 18:07:56,788 INFO  DataNode.clienttrace (BlockReceiver.java:lastDataNodeRun(820)) - src: /127.0.0.1:38839, dest: /127.0.0.1:47321, bytes: 153, op: HDFS_WRITE, cliID: DFSClient_-1274245210, offset: 0, srvID: DS-574333976-10.0.62.238-47321-1312906074624, blockid: blk_7338099862257135841_1002, duration: 42844816
+2011-08-09 18:07:56,790 INFO  hdfs.StateChange (FSNamesystem.java:addStoredBlock(3893)) - BLOCK* NameSystem.addStoredBlock: blockMap updated: 127.0.0.1:47321 is added to blk_7338099862257135841_1002 size 153
+2011-08-09 18:07:56,792 INFO  datanode.DataNode (BlockReceiver.java:lastDataNodeRun(851)) - PacketResponder 0 for block blk_7338099862257135841_1002 terminating
+2011-08-09 18:07:56,795 INFO  hdfs.StateChange (FSNamesystem.java:completeFileInternal(1886)) - DIR* NameSystem.completeFile: file /user/jeff/build/test/mapred/system/job_20110809180754760_0001/job.split is closed by DFSClient_-1274245210
+2011-08-09 18:07:56,799 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=create	src=/user/jeff/build/test/mapred/system/job_20110809180754760_0001/job.xml	dst=null	perm=jeff:supergroup:rw-r--r--
+2011-08-09 18:07:56,802 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=setPermission	src=/user/jeff/build/test/mapred/system/job_20110809180754760_0001/job.xml	dst=null	perm=jeff:supergroup:rw-r--r--
+2011-08-09 18:07:56,962 INFO  hdfs.StateChange (FSNamesystem.java:allocateBlock(1930)) - BLOCK* NameSystem.allocateBlock: /user/jeff/build/test/mapred/system/job_20110809180754760_0001/job.xml. blk_5522311504279729002_1003
+2011-08-09 18:07:56,965 INFO  datanode.DataNode (DataXceiver.java:writeBlock(254)) - Receiving block blk_5522311504279729002_1003 src: /127.0.0.1:38840 dest: /127.0.0.1:47321
+2011-08-09 18:07:56,968 INFO  hdfs.StateChange (FSNamesystem.java:addStoredBlock(3893)) - BLOCK* NameSystem.addStoredBlock: blockMap updated: 127.0.0.1:47321 is added to blk_5522311504279729002_1003 size 1973
+2011-08-09 18:07:56,969 INFO  DataNode.clienttrace (BlockReceiver.java:lastDataNodeRun(820)) - src: /127.0.0.1:38840, dest: /127.0.0.1:47321, bytes: 1973, op: HDFS_WRITE, cliID: DFSClient_-1274245210, offset: 0, srvID: DS-574333976-10.0.62.238-47321-1312906074624, blockid: blk_5522311504279729002_1003, duration: 1767981
+2011-08-09 18:07:56,969 INFO  datanode.DataNode (BlockReceiver.java:lastDataNodeRun(851)) - PacketResponder 0 for block blk_5522311504279729002_1003 terminating
+2011-08-09 18:07:57,014 INFO  hdfs.StateChange (FSNamesystem.java:completeFileInternal(1886)) - DIR* NameSystem.completeFile: file /user/jeff/build/test/mapred/system/job_20110809180754760_0001/job.xml is closed by DFSClient_-1274245210
+2011-08-09 18:07:57,020 INFO  mapred.JobTracker (JobTracker.java:persistUserName(3006)) - Job job_20110809180754760_0001 user info persisted to file : /home/jeff/hadoop-20-warehouse/build/test/mapred/local/jobTracker/job_20110809180754760_0001
+2011-08-09 18:07:57,031 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/user/jeff/build/test/mapred/system/job_20110809180754760_0001/job.xml	dst=null	perm=null
+2011-08-09 18:07:57,042 INFO  DataNode.clienttrace (BlockSender.java:sendBlock(441)) - src: /127.0.0.1:47321, dest: /127.0.0.1:38841, bytes: 1989, op: HDFS_READ, cliID: DFSClient_-1274245210, offset: 0, srvID: DS-574333976-10.0.62.238-47321-1312906074624, blockid: blk_5522311504279729002_1003, duration: 810918
+2011-08-09 18:07:57,062 INFO  mapred.JobInProgress (JobInProgress.java:<init>(431)) - User : jeff
+2011-08-09 18:07:57,149 INFO  mapred.JobInProgress (JobInProgress.java:<init>(456)) - Setup and cleanup tasks: jobSetupCleanupNeeded = true, taskCleanupNeeded = true
+2011-08-09 18:07:57,155 INFO  mapred.JobTracker (JobTracker.java:addJob(3126)) - Job job_20110809180754760_0001 added successfully for user 'jeff' to queue 'default'
+2011-08-09 18:07:57,159 INFO  mapred.JobClient (JobClient.java:monitorAndPrintJob(1627)) - Running job: job_20110809180754760_0001
+2011-08-09 18:07:57,159 INFO  mapred.JobTracker (JobTracker.java:initJob(3249)) - Initializing job_20110809180754760_0001
+2011-08-09 18:07:57,162 INFO  mapred.JobInProgress (JobInProgress.java:initTasks(647)) - Initializing job_20110809180754760_0001
+2011-08-09 18:07:57,178 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=create	src=/user/jeff/testing/jobconf/output/_logs/history/localhost_1312906074893_job_20110809180754760_0001_jeff_mr	dst=null	perm=jeff:supergroup:rw-r--r--
+2011-08-09 18:07:57,268 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=create	src=/user/jeff/testing/jobconf/output/_logs/history/localhost_1312906074893_job_20110809180754760_0001_conf.xml	dst=null	perm=jeff:supergroup:rw-r--r--
+2011-08-09 18:07:57,318 INFO  hdfs.StateChange (FSNamesystem.java:allocateBlock(1930)) - BLOCK* NameSystem.allocateBlock: /user/jeff/testing/jobconf/output/_logs/history/localhost_1312906074893_job_20110809180754760_0001_conf.xml. blk_5114665723680114353_1005
+2011-08-09 18:07:57,320 INFO  datanode.DataNode (DataXceiver.java:writeBlock(254)) - Receiving block blk_5114665723680114353_1005 src: /127.0.0.1:38842 dest: /127.0.0.1:47321
+2011-08-09 18:07:57,323 INFO  DataNode.clienttrace (BlockReceiver.java:lastDataNodeRun(820)) - src: /127.0.0.1:38842, dest: /127.0.0.1:47321, bytes: 18513, op: HDFS_WRITE, cliID: DFSClient_-1274245210, offset: 0, srvID: DS-574333976-10.0.62.238-47321-1312906074624, blockid: blk_5114665723680114353_1005, duration: 1366434
+2011-08-09 18:07:57,329 INFO  datanode.DataNode (BlockReceiver.java:lastDataNodeRun(851)) - PacketResponder 0 for block blk_5114665723680114353_1005 terminating
+2011-08-09 18:07:57,332 INFO  hdfs.StateChange (FSNamesystem.java:addStoredBlock(3893)) - BLOCK* NameSystem.addStoredBlock: blockMap updated: 127.0.0.1:47321 is added to blk_5114665723680114353_1005 size 18513
+2011-08-09 18:07:57,334 INFO  hdfs.StateChange (FSNamesystem.java:completeFileInternal(1886)) - DIR* NameSystem.completeFile: file /user/jeff/testing/jobconf/output/_logs/history/localhost_1312906074893_job_20110809180754760_0001_conf.xml is closed by DFSClient_-1274245210
+2011-08-09 18:07:57,337 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/user/jeff/build/test/mapred/system/job_20110809180754760_0001/job.split	dst=null	perm=null
+2011-08-09 18:07:57,339 INFO  DataNode.clienttrace (BlockSender.java:sendBlock(441)) - src: /127.0.0.1:47321, dest: /127.0.0.1:38843, bytes: 157, op: HDFS_READ, cliID: DFSClient_-1274245210, offset: 0, srvID: DS-574333976-10.0.62.238-47321-1312906074624, blockid: blk_7338099862257135841_1002, duration: 327218
+2011-08-09 18:07:57,347 INFO  mapred.JobInProgress (JobInProgress.java:initTasks(692)) - Input size for job job_20110809180754760_0001 = 12. Number of splits = 1
+2011-08-09 18:07:57,347 INFO  net.NetworkTopology (NetworkTopology.java:add(328)) - Adding a new node: /default-rack/m3vm6.tuenti.local
+2011-08-09 18:07:57,349 INFO  mapred.JobInProgress (JobInProgress.java:initTasks(742)) - Job job_20110809180754760_0001 initialized successfully with 1 map tasks and 1 reduce tasks.
+2011-08-09 18:07:59,186 INFO  mapred.JobClient (JobClient.java:monitorAndPrintJob(1640)) -  map 0% reduce 0%
+2011-08-09 18:07:59,509 INFO  mapred.JobTracker (JobTracker.java:createTaskEntry(1769)) - Adding task (JOB_SETUP) 'attempt_20110809180754760_0001_m_000002_0' to tip task_20110809180754760_0001_m_000002, for tracker 'tracker_host0.foo.com:localhost/127.0.0.1:35047'
+2011-08-09 18:07:59,517 INFO  mapred.TaskTracker (TaskTracker.java:registerTask(1977)) - LaunchTaskAction (registerTask): attempt_20110809180754760_0001_m_000002_0 task's state:UNASSIGNED
+2011-08-09 18:07:59,527 INFO  mapred.TaskTracker (TaskTracker.java:run(1933)) - Trying to launch : attempt_20110809180754760_0001_m_000002_0 which needs 1 slots
+2011-08-09 18:07:59,527 INFO  mapred.TaskTracker (TaskTracker.java:run(1944)) - In TaskLauncher, current free slots : 2 and trying to launch attempt_20110809180754760_0001_m_000002_0 which needs 1 slots
+2011-08-09 18:07:59,537 WARN  mapred.TaskTracker (TaskTracker.java:localizeJob(887)) - Deleting pre-existing jobDir: /home/jeff/hadoop-20-warehouse/build/test/mapred/local/0_0/taskTracker/jobcache/job_20110809180754760_0001 when localizeJob for tip org.apache.hadoop.mapred.TaskTracker$TaskInProgress@4b6621
+2011-08-09 18:07:59,540 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/user/jeff/build/test/mapred/system/job_20110809180754760_0001/job.xml	dst=null	perm=null
+2011-08-09 18:07:59,544 INFO  DataNode.clienttrace (BlockSender.java:sendBlock(441)) - src: /127.0.0.1:47321, dest: /127.0.0.1:38844, bytes: 1989, op: HDFS_READ, cliID: DFSClient_-1274245210, offset: 0, srvID: DS-574333976-10.0.62.238-47321-1312906074624, blockid: blk_5522311504279729002_1003, duration: 279714
+2011-08-09 18:07:59,613 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(184)) - Move and then delete map ouput taskTracker/jobcache/job_20110809180754760_0001/attempt_20110809180754760_0001_m_000002_0/output for task attempt_20110809180754760_0001_m_000002_0
+2011-08-09 18:07:59,623 INFO  mapred.JvmManager (JvmManager.java:<init>(392)) - In JvmRunner constructed JVM ID: jvm_20110809180754760_0001_m_1208596439
+2011-08-09 18:07:59,624 INFO  mapred.JvmManager (JvmManager.java:spawnNewJvm(354)) - JVM Runner jvm_20110809180754760_0001_m_1208596439 spawned.
+2011-08-09 18:08:00,459 INFO  mapred.TaskTracker (TaskTracker.java:getTask(2908)) - JVM with ID: jvm_20110809180754760_0001_m_1208596439 given task: attempt_20110809180754760_0001_m_000002_0
+2011-08-09 18:08:01,334 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=mkdirs	src=/user/jeff/testing/jobconf/output/_temporary	dst=null	perm=jeff:supergroup:rwxr-xr-x
+2011-08-09 18:08:01,382 INFO  mapred.TaskTracker (TaskTracker.java:reportProgress(2315)) - attempt_20110809180754760_0001_m_000002_0 0.0% setup
+2011-08-09 18:08:01,384 INFO  mapred.TaskTracker (TaskTracker.java:reportDone(2396)) - Task attempt_20110809180754760_0001_m_000002_0 is done.
+2011-08-09 18:08:01,384 INFO  mapred.TaskTracker (TaskTracker.java:reportDone(2397)) - reported output size for attempt_20110809180754760_0001_m_000002_0  was 0
+2011-08-09 18:08:01,387 WARN  mapred.TaskTracker (TaskTracker.java:reportDone(2415)) - Cannot find map output for attempt_20110809180754760_0001_m_000002_0
+org.apache.hadoop.util.DiskChecker$DiskErrorException: Could not find taskTracker/jobcache/job_20110809180754760_0001/attempt_20110809180754760_0001_m_000002_0/output/file.out in any of the configured local directories
+	at org.apache.hadoop.fs.LocalDirAllocator$AllocatorPerContext.getLocalPathToRead(LocalDirAllocator.java:389)
+	at org.apache.hadoop.fs.LocalDirAllocator.getLocalPathToRead(LocalDirAllocator.java:138)
+	at org.apache.hadoop.mapred.TaskTracker$TaskInProgress.reportDone(TaskTracker.java:2407)
+	at org.apache.hadoop.mapred.TaskTracker.done(TaskTracker.java:2992)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:39)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:25)
+	at java.lang.reflect.Method.invoke(Method.java:597)
+	at org.apache.hadoop.ipc.RPC$Server.call(RPC.java:631)
+	at org.apache.hadoop.ipc.Server$Handler$1.run(Server.java:1070)
+	at org.apache.hadoop.ipc.Server$Handler$1.run(Server.java:1066)
+	at java.security.AccessController.doPrivileged(Native Method)
+	at javax.security.auth.Subject.doAs(Subject.java:396)
+	at org.apache.hadoop.ipc.Server$Handler.run(Server.java:1064)
+2011-08-09 18:08:01,393 INFO  mapred.TaskTracker (TaskTracker.java:addFreeSlots(1916)) - addFreeSlot : current free slots : 2
+2011-08-09 18:08:01,555 INFO  mapred.JvmManager (JvmManager.java:runChild(423)) - JVM : jvm_20110809180754760_0001_m_1208596439 exited. Number of tasks it ran: 1
+2011-08-09 18:08:01,598 INFO  mapred.TaskLogsMonitor (TaskLogsMonitor.java:addProcessForLogTruncation(83)) - Adding the jvm with first-attempt attempt_20110809180754760_0001_m_000002_0 for logs' truncation
+2011-08-09 18:08:01,660 WARN  mapred.TaskLogsMonitor (TaskLogsMonitor.java:truncateLogs(145)) - Cannot open /home/jeff/hadoop-20-warehouse/build/test/logs/userlogs/attempt_20110809180754760_0001_m_000002_0/syslog for reading. Continuing with other log files
+2011-08-09 18:08:01,661 WARN  mapred.TaskLogsMonitor (TaskLogsMonitor.java:truncateLogs(145)) - Cannot open /home/jeff/hadoop-20-warehouse/build/test/logs/userlogs/attempt_20110809180754760_0001_m_000002_0/profile.out for reading. Continuing with other log files
+2011-08-09 18:08:01,661 WARN  mapred.TaskLogsMonitor (TaskLogsMonitor.java:truncateLogs(145)) - Cannot open /home/jeff/hadoop-20-warehouse/build/test/logs/userlogs/attempt_20110809180754760_0001_m_000002_0/debugout for reading. Continuing with other log files
+2011-08-09 18:08:01,670 WARN  util.ProcessTree (ProcessTree.java:terminateProcessGroup(136)) - Error executing shell command org.apache.hadoop.util.Shell$ExitCodeException: kill: No such process
+
+2011-08-09 18:08:01,671 INFO  util.ProcessTree (ProcessTree.java:terminateProcessGroup(138)) - Killing all processes in the process group 16196 with SIGTERM. Exit code 1
+2011-08-09 18:08:02,519 INFO  mapred.TaskTracker (TaskTracker.java:tryToGetOutputSize(1868)) - org.apache.hadoop.util.DiskChecker$DiskErrorException: Could not find taskTracker/jobcache/job_20110809180754760_0001/attempt_20110809180754760_0001_m_000002_0/output/file.out in any of the configured local directories
+2011-08-09 18:08:02,536 INFO  mapred.JobInProgress (JobInProgress.java:completedTask(2635)) - Task 'attempt_20110809180754760_0001_m_000002_0' has completed task_20110809180754760_0001_m_000002 successfully.
+2011-08-09 18:08:02,546 INFO  mapred.JobInProgress (JobInProgress.java:addRunningTaskToTIP(1766)) - Choosing rack-local task task_20110809180754760_0001_m_000000
+2011-08-09 18:08:02,558 INFO  mapred.JobTracker (JobTracker.java:createTaskEntry(1769)) - Adding task (MAP) 'attempt_20110809180754760_0001_m_000000_0' to tip task_20110809180754760_0001_m_000000, for tracker 'tracker_host0.foo.com:localhost/127.0.0.1:35047'
+2011-08-09 18:08:02,558 INFO  mapred.JobTracker (JobTracker.java:createTaskEntry(1769)) - Adding task (REDUCE) 'attempt_20110809180754760_0001_r_000000_0' to tip task_20110809180754760_0001_r_000000, for tracker 'tracker_host0.foo.com:localhost/127.0.0.1:35047'
+2011-08-09 18:08:02,561 INFO  mapred.TaskTracker (TaskTracker.java:run(377)) - Received KillTaskAction for task: attempt_20110809180754760_0001_m_000002_0
+2011-08-09 18:08:02,561 INFO  mapred.TaskTracker (TaskTracker.java:purgeTask(1709)) - About to purge task: attempt_20110809180754760_0001_m_000002_0
+2011-08-09 18:08:02,562 INFO  mapred.TaskRunner (MapTaskRunner.java:close(43)) - attempt_20110809180754760_0001_m_000002_0 done; removing files.
+2011-08-09 18:08:02,563 INFO  mapred.TaskTracker (TaskTracker.java:registerTask(1977)) - LaunchTaskAction (registerTask): attempt_20110809180754760_0001_m_000000_0 task's state:UNASSIGNED
+2011-08-09 18:08:02,564 INFO  mapred.TaskTracker (TaskTracker.java:registerTask(1977)) - LaunchTaskAction (registerTask): attempt_20110809180754760_0001_r_000000_0 task's state:UNASSIGNED
+2011-08-09 18:08:02,564 INFO  mapred.TaskTracker (TaskTracker.java:run(1933)) - Trying to launch : attempt_20110809180754760_0001_m_000000_0 which needs 1 slots
+2011-08-09 18:08:02,565 INFO  mapred.TaskTracker (TaskTracker.java:run(1944)) - In TaskLauncher, current free slots : 2 and trying to launch attempt_20110809180754760_0001_m_000000_0 which needs 1 slots
+2011-08-09 18:08:02,565 INFO  mapred.TaskTracker (TaskTracker.java:run(1933)) - Trying to launch : attempt_20110809180754760_0001_r_000000_0 which needs 1 slots
+2011-08-09 18:08:02,566 INFO  mapred.TaskTracker (TaskTracker.java:run(1944)) - In TaskLauncher, current free slots : 2 and trying to launch attempt_20110809180754760_0001_r_000000_0 which needs 1 slots
+2011-08-09 18:08:02,567 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(184)) - Move and then delete map ouput taskTracker/jobcache/job_20110809180754760_0001/attempt_20110809180754760_0001_m_000002_0/output for task attempt_20110809180754760_0001_m_000002_0
+2011-08-09 18:08:02,573 INFO  mapred.IndexCache (IndexCache.java:removeMap(140)) - Map ID attempt_20110809180754760_0001_m_000002_0 not found in cache
+2011-08-09 18:08:02,700 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(184)) - Move and then delete map ouput taskTracker/jobcache/job_20110809180754760_0001/attempt_20110809180754760_0001_m_000000_0/output for task attempt_20110809180754760_0001_m_000000_0
+2011-08-09 18:08:02,701 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(184)) - Move and then delete map ouput taskTracker/jobcache/job_20110809180754760_0001/attempt_20110809180754760_0001_r_000000_0/output for task attempt_20110809180754760_0001_r_000000_0
+2011-08-09 18:08:02,704 INFO  mapred.JvmManager (JvmManager.java:<init>(392)) - In JvmRunner constructed JVM ID: jvm_20110809180754760_0001_m_-1356499245
+2011-08-09 18:08:02,704 INFO  mapred.JvmManager (JvmManager.java:<init>(392)) - In JvmRunner constructed JVM ID: jvm_20110809180754760_0001_r_1208596439
+2011-08-09 18:08:02,705 INFO  mapred.JvmManager (JvmManager.java:spawnNewJvm(354)) - JVM Runner jvm_20110809180754760_0001_m_-1356499245 spawned.
+2011-08-09 18:08:02,705 INFO  mapred.JvmManager (JvmManager.java:spawnNewJvm(354)) - JVM Runner jvm_20110809180754760_0001_r_1208596439 spawned.
+2011-08-09 18:08:03,842 INFO  mapred.TaskTracker (TaskTracker.java:getTask(2908)) - JVM with ID: jvm_20110809180754760_0001_m_-1356499245 given task: attempt_20110809180754760_0001_m_000000_0
+2011-08-09 18:08:03,875 INFO  mapred.TaskTracker (TaskTracker.java:getTask(2908)) - JVM with ID: jvm_20110809180754760_0001_r_1208596439 given task: attempt_20110809180754760_0001_r_000000_0
+2011-08-09 18:08:04,886 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/user/jeff/testing/jobconf/input/text.txt	dst=null	perm=null
+2011-08-09 18:08:04,962 INFO  DataNode.clienttrace (BlockSender.java:sendBlock(441)) - src: /127.0.0.1:47321, dest: /127.0.0.1:38855, bytes: 16, op: HDFS_READ, cliID: DFSClient_attempt_20110809180754760_0001_m_000000_0_1541039163_1, offset: 0, srvID: DS-574333976-10.0.62.238-47321-1312906074624, blockid: blk_57744454645497272_1001, duration: 335601
+2011-08-09 18:08:05,304 INFO  mapred.TaskTracker (TaskTracker.java:reportProgress(2315)) - attempt_20110809180754760_0001_m_000000_0 1.0% hdfs://localhost:56014/user/jeff/testing/jobconf/input/text.txt:0+12
+2011-08-09 18:08:05,306 INFO  mapred.TaskTracker (TaskTracker.java:reportDone(2396)) - Task attempt_20110809180754760_0001_m_000000_0 is done.
+2011-08-09 18:08:05,307 INFO  mapred.TaskTracker (TaskTracker.java:reportDone(2397)) - reported output size for attempt_20110809180754760_0001_m_000000_0  was 0
+2011-08-09 18:08:05,308 INFO  mapred.TaskTracker (TaskTracker.java:reportDone(2411)) - Map output for attempt_20110809180754760_0001_m_000000_0 is in /home/jeff/hadoop-20-warehouse/build/test/mapred/local/0_0/taskTracker/jobcache/job_20110809180754760_0001/attempt_20110809180754760_0001_m_000000_0/output/file.out
+2011-08-09 18:08:05,308 INFO  mapred.TaskTracker (TaskTracker.java:reportDone(2412)) - Map output index for attempt_20110809180754760_0001_m_000000_0 is in /home/jeff/hadoop-20-warehouse/build/test/mapred/local/0_0/taskTracker/jobcache/job_20110809180754760_0001/attempt_20110809180754760_0001_m_000000_0/output/file.out.index
+2011-08-09 18:08:05,310 INFO  mapred.TaskTracker (TaskTracker.java:addFreeSlots(1916)) - addFreeSlot : current free slots : 2
+2011-08-09 18:08:05,446 INFO  mapred.JvmManager (JvmManager.java:runChild(423)) - JVM : jvm_20110809180754760_0001_m_-1356499245 exited. Number of tasks it ran: 1
+2011-08-09 18:08:05,447 INFO  mapred.TaskLogsMonitor (TaskLogsMonitor.java:addProcessForLogTruncation(83)) - Adding the jvm with first-attempt attempt_20110809180754760_0001_m_000000_0 for logs' truncation
+2011-08-09 18:08:05,519 WARN  mapred.TaskLogsMonitor (TaskLogsMonitor.java:truncateLogs(145)) - Cannot open /home/jeff/hadoop-20-warehouse/build/test/logs/userlogs/attempt_20110809180754760_0001_m_000000_0/syslog for reading. Continuing with other log files
+2011-08-09 18:08:05,520 WARN  mapred.TaskLogsMonitor (TaskLogsMonitor.java:truncateLogs(145)) - Cannot open /home/jeff/hadoop-20-warehouse/build/test/logs/userlogs/attempt_20110809180754760_0001_m_000000_0/profile.out for reading. Continuing with other log files
+2011-08-09 18:08:05,521 WARN  mapred.TaskLogsMonitor (TaskLogsMonitor.java:truncateLogs(145)) - Cannot open /home/jeff/hadoop-20-warehouse/build/test/logs/userlogs/attempt_20110809180754760_0001_m_000000_0/debugout for reading. Continuing with other log files
+2011-08-09 18:08:05,526 WARN  util.ProcessTree (ProcessTree.java:terminateProcessGroup(136)) - Error executing shell command org.apache.hadoop.util.Shell$ExitCodeException: kill: No such process
+
+2011-08-09 18:08:05,526 INFO  util.ProcessTree (ProcessTree.java:terminateProcessGroup(138)) - Killing all processes in the process group 16243 with SIGTERM. Exit code 1
+2011-08-09 18:08:05,577 INFO  mapred.JobInProgress (JobInProgress.java:completedTask(2635)) - Task 'attempt_20110809180754760_0001_m_000000_0' has completed task_20110809180754760_0001_m_000000 successfully.
+2011-08-09 18:08:07,223 INFO  mapred.JobClient (JobClient.java:monitorAndPrintJob(1640)) -  map 100% reduce 0%
+2011-08-09 18:08:10,094 INFO  mapred.TaskTracker (TaskTracker.java:doGet(3377)) - Sent out 38 bytes for reduce: 0 from map: attempt_20110809180754760_0001_m_000000_0 given 38/34
+2011-08-09 18:08:10,095 INFO  TaskTracker.clienttrace (TaskTracker.java:doGet(3399)) - src: 127.0.0.1:34566, dest: 127.0.0.1:56004, bytes: 38, op: MAPRED_SHUFFLE, cliID: attempt_20110809180754760_0001_m_000000_0, duration: 18865445
+2011-08-09 18:08:10,661 INFO  mapred.TaskTracker (TaskTracker.java:reportProgress(2315)) - attempt_20110809180754760_0001_r_000000_0 0.0% reduce > copy > 
+2011-08-09 18:08:10,982 INFO  mapred.TaskTracker (TaskTracker.java:reportProgress(2315)) - attempt_20110809180754760_0001_r_000000_0 0.0% reduce > copy > 
+2011-08-09 18:08:11,020 INFO  mapred.TaskTracker (TaskTracker.java:reportProgress(2315)) - attempt_20110809180754760_0001_r_000000_0 0.0% reduce > copy > 
+2011-08-09 18:08:11,041 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=mkdirs	src=/user/jeff/testing/jobconf/output/_temporary/_attempt_20110809180754760_0001_r_000000_0	dst=null	perm=jeff:supergroup:rwxr-xr-x
+2011-08-09 18:08:11,052 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=create	src=/user/jeff/testing/jobconf/output/_temporary/_attempt_20110809180754760_0001_r_000000_0/part-00000	dst=null	perm=jeff:supergroup:rw-r--r--
+2011-08-09 18:08:11,065 INFO  hdfs.StateChange (FSNamesystem.java:allocateBlock(1930)) - BLOCK* NameSystem.allocateBlock: /user/jeff/testing/jobconf/output/_temporary/_attempt_20110809180754760_0001_r_000000_0/part-00000. blk_7589942139982366961_1006
+2011-08-09 18:08:11,134 INFO  datanode.DataNode (DataXceiver.java:writeBlock(254)) - Receiving block blk_7589942139982366961_1006 src: /127.0.0.1:38857 dest: /127.0.0.1:47321
+2011-08-09 18:08:11,142 INFO  DataNode.clienttrace (BlockReceiver.java:lastDataNodeRun(820)) - src: /127.0.0.1:38857, dest: /127.0.0.1:47321, bytes: 16, op: HDFS_WRITE, cliID: DFSClient_attempt_20110809180754760_0001_r_000000_0_-2050954216_1, offset: 0, srvID: DS-574333976-10.0.62.238-47321-1312906074624, blockid: blk_7589942139982366961_1006, duration: 3974673
+2011-08-09 18:08:11,143 INFO  datanode.DataNode (BlockReceiver.java:lastDataNodeRun(851)) - PacketResponder 0 for block blk_7589942139982366961_1006 terminating
+2011-08-09 18:08:11,144 INFO  hdfs.StateChange (FSNamesystem.java:addStoredBlock(3893)) - BLOCK* NameSystem.addStoredBlock: blockMap updated: 127.0.0.1:47321 is added to blk_7589942139982366961_1006 size 16
+2011-08-09 18:08:11,148 INFO  hdfs.StateChange (FSNamesystem.java:completeFileInternal(1886)) - DIR* NameSystem.completeFile: file /user/jeff/testing/jobconf/output/_temporary/_attempt_20110809180754760_0001_r_000000_0/part-00000 is closed by DFSClient_attempt_20110809180754760_0001_r_000000_0_-2050954216_1
+2011-08-09 18:08:11,187 INFO  mapred.TaskTracker (TaskTracker.java:commitPending(2971)) - Task attempt_20110809180754760_0001_r_000000_0 is in commit-pending, task state:COMMIT_PENDING
+2011-08-09 18:08:11,187 INFO  mapred.TaskTracker (TaskTracker.java:reportProgress(2315)) - attempt_20110809180754760_0001_r_000000_0 0.0% reduce > copy > 
+2011-08-09 18:08:11,613 INFO  mapred.TaskTracker (TaskTracker.java:offerService(1260)) - Received commit task action for attempt_20110809180754760_0001_r_000000_0
+2011-08-09 18:08:12,198 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=listStatus	src=/user/jeff/testing/jobconf/output/_temporary/_attempt_20110809180754760_0001_r_000000_0	dst=null	perm=null
+2011-08-09 18:08:12,201 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=mkdirs	src=/user/jeff/testing/jobconf/output	dst=null	perm=jeff:supergroup:rwxr-xr-x
+2011-08-09 18:08:12,219 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=rename	src=/user/jeff/testing/jobconf/output/_temporary/_attempt_20110809180754760_0001_r_000000_0/part-00000	dst=/user/jeff/testing/jobconf/output/part-00000	perm=jeff:supergroup:rw-r--r--
+2011-08-09 18:08:12,240 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=delete	src=/user/jeff/testing/jobconf/output/_temporary/_attempt_20110809180754760_0001_r_000000_0	dst=null	perm=null
+2011-08-09 18:08:12,243 INFO  mapred.TaskTracker (TaskTracker.java:reportProgress(2315)) - attempt_20110809180754760_0001_r_000000_0 1.0% reduce > reduce
+2011-08-09 18:08:12,244 INFO  mapred.TaskTracker (TaskTracker.java:reportDone(2396)) - Task attempt_20110809180754760_0001_r_000000_0 is done.
+2011-08-09 18:08:12,244 INFO  mapred.TaskTracker (TaskTracker.java:reportDone(2397)) - reported output size for attempt_20110809180754760_0001_r_000000_0  was 0
+2011-08-09 18:08:12,246 INFO  mapred.TaskTracker (TaskTracker.java:addFreeSlots(1916)) - addFreeSlot : current free slots : 2
+2011-08-09 18:08:12,388 INFO  mapred.JvmManager (JvmManager.java:runChild(423)) - JVM : jvm_20110809180754760_0001_r_1208596439 exited. Number of tasks it ran: 1
+2011-08-09 18:08:12,391 INFO  mapred.TaskLogsMonitor (TaskLogsMonitor.java:addProcessForLogTruncation(83)) - Adding the jvm with first-attempt attempt_20110809180754760_0001_r_000000_0 for logs' truncation
+2011-08-09 18:08:12,397 WARN  mapred.TaskLogsMonitor (TaskLogsMonitor.java:truncateLogs(145)) - Cannot open /home/jeff/hadoop-20-warehouse/build/test/logs/userlogs/attempt_20110809180754760_0001_r_000000_0/syslog for reading. Continuing with other log files
+2011-08-09 18:08:12,397 WARN  mapred.TaskLogsMonitor (TaskLogsMonitor.java:truncateLogs(145)) - Cannot open /home/jeff/hadoop-20-warehouse/build/test/logs/userlogs/attempt_20110809180754760_0001_r_000000_0/profile.out for reading. Continuing with other log files
+2011-08-09 18:08:12,398 WARN  mapred.TaskLogsMonitor (TaskLogsMonitor.java:truncateLogs(145)) - Cannot open /home/jeff/hadoop-20-warehouse/build/test/logs/userlogs/attempt_20110809180754760_0001_r_000000_0/debugout for reading. Continuing with other log files
+2011-08-09 18:08:12,400 WARN  util.ProcessTree (ProcessTree.java:terminateProcessGroup(136)) - Error executing shell command org.apache.hadoop.util.Shell$ExitCodeException: kill: No such process
+
+2011-08-09 18:08:12,400 INFO  util.ProcessTree (ProcessTree.java:terminateProcessGroup(138)) - Killing all processes in the process group 16247 with SIGTERM. Exit code 1
+2011-08-09 18:08:14,626 INFO  mapred.JobInProgress (JobInProgress.java:completedTask(2635)) - Task 'attempt_20110809180754760_0001_r_000000_0' has completed task_20110809180754760_0001_r_000000 successfully.
+2011-08-09 18:08:14,633 INFO  mapred.JobTracker (JobTracker.java:createTaskEntry(1769)) - Adding task (JOB_CLEANUP) 'attempt_20110809180754760_0001_m_000001_0' to tip task_20110809180754760_0001_m_000001, for tracker 'tracker_host0.foo.com:localhost/127.0.0.1:35047'
+2011-08-09 18:08:14,635 INFO  mapred.TaskTracker (TaskTracker.java:run(377)) - Received KillTaskAction for task: attempt_20110809180754760_0001_r_000000_0
+2011-08-09 18:08:14,635 INFO  mapred.TaskTracker (TaskTracker.java:purgeTask(1709)) - About to purge task: attempt_20110809180754760_0001_r_000000_0
+2011-08-09 18:08:14,636 INFO  mapred.TaskRunner (ReduceTaskRunner.java:close(47)) - attempt_20110809180754760_0001_r_000000_0 done; removing files.
+2011-08-09 18:08:14,665 INFO  mapred.TaskTracker (TaskTracker.java:registerTask(1977)) - LaunchTaskAction (registerTask): attempt_20110809180754760_0001_m_000001_0 task's state:UNASSIGNED
+2011-08-09 18:08:14,666 INFO  mapred.TaskTracker (TaskTracker.java:run(1933)) - Trying to launch : attempt_20110809180754760_0001_m_000001_0 which needs 1 slots
+2011-08-09 18:08:14,666 INFO  mapred.TaskTracker (TaskTracker.java:run(1944)) - In TaskLauncher, current free slots : 2 and trying to launch attempt_20110809180754760_0001_m_000001_0 which needs 1 slots
+2011-08-09 18:08:14,669 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(184)) - Move and then delete map ouput taskTracker/jobcache/job_20110809180754760_0001/attempt_20110809180754760_0001_r_000000_0/output for task attempt_20110809180754760_0001_r_000000_0
+2011-08-09 18:08:14,816 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(184)) - Move and then delete map ouput taskTracker/jobcache/job_20110809180754760_0001/attempt_20110809180754760_0001_m_000001_0/output for task attempt_20110809180754760_0001_m_000001_0
+2011-08-09 18:08:14,819 INFO  mapred.JvmManager (JvmManager.java:<init>(392)) - In JvmRunner constructed JVM ID: jvm_20110809180754760_0001_m_1574368305
+2011-08-09 18:08:14,824 INFO  mapred.JvmManager (JvmManager.java:spawnNewJvm(354)) - JVM Runner jvm_20110809180754760_0001_m_1574368305 spawned.
+2011-08-09 18:08:15,250 INFO  mapred.JobClient (JobClient.java:monitorAndPrintJob(1640)) -  map 100% reduce 100%
+2011-08-09 18:08:15,853 INFO  mapred.TaskTracker (TaskTracker.java:getTask(2908)) - JVM with ID: jvm_20110809180754760_0001_m_1574368305 given task: attempt_20110809180754760_0001_m_000001_0
+2011-08-09 18:08:16,701 INFO  mapred.TaskTracker (TaskTracker.java:reportProgress(2315)) - attempt_20110809180754760_0001_m_000001_0 0.0% 
+2011-08-09 18:08:16,798 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=delete	src=/user/jeff/testing/jobconf/output/_temporary	dst=null	perm=null
+2011-08-09 18:08:16,841 INFO  mapred.TaskTracker (TaskTracker.java:reportProgress(2315)) - attempt_20110809180754760_0001_m_000001_0 0.0% cleanup
+2011-08-09 18:08:16,843 INFO  mapred.TaskTracker (TaskTracker.java:reportDone(2396)) - Task attempt_20110809180754760_0001_m_000001_0 is done.
+2011-08-09 18:08:16,843 INFO  mapred.TaskTracker (TaskTracker.java:reportDone(2397)) - reported output size for attempt_20110809180754760_0001_m_000001_0  was 0
+2011-08-09 18:08:16,845 WARN  mapred.TaskTracker (TaskTracker.java:reportDone(2415)) - Cannot find map output for attempt_20110809180754760_0001_m_000001_0
+org.apache.hadoop.util.DiskChecker$DiskErrorException: Could not find taskTracker/jobcache/job_20110809180754760_0001/attempt_20110809180754760_0001_m_000001_0/output/file.out in any of the configured local directories
+	at org.apache.hadoop.fs.LocalDirAllocator$AllocatorPerContext.getLocalPathToRead(LocalDirAllocator.java:389)
+	at org.apache.hadoop.fs.LocalDirAllocator.getLocalPathToRead(LocalDirAllocator.java:138)
+	at org.apache.hadoop.mapred.TaskTracker$TaskInProgress.reportDone(TaskTracker.java:2407)
+	at org.apache.hadoop.mapred.TaskTracker.done(TaskTracker.java:2992)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:39)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:25)
+	at java.lang.reflect.Method.invoke(Method.java:597)
+	at org.apache.hadoop.ipc.RPC$Server.call(RPC.java:631)
+	at org.apache.hadoop.ipc.Server$Handler$1.run(Server.java:1070)
+	at org.apache.hadoop.ipc.Server$Handler$1.run(Server.java:1066)
+	at java.security.AccessController.doPrivileged(Native Method)
+	at javax.security.auth.Subject.doAs(Subject.java:396)
+	at org.apache.hadoop.ipc.Server$Handler.run(Server.java:1064)
+2011-08-09 18:08:16,846 INFO  mapred.TaskTracker (TaskTracker.java:addFreeSlots(1916)) - addFreeSlot : current free slots : 2
+2011-08-09 18:08:17,014 INFO  mapred.JvmManager (JvmManager.java:runChild(423)) - JVM : jvm_20110809180754760_0001_m_1574368305 exited. Number of tasks it ran: 1
+2011-08-09 18:08:17,070 INFO  mapred.TaskLogsMonitor (TaskLogsMonitor.java:addProcessForLogTruncation(83)) - Adding the jvm with first-attempt attempt_20110809180754760_0001_m_000001_0 for logs' truncation
+2011-08-09 18:08:17,077 WARN  mapred.TaskLogsMonitor (TaskLogsMonitor.java:truncateLogs(145)) - Cannot open /home/jeff/hadoop-20-warehouse/build/test/logs/userlogs/attempt_20110809180754760_0001_m_000001_0/syslog for reading. Continuing with other log files
+2011-08-09 18:08:17,078 WARN  mapred.TaskLogsMonitor (TaskLogsMonitor.java:truncateLogs(145)) - Cannot open /home/jeff/hadoop-20-warehouse/build/test/logs/userlogs/attempt_20110809180754760_0001_m_000001_0/profile.out for reading. Continuing with other log files
+2011-08-09 18:08:17,079 WARN  mapred.TaskLogsMonitor (TaskLogsMonitor.java:truncateLogs(145)) - Cannot open /home/jeff/hadoop-20-warehouse/build/test/logs/userlogs/attempt_20110809180754760_0001_m_000001_0/debugout for reading. Continuing with other log files
+2011-08-09 18:08:17,103 WARN  util.ProcessTree (ProcessTree.java:terminateProcessGroup(136)) - Error executing shell command org.apache.hadoop.util.Shell$ExitCodeException: kill: No such process
+
+2011-08-09 18:08:17,103 INFO  util.ProcessTree (ProcessTree.java:terminateProcessGroup(138)) - Killing all processes in the process group 16350 with SIGTERM. Exit code 1
+2011-08-09 18:08:17,637 INFO  mapred.TaskTracker (TaskTracker.java:tryToGetOutputSize(1868)) - org.apache.hadoop.util.DiskChecker$DiskErrorException: Could not find taskTracker/jobcache/job_20110809180754760_0001/attempt_20110809180754760_0001_m_000001_0/output/file.out in any of the configured local directories
+2011-08-09 18:08:17,647 INFO  mapred.JobInProgress (JobInProgress.java:completedTask(2635)) - Task 'attempt_20110809180754760_0001_m_000001_0' has completed task_20110809180754760_0001_m_000001 successfully.
+2011-08-09 18:08:17,649 INFO  mapred.JobInProgress (JobInProgress.java:jobComplete(2821)) - Job job_20110809180754760_0001 has completed successfully.
+2011-08-09 18:08:17,654 INFO  mapred.JobInProgress$JobSummary (JobInProgress.java:logJobSummary(3521)) - jobId=job_20110809180754760_0001,submitTime=1312906077047,launchTime=1312906077348,finishTime=1312906097649,numMaps=1,numSlotsPerMap=1,numReduces=1,numSlotsPerReduce=1,user=jeff,queue=default,status=SUCCEEDED,mapSlotSeconds=6,reduceSlotsSeconds=9,clusterMapCapacity=2,clusterReduceCapacity=2
+2011-08-09 18:08:17,675 INFO  hdfs.StateChange (FSNamesystem.java:allocateBlock(1930)) - BLOCK* NameSystem.allocateBlock: /user/jeff/testing/jobconf/output/_logs/history/localhost_1312906074893_job_20110809180754760_0001_jeff_mr. blk_8262753159061155787_1006
+2011-08-09 18:08:17,698 INFO  datanode.DataNode (DataXceiver.java:writeBlock(254)) - Receiving block blk_8262753159061155787_1006 src: /127.0.0.1:38863 dest: /127.0.0.1:47321
+2011-08-09 18:08:17,708 INFO  DataNode.clienttrace (BlockReceiver.java:lastDataNodeRun(820)) - src: /127.0.0.1:38863, dest: /127.0.0.1:47321, bytes: 11291, op: HDFS_WRITE, cliID: DFSClient_-1274245210, offset: 0, srvID: DS-574333976-10.0.62.238-47321-1312906074624, blockid: blk_8262753159061155787_1006, duration: 6064003
+2011-08-09 18:08:17,709 INFO  datanode.DataNode (BlockReceiver.java:lastDataNodeRun(851)) - PacketResponder 0 for block blk_8262753159061155787_1006 terminating
+2011-08-09 18:08:17,713 INFO  hdfs.StateChange (FSNamesystem.java:addStoredBlock(3893)) - BLOCK* NameSystem.addStoredBlock: blockMap updated: 127.0.0.1:47321 is added to blk_8262753159061155787_1006 size 11291
+2011-08-09 18:08:17,715 INFO  mapred.JobTracker (JobTracker.java:removeTaskEntry(1803)) - Removing task 'attempt_20110809180754760_0001_m_000000_0'
+2011-08-09 18:08:17,715 WARN  hdfs.DFSClient (DFSClient.java:deleteUsingTrash(323)) - File /user/jeff/build/test/mapred/system/job_20110809180754760_0001 is being deleted only through Trash org.apache.hadoop.fs.FsShell.delete because all deletes must go through Trash.
+2011-08-09 18:08:17,715 INFO  mapred.JobTracker (JobTracker.java:removeTaskEntry(1803)) - Removing task 'attempt_20110809180754760_0001_m_000001_0'
+2011-08-09 18:08:17,717 INFO  mapred.JobTracker (JobTracker.java:removeTaskEntry(1803)) - Removing task 'attempt_20110809180754760_0001_m_000002_0'
+2011-08-09 18:08:17,717 INFO  mapred.JobTracker (JobTracker.java:removeTaskEntry(1803)) - Removing task 'attempt_20110809180754760_0001_r_000000_0'
+2011-08-09 18:08:17,719 INFO  mapred.TaskTracker (TaskTracker.java:purgeJob(1663)) - Received 'KillJobAction' for job: job_20110809180754760_0001
+2011-08-09 18:08:17,720 INFO  mapred.TaskRunner (MapTaskRunner.java:close(43)) - attempt_20110809180754760_0001_m_000001_0 done; removing files.
+2011-08-09 18:08:17,722 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(184)) - Move and then delete map ouput taskTracker/jobcache/job_20110809180754760_0001/attempt_20110809180754760_0001_m_000001_0/output for task attempt_20110809180754760_0001_m_000001_0
+2011-08-09 18:08:17,722 INFO  mapred.IndexCache (IndexCache.java:removeMap(140)) - Map ID attempt_20110809180754760_0001_m_000001_0 not found in cache
+2011-08-09 18:08:17,723 INFO  mapred.TaskRunner (MapTaskRunner.java:close(43)) - attempt_20110809180754760_0001_m_000000_0 done; removing files.
+2011-08-09 18:08:17,724 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(184)) - Move and then delete map ouput taskTracker/jobcache/job_20110809180754760_0001/attempt_20110809180754760_0001_m_000000_0/output for task attempt_20110809180754760_0001_m_000000_0
+2011-08-09 18:08:17,734 INFO  hdfs.StateChange (FSNamesystem.java:completeFileInternal(1886)) - DIR* NameSystem.completeFile: file /user/jeff/testing/jobconf/output/_logs/history/localhost_1312906074893_job_20110809180754760_0001_jeff_mr is closed by DFSClient_-1274245210
+2011-08-09 18:08:17,754 INFO  mapred.JobHistory (JobHistory.java:run(312)) - Moving file:/home/jeff/hadoop-20-warehouse/build/test/logs/history/localhost_1312906074893_job_20110809180754760_0001_jeff_mr to file:/home/jeff/hadoop-20-warehouse/build/test/logs/history/done
+2011-08-09 18:08:17,755 INFO  hdfs.StateChange (FSNamesystem.java:addToInvalidates(1995)) - BLOCK* NameSystem.addToInvalidates: blk_7338099862257135841 is added to invalidSet of 127.0.0.1:47321
+2011-08-09 18:08:17,755 INFO  hdfs.StateChange (FSNamesystem.java:addToInvalidates(1995)) - BLOCK* NameSystem.addToInvalidates: blk_5522311504279729002 is added to invalidSet of 127.0.0.1:47321
+2011-08-09 18:08:17,757 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=delete	src=/user/jeff/build/test/mapred/system/job_20110809180754760_0001	dst=null	perm=null
+2011-08-09 18:08:17,761 INFO  mapred.JobHistory (JobHistory.java:run(312)) - Moving file:/home/jeff/hadoop-20-warehouse/build/test/logs/history/localhost_1312906074893_job_20110809180754760_0001_conf.xml to file:/home/jeff/hadoop-20-warehouse/build/test/logs/history/done
+Deleted /user/jeff/build/test/mapred/system/job_20110809180754760_0001
+2011-08-09 18:08:19,270 INFO  mapred.JobClient (JobClient.java:monitorAndPrintJob(1695)) - Job complete: job_20110809180754760_0001
+2011-08-09 18:08:19,276 INFO  mapred.JobClient (Counters.java:log(515)) - Counters: 29
+2011-08-09 18:08:19,276 INFO  mapred.JobClient (Counters.java:log(517)) -   Job Counters 
+2011-08-09 18:08:19,277 INFO  mapred.JobClient (Counters.java:log(519)) -     Total time spent by all reduce phase=1226
+2011-08-09 18:08:19,277 INFO  mapred.JobClient (Counters.java:log(519)) -     Launched reduce tasks=1
+2011-08-09 18:08:19,277 INFO  mapred.JobClient (Counters.java:log(519)) -     Total time spent by all maps=6448
+2011-08-09 18:08:19,278 INFO  mapred.JobClient (Counters.java:log(519)) -     Total time spent by all reduces waiting after reserving slots (ms)=0
+2011-08-09 18:08:19,278 INFO  mapred.JobClient (Counters.java:log(519)) -     Total time spent by all copy phase=8282
+2011-08-09 18:08:19,278 INFO  mapred.JobClient (Counters.java:log(519)) -     Total time spent by all maps waiting after reserving slots (ms)=0
+2011-08-09 18:08:19,279 INFO  mapred.JobClient (Counters.java:log(519)) -     Total time spent by all sort phase=39
+2011-08-09 18:08:19,279 INFO  mapred.JobClient (Counters.java:log(519)) -     Rack-local map tasks=1
+2011-08-09 18:08:19,279 INFO  mapred.JobClient (Counters.java:log(519)) -     Total bytes read by maps from same rack=12
+2011-08-09 18:08:19,280 INFO  mapred.JobClient (Counters.java:log(519)) -     Launched map tasks=1
+2011-08-09 18:08:19,280 INFO  mapred.JobClient (Counters.java:log(519)) -     Total time spent by all reduces=9547
+2011-08-09 18:08:19,280 INFO  mapred.JobClient (Counters.java:log(517)) -   FileSystemCounters
+2011-08-09 18:08:19,281 INFO  mapred.JobClient (Counters.java:log(519)) -     FILE_BYTES_READ=38
+2011-08-09 18:08:19,281 INFO  mapred.JobClient (Counters.java:log(519)) -     HDFS_BYTES_READ=12
+2011-08-09 18:08:19,281 INFO  mapred.JobClient (Counters.java:log(519)) -     FILE_BYTES_WRITTEN=108
+2011-08-09 18:08:19,281 INFO  mapred.JobClient (Counters.java:log(519)) -     HDFS_BYTES_WRITTEN=16
+2011-08-09 18:08:19,282 INFO  mapred.JobClient (Counters.java:log(517)) -   Map-Reduce Framework
+2011-08-09 18:08:19,282 INFO  mapred.JobClient (Counters.java:log(519)) -     Map input records=2
+2011-08-09 18:08:19,282 INFO  mapred.JobClient (Counters.java:log(519)) -     Reduce shuffle bytes=0
+2011-08-09 18:08:19,283 INFO  mapred.JobClient (Counters.java:log(519)) -     Spilled Records=4
+2011-08-09 18:08:19,283 INFO  mapred.JobClient (Counters.java:log(519)) -     Map output bytes=28
+2011-08-09 18:08:19,283 INFO  mapred.JobClient (Counters.java:log(519)) -     Total cumulative CPU milliseconds=1910
+2011-08-09 18:08:19,284 INFO  mapred.JobClient (Counters.java:log(519)) -     Map input bytes=12
+2011-08-09 18:08:19,284 INFO  mapred.JobClient (Counters.java:log(519)) -     Combine input records=0
+2011-08-09 18:08:19,284 INFO  mapred.JobClient (Counters.java:log(519)) -     Reduce input records=2
+2011-08-09 18:08:19,285 INFO  mapred.JobClient (Counters.java:log(519)) -     Reduce input groups=2
+2011-08-09 18:08:19,285 INFO  mapred.JobClient (Counters.java:log(519)) -     Combine output records=0
+2011-08-09 18:08:19,293 INFO  mapred.JobClient (Counters.java:log(519)) -     Total physical memory in bytes=109330432
+2011-08-09 18:08:19,294 INFO  mapred.JobClient (Counters.java:log(519)) -     Reduce output records=2
+2011-08-09 18:08:19,294 INFO  mapred.JobClient (Counters.java:log(519)) -     Total virtual memory in bytes=1010495488
+2011-08-09 18:08:19,295 INFO  mapred.JobClient (Counters.java:log(519)) -     Map output records=2
+2011-08-09 18:08:19,305 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=listStatus	src=/user/jeff/testing/jobconf/output	dst=null	perm=null
+2011-08-09 18:08:19,309 INFO  FSNamesystem.audit (FSNamesystem.java:logAuditEvent(136)) - ugi=jeff,jeff	ip=/127.0.0.1	cmd=open	src=/user/jeff/testing/jobconf/output/part-00000	dst=null	perm=null
+2011-08-09 18:08:19,335 INFO  DataNode.clienttrace (BlockSender.java:sendBlock(441)) - src: /127.0.0.1:47321, dest: /127.0.0.1:38864, bytes: 20, op: HDFS_READ, cliID: DFSClient_-1274245210, offset: 0, srvID: DS-574333976-10.0.62.238-47321-1312906074624, blockid: blk_7589942139982366961_1006, duration: 3347343
+2011-08-09 18:08:19,343 INFO  util.AsyncDiskService (AsyncDiskService.java:shutdown(129)) - Shutting down all AsyncDiskService threads...
+2011-08-09 18:08:19,346 INFO  util.AsyncDiskService (AsyncDiskService.java:awaitTermination(158)) - All AsyncDiskService threads are terminated.
+2011-08-09 18:08:19,347 INFO  util.MRAsyncDiskService (MRAsyncDiskService.java:awaitTermination(161)) - Deleting toBeDeleted directory.
+2011-08-09 18:08:19,349 INFO  mapred.TaskTracker (TaskTracker.java:run(730)) - Shutting down: Map-events fetcher for all reduce tasks on tracker_host0.foo.com:localhost/127.0.0.1:35047
+2011-08-09 18:08:19,353 WARN  mapred.TaskLogsMonitor (TaskLogsMonitor.java:run(438)) - Thread-69 is interrupted. Returning
+2011-08-09 18:08:19,354 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 35047
+2011-08-09 18:08:19,355 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 0 on 35047: exiting
+2011-08-09 18:08:19,356 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 1 on 35047: exiting
+2011-08-09 18:08:19,356 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 2 on 35047: exiting
+2011-08-09 18:08:19,357 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 3 on 35047: exiting
+2011-08-09 18:08:19,359 INFO  ipc.Server (Server.java:run(447)) - Stopping IPC Server listener on 35047
+2011-08-09 18:08:19,361 INFO  mapred.TaskTracker (TaskTracker.java:shutdown(980)) - Shutting down StatusHttpServer
+2011-08-09 18:08:19,361 INFO  ipc.Server (Server.java:run(646)) - Stopping IPC Server Responder
+2011-08-09 18:08:19,456 INFO  mortbay.log (Slf4jLog.java:info(67)) - Stopped SelectChannelConnector@0.0.0.0:0
+2011-08-09 18:08:19,458 INFO  mapred.TaskTracker (TaskTracker.java:offerService(1282)) - Interrupted. Closing down.
+2011-08-09 18:08:19,460 INFO  util.AsyncDiskService (AsyncDiskService.java:shutdown(129)) - Shutting down all AsyncDiskService threads...
+2011-08-09 18:08:19,460 INFO  util.AsyncDiskService (AsyncDiskService.java:awaitTermination(158)) - All AsyncDiskService threads are terminated.
+2011-08-09 18:08:19,460 INFO  util.MRAsyncDiskService (MRAsyncDiskService.java:awaitTermination(161)) - Deleting toBeDeleted directory.
+2011-08-09 18:08:19,461 INFO  mapred.JobTracker (JobTracker.java:close(1733)) - Stopping infoServer
+2011-08-09 18:08:19,503 INFO  mortbay.log (Slf4jLog.java:info(67)) - Stopped SelectChannelConnector@localhost:0
+2011-08-09 18:08:19,505 INFO  mapred.JobTracker (JobTracker.java:close(1741)) - Stopping interTrackerServer
+2011-08-09 18:08:19,505 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 37079
+2011-08-09 18:08:19,505 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 0 on 37079: exiting
+2011-08-09 18:08:19,506 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 1 on 37079: exiting
+2011-08-09 18:08:19,508 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 2 on 37079: exiting
+2011-08-09 18:08:19,508 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 9 on 37079: exiting
+2011-08-09 18:08:19,508 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 8 on 37079: exiting
+2011-08-09 18:08:19,508 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 7 on 37079: exiting
+2011-08-09 18:08:19,508 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 3 on 37079: exiting
+2011-08-09 18:08:19,507 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 4 on 37079: exiting
+2011-08-09 18:08:19,508 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 6 on 37079: exiting
+2011-08-09 18:08:19,508 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 5 on 37079: exiting
+2011-08-09 18:08:19,507 INFO  mapred.JobTracker (JobTracker.java:offerService(1715)) - Stopped interTrackerServer
+2011-08-09 18:08:19,507 INFO  ipc.Server (Server.java:run(646)) - Stopping IPC Server Responder
+2011-08-09 18:08:19,507 INFO  mapred.JobTracker (JobTracker.java:closeThread(1720)) - Stopping expireTrackers
+2011-08-09 18:08:19,507 INFO  ipc.Server (Server.java:run(447)) - Stopping IPC Server listener on 37079
+2011-08-09 18:08:19,511 INFO  mapred.JobTracker (JobTracker.java:closeThread(1720)) - Stopping retireJobs
+2011-08-09 18:08:19,512 INFO  mapred.JobTracker (JobTracker.java:closeThread(1720)) - Stopping speculationUpdater
+2011-08-09 18:08:19,512 INFO  mapred.EagerTaskInitializationListener (EagerTaskInitializationListener.java:terminate(107)) - Stopping Job Init Manager thread
+2011-08-09 18:08:19,513 INFO  mapred.EagerTaskInitializationListener (EagerTaskInitializationListener.java:run(61)) - JobInitManagerThread interrupted.
+2011-08-09 18:08:19,513 INFO  mapred.EagerTaskInitializationListener (EagerTaskInitializationListener.java:run(65)) - Shutting down thread pool
+2011-08-09 18:08:19,513 INFO  mapred.JobTracker (JobTracker.java:closeThread(1720)) - Stopping expireLaunchingTasks
+2011-08-09 18:08:19,515 INFO  mapred.JobTracker (JobTracker.java:close(1760)) - stopped all jobtracker services
+Shutting down the Mini HDFS Cluster
+Shutting down DataNode 0
+2011-08-09 18:08:19,517 INFO  mortbay.log (Slf4jLog.java:info(67)) - Stopped SelectChannelConnector@localhost:0
+2011-08-09 18:08:19,517 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 60347
+2011-08-09 18:08:19,519 INFO  ipc.Server (Server.java:run(646)) - Stopping IPC Server Responder
+2011-08-09 18:08:19,519 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 1
+2011-08-09 18:08:19,520 INFO  ipc.Server (Server.java:run(447)) - Stopping IPC Server listener on 60347
+2011-08-09 18:08:19,521 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 2 on 60347: exiting
+2011-08-09 18:08:19,521 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 1 on 60347: exiting
+2011-08-09 18:08:19,521 WARN  datanode.DataNode (DataXceiverServer.java:run(138)) - DatanodeRegistration(127.0.0.1:47321, storageID=DS-574333976-10.0.62.238-47321-1312906074624, infoPort=36584, ipcPort=60347):DataXceiveServer: java.nio.channels.AsynchronousCloseException
+	at java.nio.channels.spi.AbstractInterruptibleChannel.end(AbstractInterruptibleChannel.java:185)
+	at sun.nio.ch.ServerSocketChannelImpl.accept(ServerSocketChannelImpl.java:152)
+	at sun.nio.ch.ServerSocketAdaptor.accept(ServerSocketAdaptor.java:84)
+	at org.apache.hadoop.hdfs.server.datanode.DataXceiverServer.run(DataXceiverServer.java:131)
+	at java.lang.Thread.run(Thread.java:662)
+
+2011-08-09 18:08:19,522 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 0 on 60347: exiting
+2011-08-09 18:08:19,671 INFO  datanode.DataBlockScanner (DataBlockScanner.java:run(604)) - Exiting DataBlockScanner thread.
+2011-08-09 18:08:20,458 INFO  hdfs.StateChange (FSNamesystem.java:invalidateWorkForOneNode(3486)) - BLOCK* ask 127.0.0.1:47321 to delete  blk_7338099862257135841_1002 blk_5522311504279729002_1003
+2011-08-09 18:08:20,520 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 0
+2011-08-09 18:08:20,521 INFO  datanode.DataNode (DataNode.java:run(1294)) - DatanodeRegistration(127.0.0.1:47321, storageID=DS-574333976-10.0.62.238-47321-1312906074624, infoPort=36584, ipcPort=60347):Finishing DataNode in: FSDataset{dirpath='/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data1/current,/home/jeff/hadoop-20-warehouse/build/test/data/dfs/data/data2/current'}
+2011-08-09 18:08:20,521 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 60347
+2011-08-09 18:08:20,521 INFO  datanode.DataNode (DataNode.java:shutdown(632)) - Waiting for threadgroup to exit, active threads is 0
+2011-08-09 18:08:20,522 INFO  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(128)) - Shutting down all async disk service threads...
+2011-08-09 18:08:20,522 INFO  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(137)) - All async disk service threads have been shut down.
+2011-08-09 18:08:20,523 WARN  datanode.FSDatasetAsyncDiskService (FSDatasetAsyncDiskService.java:shutdown(125)) - AsyncDiskService has already shut down.
+2011-08-09 18:08:20,527 INFO  mortbay.log (Slf4jLog.java:info(67)) - Stopped SelectChannelConnector@localhost:0
+2011-08-09 18:08:20,534 WARN  namenode.FSNamesystem (FSNamesystem.java:run(3042)) - ReplicationMonitor thread received InterruptedException.java.lang.InterruptedException: sleep interrupted
+2011-08-09 18:08:20,535 INFO  namenode.DecommissionManager (DecommissionManager.java:waitForWork(254)) - Interrupted Monitor
+java.lang.InterruptedException
+	at java.lang.Object.wait(Native Method)
+	at java.lang.Object.wait(Object.java:485)
+	at org.apache.hadoop.hdfs.server.namenode.DecommissionManager$Monitor.waitForWork(DecommissionManager.java:244)
+	at org.apache.hadoop.hdfs.server.namenode.DecommissionManager$Monitor.run(DecommissionManager.java:267)
+	at java.lang.Thread.run(Thread.java:662)
+2011-08-09 18:08:20,536 INFO  namenode.FSNamesystem (FSEditLog.java:printStatistics(1125)) - Number of transactions: 41 Total time for transactions(ms): 4 Number of transactions batched in Syncs: 1 Number of syncs: 24 SyncTimes(ms):  /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name1/current/edits:46  /home/jeff/hadoop-20-warehouse/build/test/data/dfs/name2/current/edits:16 
+2011-08-09 18:08:20,538 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 56014
+2011-08-09 18:08:20,539 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 0 on 56014: exiting
+2011-08-09 18:08:20,539 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 2 on 56014: exiting
+2011-08-09 18:08:20,539 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 1 on 56014: exiting
+2011-08-09 18:08:20,540 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 3 on 56014: exiting
+2011-08-09 18:08:20,540 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 4 on 56014: exiting
+2011-08-09 18:08:20,541 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 5 on 56014: exiting
+2011-08-09 18:08:20,542 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 8 on 56014: exiting
+2011-08-09 18:08:20,542 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 9 on 56014: exiting
+2011-08-09 18:08:20,543 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 7 on 56014: exiting
+2011-08-09 18:08:20,543 INFO  ipc.Server (Server.java:run(447)) - Stopping IPC Server listener on 56014
+2011-08-09 18:08:20,543 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 6 on 56014: exiting
+2011-08-09 18:08:20,544 INFO  ipc.Server (Server.java:run(646)) - Stopping IPC Server Responder
+------------- ---------------- ---------------
+
+Testcase: testNoDefaults took 28.324 sec

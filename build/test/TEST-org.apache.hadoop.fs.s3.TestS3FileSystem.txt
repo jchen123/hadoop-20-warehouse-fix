@@ -1,0 +1,7 @@
+Testsuite: org.apache.hadoop.fs.s3.TestS3FileSystem
+Tests run: 1, Failures: 0, Errors: 0, Time elapsed: 0.207 sec
+------------- Standard Output ---------------
+2011-08-09 18:22:07,355 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+------------- ---------------- ---------------
+
+Testcase: testInitialization took 0.183 sec

@@ -1,0 +1,4 @@
+Testsuite: org.apache.hadoop.hdfs.protocol.TestCorruptFileBlocks
+Tests run: 1, Failures: 0, Errors: 0, Time elapsed: 0.171 sec
+
+Testcase: testSerialization took 0.145 sec

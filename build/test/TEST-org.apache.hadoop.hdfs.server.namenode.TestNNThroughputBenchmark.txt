@@ -1,0 +1,182 @@
+Testsuite: org.apache.hadoop.hdfs.server.namenode.TestNNThroughputBenchmark
+Tests run: 1, Failures: 0, Errors: 0, Time elapsed: 3.063 sec
+------------- Standard Output ---------------
+2011-08-09 20:53:46,533 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+2011-08-09 20:53:46,788 INFO  util.GSet (BlocksMap.java:computeCapacity(342)) - VM type       = 64-bit
+2011-08-09 20:53:46,790 INFO  util.GSet (BlocksMap.java:computeCapacity(343)) - 2% max memory = 9.89875 MB
+2011-08-09 20:53:46,790 INFO  util.GSet (BlocksMap.java:computeCapacity(344)) - capacity      = 2^20 = 1048576 entries
+2011-08-09 20:53:46,791 INFO  util.GSet (LightWeightGSet.java:<init>(79)) - recommended=1048576, actual=1048576
+2011-08-09 20:53:46,878 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(521)) - fsOwner=jeff,jeff
+2011-08-09 20:53:46,879 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(527)) - supergroup=supergroup
+2011-08-09 20:53:46,880 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(528)) - isPermissionEnabled=true
+2011-08-09 20:53:47,052 INFO  namenode.NameNode (FSDirectory.java:<init>(126)) - Caching file names occuring more than 10 times 
+2011-08-09 20:53:47,134 INFO  common.Storage (FSImage.java:saveFSImage(1268)) - Image file of size 95 saved in 0 seconds.
+2011-08-09 20:53:47,137 INFO  namenode.FSNamesystem (FSEditLog.java:<init>(157)) - Edit Log preallocate size for build/test/dfs/name/current/edits is 1048576 bytes  and initial size of edits buffer is 524288 bytes. Max number of buffered transactions is 10000
+2011-08-09 20:53:47,169 INFO  common.Storage (FSImage.java:format(1394)) - Storage directory build/test/dfs/name has been successfully formatted.
+2011-08-09 20:53:47,217 INFO  jvm.JvmMetrics (JvmMetrics.java:init(71)) - Initializing JVM Metrics with processName=NameNode, sessionId=null
+2011-08-09 20:53:47,288 INFO  metrics.NameNodeMetrics (NameNodeMetrics.java:<init>(145)) - Initializing NameNodeMeterics using context object:org.apache.hadoop.metrics.spi.NullContext
+2011-08-09 20:53:47,289 INFO  util.GSet (BlocksMap.java:computeCapacity(342)) - VM type       = 64-bit
+2011-08-09 20:53:47,289 INFO  util.GSet (BlocksMap.java:computeCapacity(343)) - 2% max memory = 9.89875 MB
+2011-08-09 20:53:47,290 INFO  util.GSet (BlocksMap.java:computeCapacity(344)) - capacity      = 2^20 = 1048576 entries
+2011-08-09 20:53:47,290 INFO  util.GSet (LightWeightGSet.java:<init>(79)) - recommended=1048576, actual=1048576
+2011-08-09 20:53:47,366 WARN  namenode.FSNamesystem (ConfigManager.java:<init>(56)) - No whitelist file specified in dfs.namenode.whitelist.file. The namenode will allow deletion/renaming of any directory.
+2011-08-09 20:53:47,367 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(521)) - fsOwner=jeff,jeff
+2011-08-09 20:53:47,367 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(527)) - supergroup=supergroup
+2011-08-09 20:53:47,367 INFO  namenode.FSNamesystem (FSNamesystem.java:setConfigurationParameters(528)) - isPermissionEnabled=true
+2011-08-09 20:53:47,393 INFO  metrics.FSNamesystemMetrics (FSNamesystemMetrics.java:<init>(71)) - Initializing FSNamesystemMetrics using context object:org.apache.hadoop.metrics.spi.NullContext
+2011-08-09 20:53:47,394 INFO  namenode.FSNamesystem (FSNamesystem.java:registerMBean(5940)) - Registered FSNamesystemStatusMBean
+2011-08-09 20:53:47,403 INFO  namenode.NameNode (FSDirectory.java:<init>(126)) - Caching file names occuring more than 10 times 
+2011-08-09 20:53:47,412 INFO  common.Storage (FSImage.java:loadFSImage(1034)) - Number of files = 1
+2011-08-09 20:53:47,412 INFO  common.Storage (FSImage.java:loadFilesUnderConstruction(1499)) - Number of files under construction = 0
+2011-08-09 20:53:47,413 INFO  common.Storage (FSImage.java:loadFSImage(1144)) - Image file of size 95 loaded in 0 seconds.
+2011-08-09 20:53:47,415 INFO  common.Storage (FSEditLog.java:loadFSEdits(886)) - Edits file build/test/dfs/name/current/edits of size 4 edits # 0 loaded in 0 seconds.
+2011-08-09 20:53:47,416 INFO  namenode.FSNamesystem (FSEditLog.java:<init>(157)) - Edit Log preallocate size for build/test/dfs/name/current/edits is 1048576 bytes  and initial size of edits buffer is 524288 bytes. Max number of buffered transactions is 10000
+2011-08-09 20:53:47,417 INFO  namenode.NameCache (NameCache.java:initialized(143)) - initialized with 0 entries 0 lookups
+2011-08-09 20:53:47,424 INFO  namenode.FSNamesystem (FSNamesystem.java:initialize(372)) - Finished loading FSImage in 59 msecs
+2011-08-09 20:53:47,425 INFO  namenode.FSNamesystem (FSNamesystem.java:initializeReplQueues(5294)) - initializing replication queues
+2011-08-09 20:53:47,435 INFO  namenode.FSNamesystem (FSNamesystem.java:processMisReplicatedBlocks(4047)) - Total number of blocks = 0
+2011-08-09 20:53:47,436 INFO  namenode.FSNamesystem (FSNamesystem.java:processMisReplicatedBlocks(4048)) - Number of invalid blocks = 0
+2011-08-09 20:53:47,436 INFO  namenode.FSNamesystem (FSNamesystem.java:processMisReplicatedBlocks(4049)) - Number of under-replicated blocks = 0
+2011-08-09 20:53:47,436 INFO  namenode.FSNamesystem (FSNamesystem.java:processMisReplicatedBlocks(4050)) - Number of  over-replicated blocks = 0
+2011-08-09 20:53:47,437 INFO  hdfs.StateChange (FSNamesystem.java:leave(5269)) - STATE* Leaving safe mode after 0 secs.
+2011-08-09 20:53:47,462 INFO  ipc.Server (Server.java:run(307)) - Starting SocketReader
+2011-08-09 20:53:47,468 INFO  metrics.RpcMetrics (RpcMetrics.java:<init>(59)) - Initializing RPC Metrics with hostName=NameNode, port=47525
+2011-08-09 20:53:47,472 INFO  namenode.NameNode (NameNode.java:startServerForClientRequests(396)) - Namenode up at: localhost/127.0.0.1:47525
+2011-08-09 20:53:47,472 INFO  ipc.Server (Server.java:run(581)) - IPC Server Responder: starting
+2011-08-09 20:53:47,474 INFO  ipc.Server (Server.java:run(408)) - IPC Server listener on 47525: starting
+2011-08-09 20:53:47,474 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 0 on 47525: starting
+2011-08-09 20:53:47,604 WARN  fs.Trash (Trash.java:<init>(232)) - The configured interval for checkpoint is 0 minutes. Using interval of 0 minutes that is used for deletion instead
+2011-08-09 20:53:47,605 INFO  hdfs.StateChange (FSNamesystem.java:leave(5283)) - STATE* Network topology has 0 racks and 0 datanodes
+2011-08-09 20:53:47,605 INFO  hdfs.StateChange (FSNamesystem.java:leave(5286)) - STATE* UnderReplicatedBlocks has 0 blocks
+2011-08-09 20:53:47,606 INFO  namenode.FSNamesystem (FSNamesystem.java:initialize(388)) - Skip counting items in the file tree
+2011-08-09 20:53:47,614 INFO  util.HostsFileReader (HostsFileReader.java:refresh(80)) - Refreshing hosts (include/exclude) list
+2011-08-09 20:53:47,725 INFO  mortbay.log (Slf4jLog.java:info(67)) - Logging to org.slf4j.impl.Log4jLoggerAdapter(org.mortbay.log) via org.mortbay.log.Slf4jLog
+2011-08-09 20:53:47,811 INFO  http.HttpServer (HttpServer.java:addGlobalFilter(297)) - Added global filtersafety (class=org.apache.hadoop.http.HttpServer$QuotingInputFilter)
+2011-08-09 20:53:47,819 INFO  http.HttpServer (HttpServer.java:start(437)) - Port returned by webServer.getConnectors()[0].getLocalPort() before open() is -1. Opening the listener on 0
+2011-08-09 20:53:47,820 INFO  http.HttpServer (HttpServer.java:start(442)) - listener.getLocalPort() returned 46230 webServer.getConnectors()[0].getLocalPort() returned 46230
+2011-08-09 20:53:47,820 INFO  http.HttpServer (HttpServer.java:start(475)) - Jetty bound to port 46230
+2011-08-09 20:53:47,821 INFO  mortbay.log (Slf4jLog.java:info(67)) - jetty-6.1.26
+2011-08-09 20:53:48,418 INFO  mortbay.log (Slf4jLog.java:info(67)) - Started SelectChannelConnector@0.0.0.0:46230
+2011-08-09 20:53:48,419 INFO  namenode.NameNode (NameNode.java:startHttpServer(329)) - Web-server up at: 0.0.0.0:46230
+2011-08-09 20:53:48,423 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:runBenchmark(1161)) - Starting benchmark: create
+2011-08-09 20:53:48,425 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:generateInputs(484)) - Generate 10 intputs for create
+2011-08-09 20:53:48,427 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:benchmark(224)) - Starting 10 create(s).
+2011-08-09 20:53:48,528 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:runBenchmark(1161)) - Starting benchmark: open
+2011-08-09 20:53:48,529 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:generateInputs(484)) - Generate 10 intputs for create
+2011-08-09 20:53:48,529 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:benchmark(224)) - Starting 10 create(s).
+2011-08-09 20:53:48,592 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:generateInputs(577)) - Created 10 files.
+2011-08-09 20:53:48,592 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:generateInputs(484)) - Generate 10 intputs for open
+2011-08-09 20:53:48,595 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:benchmark(224)) - Starting 10 open(s).
+2011-08-09 20:53:48,604 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:runBenchmark(1161)) - Starting benchmark: delete
+2011-08-09 20:53:48,612 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:generateInputs(484)) - Generate 10 intputs for create
+2011-08-09 20:53:48,612 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:benchmark(224)) - Starting 10 create(s).
+2011-08-09 20:53:48,701 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:generateInputs(577)) - Created 10 files.
+2011-08-09 20:53:48,701 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:generateInputs(484)) - Generate 10 intputs for delete
+2011-08-09 20:53:48,703 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:benchmark(224)) - Starting 10 delete(s).
+2011-08-09 20:53:48,720 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:runBenchmark(1161)) - Starting benchmark: rename
+2011-08-09 20:53:48,721 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:generateInputs(484)) - Generate 10 intputs for create
+2011-08-09 20:53:48,722 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:benchmark(224)) - Starting 10 create(s).
+2011-08-09 20:53:48,806 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:generateInputs(577)) - Created 10 files.
+2011-08-09 20:53:48,807 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:generateInputs(484)) - Generate 10 intputs for rename
+2011-08-09 20:53:48,813 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:benchmark(224)) - Starting 10 rename(s).
+2011-08-09 20:53:48,824 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:runBenchmark(1161)) - Starting benchmark: blockReport
+2011-08-09 20:53:48,939 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:generateInputs(878)) - Creating 10 with 10 blocks each.
+2011-08-09 20:53:49,072 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:benchmark(224)) - Starting 10 blockReport(s).
+2011-08-09 20:53:49,132 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:runBenchmark(1161)) - Starting benchmark: replication
+2011-08-09 20:53:49,153 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:generateInputs(878)) - Creating 34 with 3 blocks each.
+2011-08-09 20:53:49,288 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:decommissionNodes(1046)) - Datanode m3vm6.tuenti.local:100002 is decommissioned.
+2011-08-09 20:53:49,356 INFO  util.HostsFileReader (HostsFileReader.java:setIncludesFile(104)) - Setting the includes file to 
+2011-08-09 20:53:49,357 INFO  util.HostsFileReader (HostsFileReader.java:setExcludesFile(109)) - Setting the excludes file to 
+2011-08-09 20:53:49,357 INFO  util.HostsFileReader (HostsFileReader.java:refresh(80)) - Refreshing hosts (include/exclude) list
+2011-08-09 20:53:49,357 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:benchmark(224)) - Starting 66 replication(s).
+2011-08-09 20:53:49,359 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:runBenchmark(1161)) - Starting benchmark: clean
+2011-08-09 20:53:49,360 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:benchmark(224)) - Starting 1 clean(s).
+2011-08-09 20:53:49,406 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:runBenchmark(1167)) - 
+2011-08-09 20:53:49,407 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(523)) - --- create inputs ---
+2011-08-09 20:53:49,407 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(524)) - nrFiles = 10
+2011-08-09 20:53:49,407 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(525)) - nrThreads = 3
+2011-08-09 20:53:49,408 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(526)) - nrFilesPerDir = 4
+2011-08-09 20:53:49,408 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(313)) - --- create stats  ---
+2011-08-09 20:53:49,408 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(314)) - # operations: 10
+2011-08-09 20:53:49,408 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(315)) - Elapsed Time: 97
+2011-08-09 20:53:49,408 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(316)) -  Ops per sec: 103.09278350515464
+2011-08-09 20:53:49,409 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(317)) - Average Time: 19
+2011-08-09 20:53:49,409 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:runBenchmark(1167)) - 
+2011-08-09 20:53:49,409 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(523)) - --- open inputs ---
+2011-08-09 20:53:49,409 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(524)) - nrFiles = 10
+2011-08-09 20:53:49,410 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(525)) - nrThreads = 3
+2011-08-09 20:53:49,410 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(526)) - nrFilesPerDir = 4
+2011-08-09 20:53:49,410 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(313)) - --- open stats  ---
+2011-08-09 20:53:49,410 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(314)) - # operations: 10
+2011-08-09 20:53:49,410 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(315)) - Elapsed Time: 8
+2011-08-09 20:53:49,411 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(316)) -  Ops per sec: 1250.0
+2011-08-09 20:53:49,411 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(317)) - Average Time: 0
+2011-08-09 20:53:49,411 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:runBenchmark(1167)) - 
+2011-08-09 20:53:49,411 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(523)) - --- delete inputs ---
+2011-08-09 20:53:49,411 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(524)) - nrFiles = 10
+2011-08-09 20:53:49,412 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(525)) - nrThreads = 3
+2011-08-09 20:53:49,412 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(526)) - nrFilesPerDir = 4
+2011-08-09 20:53:49,412 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(313)) - --- delete stats  ---
+2011-08-09 20:53:49,412 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(314)) - # operations: 10
+2011-08-09 20:53:49,412 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(315)) - Elapsed Time: 16
+2011-08-09 20:53:49,413 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(316)) -  Ops per sec: 625.0
+2011-08-09 20:53:49,413 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(317)) - Average Time: 2
+2011-08-09 20:53:49,413 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:runBenchmark(1167)) - 
+2011-08-09 20:53:49,413 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(523)) - --- rename inputs ---
+2011-08-09 20:53:49,414 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(524)) - nrFiles = 10
+2011-08-09 20:53:49,414 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(525)) - nrThreads = 3
+2011-08-09 20:53:49,414 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(526)) - nrFilesPerDir = 4
+2011-08-09 20:53:49,414 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(313)) - --- rename stats  ---
+2011-08-09 20:53:49,414 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(314)) - # operations: 10
+2011-08-09 20:53:49,415 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(315)) - Elapsed Time: 10
+2011-08-09 20:53:49,415 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(316)) -  Ops per sec: 1000.0
+2011-08-09 20:53:49,415 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(317)) - Average Time: 2
+2011-08-09 20:53:49,415 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:runBenchmark(1167)) - 
+2011-08-09 20:53:49,415 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(935)) - --- blockReport inputs ---
+2011-08-09 20:53:49,416 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(936)) - reports = 10
+2011-08-09 20:53:49,416 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(937)) - datanodes = 3 (100, 100, 100)
+2011-08-09 20:53:49,416 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(938)) - blocksPerReport = 100
+2011-08-09 20:53:49,416 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(939)) - blocksPerFile = 10
+2011-08-09 20:53:49,417 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(313)) - --- blockReport stats  ---
+2011-08-09 20:53:49,417 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(314)) - # operations: 10
+2011-08-09 20:53:49,417 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(315)) - Elapsed Time: 56
+2011-08-09 20:53:49,417 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(316)) -  Ops per sec: 178.57142857142858
+2011-08-09 20:53:49,418 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(317)) - Average Time: 1
+2011-08-09 20:53:49,418 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:runBenchmark(1167)) - 
+2011-08-09 20:53:49,419 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(1081)) - --- replication inputs ---
+2011-08-09 20:53:49,419 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(1082)) - numOpsRequired = 66
+2011-08-09 20:53:49,419 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(1083)) - datanodes = 3 (100, 100, 100)
+2011-08-09 20:53:49,419 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(1084)) - decommissioned datanodes = 1
+2011-08-09 20:53:49,420 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(1085)) - datanode replication limit = 100
+2011-08-09 20:53:49,420 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(1086)) - total blocks = 100
+2011-08-09 20:53:49,420 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(313)) - --- replication stats  ---
+2011-08-09 20:53:49,420 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(314)) - # operations: 1
+2011-08-09 20:53:49,420 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(315)) - Elapsed Time: 2
+2011-08-09 20:53:49,421 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(316)) -  Ops per sec: 500.0
+2011-08-09 20:53:49,421 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(317)) - Average Time: 1
+2011-08-09 20:53:49,421 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(1088)) - decommissioned blocks = 100
+2011-08-09 20:53:49,421 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(1089)) - pending replications = 0
+2011-08-09 20:53:49,421 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(1090)) - replications per sec: 0.0
+2011-08-09 20:53:49,422 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:runBenchmark(1167)) - 
+2011-08-09 20:53:49,422 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(426)) - --- clean inputs ---
+2011-08-09 20:53:49,422 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printResults(427)) - Remove directory /nnThroughputBenchmark
+2011-08-09 20:53:49,422 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(313)) - --- clean stats  ---
+2011-08-09 20:53:49,423 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(314)) - # operations: 1
+2011-08-09 20:53:49,423 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(315)) - Elapsed Time: 46
+2011-08-09 20:53:49,423 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(316)) -  Ops per sec: 21.73913043478261
+2011-08-09 20:53:49,423 INFO  namenode.NNThroughputBenchmark (NNThroughputBenchmark.java:printStats(317)) - Average Time: 46
+2011-08-09 20:53:49,443 INFO  mortbay.log (Slf4jLog.java:info(67)) - Stopped SelectChannelConnector@0.0.0.0:0
+2011-08-09 20:53:49,445 INFO  namenode.DecommissionManager (DecommissionManager.java:waitForWork(254)) - Interrupted Monitor
+java.lang.InterruptedException
+	at java.lang.Object.wait(Native Method)
+	at java.lang.Object.wait(Object.java:485)
+	at org.apache.hadoop.hdfs.server.namenode.DecommissionManager$Monitor.waitForWork(DecommissionManager.java:244)
+	at org.apache.hadoop.hdfs.server.namenode.DecommissionManager$Monitor.run(DecommissionManager.java:267)
+	at java.lang.Thread.run(Thread.java:662)
+2011-08-09 20:53:49,447 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 47525
+2011-08-09 20:53:49,448 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 0 on 47525: exiting
+2011-08-09 20:53:49,448 INFO  ipc.Server (Server.java:run(447)) - Stopping IPC Server listener on 47525
+2011-08-09 20:53:49,449 INFO  ipc.Server (Server.java:run(646)) - Stopping IPC Server Responder
+------------- ---------------- ---------------
+
+Testcase: testNNThroughput took 3.042 sec

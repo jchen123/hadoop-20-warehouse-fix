@@ -1,0 +1,12 @@
+Testsuite: org.apache.hadoop.fs.permission.TestFsPermission
+Tests run: 5, Failures: 0, Errors: 0, Time elapsed: 0.333 sec
+------------- Standard Output ---------------
+2011-08-09 18:22:03,722 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+2011-08-09 18:22:03,898 WARN  permission.FsPermission (FsPermission.java:getUMask(182)) - dfs.umask configuration key is deprecated. Convert to dfs.umaskmode, using octal or symbolic umask specifications.
+------------- ---------------- ---------------
+
+Testcase: testFsAction took 0.005 sec
+Testcase: testFsPermission took 0.118 sec
+Testcase: testUMaskParser took 0.141 sec
+Testcase: testBadUmasks took 0.021 sec
+Testcase: testDeprecatedUmask took 0.024 sec

@@ -1,0 +1,30 @@
+Testsuite: org.apache.hadoop.hdfs.server.datanode.TestSimulatedFSDataset
+Tests run: 8, Failures: 0, Errors: 0, Time elapsed: 0.699 sec
+------------- Standard Output ---------------
+2011-08-09 20:29:21,376 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+2011-08-09 20:29:21,547 INFO  datanode.DataNode (SimulatedFSDataset.java:registerMBean(648)) - Registered FSDatasetStatusMBean
+2011-08-09 20:29:21,651 INFO  datanode.DataNode (SimulatedFSDataset.java:registerMBean(648)) - Registered FSDatasetStatusMBean
+2011-08-09 20:29:21,693 INFO  datanode.DataNode (SimulatedFSDataset.java:registerMBean(648)) - Registered FSDatasetStatusMBean
+2011-08-09 20:29:21,739 INFO  datanode.DataNode (SimulatedFSDataset.java:registerMBean(648)) - Registered FSDatasetStatusMBean
+2011-08-09 20:29:21,771 INFO  datanode.DataNode (SimulatedFSDataset.java:registerMBean(648)) - Registered FSDatasetStatusMBean
+2011-08-09 20:29:21,775 INFO  datanode.DataNode (SimulatedFSDataset.java:registerMBean(648)) - Registered FSDatasetStatusMBean
+2011-08-09 20:29:21,805 INFO  datanode.DataNode (SimulatedFSDataset.java:registerMBean(648)) - Registered FSDatasetStatusMBean
+2011-08-09 20:29:21,808 INFO  datanode.DataNode (SimulatedFSDataset.java:registerMBean(648)) - Registered FSDatasetStatusMBean
+2011-08-09 20:29:21,856 INFO  datanode.DataNode (SimulatedFSDataset.java:registerMBean(648)) - Registered FSDatasetStatusMBean
+2011-08-09 20:29:21,857 WARN  datanode.DataNode (SimulatedFSDataset.java:<init>(93)) - Lack of free storage on a block alloc
+2011-08-09 20:29:21,883 INFO  datanode.DataNode (SimulatedFSDataset.java:registerMBean(648)) - Registered FSDatasetStatusMBean
+2011-08-09 20:29:21,883 INFO  datanode.DataNode (SimulatedFSDataset.java:registerMBean(648)) - Registered FSDatasetStatusMBean
+2011-08-09 20:29:21,888 INFO  datanode.DataNode (SimulatedFSDataset.java:registerMBean(648)) - Registered FSDatasetStatusMBean
+2011-08-09 20:29:21,914 INFO  datanode.DataNode (SimulatedFSDataset.java:registerMBean(648)) - Registered FSDatasetStatusMBean
+2011-08-09 20:29:21,920 INFO  datanode.DataNode (SimulatedFSDataset.java:registerMBean(648)) - Registered FSDatasetStatusMBean
+2011-08-09 20:29:21,920 INFO  datanode.DataNode (SimulatedFSDataset.java:registerMBean(648)) - Registered FSDatasetStatusMBean
+------------- ---------------- ---------------
+
+Testcase: testGetMetaData took 0.372 sec
+Testcase: testStorageUsage took 0.036 sec
+Testcase: testWriteRead took 0.052 sec
+Testcase: testGetBlockReport took 0.034 sec
+Testcase: testInjectionEmpty took 0.034 sec
+Testcase: testInjectionNonEmpty took 0.081 sec
+Testcase: testInValidBlocks took 0.031 sec
+Testcase: testInvalidate took 0.032 sec

@@ -1,0 +1,8 @@
+2011-08-09 18:17:34,657 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+2011-08-09 18:17:35,450 WARN  conf.Configuration (Configuration.java:loadResource(1203)) - /home/jeff/hadoop-20-warehouse/build/test/mapred/local/0_0/taskTracker/jobcache/job_20110809181702144_0002/attempt_20110809181702144_0002_m_000005_0/job.xml:a attempt to override final parameter: hadoop.tmp.dir;  Ignoring.
+2011-08-09 18:17:35,477 INFO  jvm.JvmMetrics (JvmMetrics.java:init(71)) - Initializing JVM Metrics with processName=MAP, sessionId=
+2011-08-09 18:17:35,629 WARN  conf.Configuration (Configuration.java:loadResource(1203)) - /home/jeff/hadoop-20-warehouse/build/test/mapred/local/0_0/taskTracker/jobcache/job_20110809181702144_0002/attempt_20110809181702144_0002_m_000005_0/job.xml:a attempt to override final parameter: hadoop.tmp.dir;  Ignoring.
+2011-08-09 18:17:35,765 INFO  util.ProcessTree (ProcessTree.java:isSetsidSupported(51)) - setsid exited with exit code 0
+2011-08-09 18:17:35,845 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@1de58cb8
+2011-08-09 18:17:35,961 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_20110809181702144_0002_m_000005_0 is done. And is in the process of commiting
+2011-08-09 18:17:36,005 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_20110809181702144_0002_m_000005_0' done.

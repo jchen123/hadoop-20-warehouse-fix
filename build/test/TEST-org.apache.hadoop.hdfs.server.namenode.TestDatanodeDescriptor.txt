@@ -1,0 +1,4 @@
+Testsuite: org.apache.hadoop.hdfs.server.namenode.TestDatanodeDescriptor
+Tests run: 1, Failures: 0, Errors: 0, Time elapsed: 0.052 sec
+
+Testcase: testGetInvalidateBlocks took 0.027 sec

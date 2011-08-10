@@ -1,0 +1,37 @@
+2011-08-09 18:18:15,287 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+2011-08-09 18:18:16,187 WARN  conf.Configuration (Configuration.java:loadResource(1203)) - /home/jeff/hadoop-20-warehouse/build/test/mapred/local/0_0/taskTracker/jobcache/job_20110809181807236_0001/attempt_20110809181807236_0001_r_000000_0/job.xml:a attempt to override final parameter: hadoop.tmp.dir;  Ignoring.
+2011-08-09 18:18:16,223 INFO  jvm.JvmMetrics (JvmMetrics.java:init(71)) - Initializing JVM Metrics with processName=SHUFFLE, sessionId=
+2011-08-09 18:18:16,451 WARN  conf.Configuration (Configuration.java:loadResource(1203)) - /home/jeff/hadoop-20-warehouse/build/test/mapred/local/0_0/taskTracker/jobcache/job_20110809181807236_0001/attempt_20110809181807236_0001_r_000000_0/job.xml:a attempt to override final parameter: hadoop.tmp.dir;  Ignoring.
+2011-08-09 18:18:16,623 INFO  util.ProcessTree (ProcessTree.java:isSetsidSupported(51)) - setsid exited with exit code 0
+2011-08-09 18:18:16,727 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@4cb9e45a
+2011-08-09 18:18:16,874 INFO  mapred.ReduceTask (ReduceTask.java:<init>(1018)) - ShuffleRamManager: MemoryLimit=141937872, MaxSingleShuffleLimit=35484468
+2011-08-09 18:18:16,901 INFO  mapred.ReduceTask (ReduceTask.java:run(2498)) - attempt_20110809181807236_0001_r_000000_0 Thread started: Thread for merging on-disk files
+2011-08-09 18:18:16,901 INFO  mapred.ReduceTask (ReduceTask.java:run(2503)) - attempt_20110809181807236_0001_r_000000_0 Thread waiting: Thread for merging on-disk files
+2011-08-09 18:18:16,905 INFO  mapred.ReduceTask (ReduceTask.java:run(2601)) - attempt_20110809181807236_0001_r_000000_0 Thread started: Thread for merging in memory files
+2011-08-09 18:18:16,905 INFO  mapred.ReduceTask (ReduceTask.java:fetchOutputs(1911)) - attempt_20110809181807236_0001_r_000000_0 Need another 1 map output(s) where 0 is already in progress
+2011-08-09 18:18:16,906 INFO  mapred.ReduceTask (ReduceTask.java:run(2707)) - attempt_20110809181807236_0001_r_000000_0 Thread started: Thread for polling Map Completion Events
+2011-08-09 18:18:16,908 INFO  mapred.ReduceTask (ReduceTask.java:fetchOutputs(2030)) - attempt_20110809181807236_0001_r_000000_0 Scheduled 0 outputs (0 slow hosts and0 dup hosts)
+2011-08-09 18:18:24,929 INFO  mapred.ReduceTask (ReduceTask.java:run(2713)) - attempt_20110809181807236_0001_r_000000_0: Got 1 new map-outputs
+2011-08-09 18:18:26,909 INFO  mapred.ReduceTask (ReduceTask.java:fetchOutputs(2030)) - attempt_20110809181807236_0001_r_000000_0 Scheduled 1 outputs (0 slow hosts and0 dup hosts)
+2011-08-09 18:18:26,955 INFO  mapred.ReduceTask (ReduceTask.java:getMapOutput(1434)) - header: attempt_20110809181807236_0001_m_000000_0, compressed len: 682, decompressed len: 678
+2011-08-09 18:18:26,966 INFO  mapred.ReduceTask (ReduceTask.java:getMapOutput(1448)) - Shuffling 678 bytes (682 raw bytes) into RAM from attempt_20110809181807236_0001_m_000000_0
+2011-08-09 18:18:26,970 INFO  mapred.ReduceTask (ReduceTask.java:shuffleInMemory(1577)) - Read 678 bytes from map-output for attempt_20110809181807236_0001_m_000000_0
+2011-08-09 18:18:26,995 INFO  mapred.ReduceTask (ReduceTask.java:shuffleInMemory(1636)) - Rec #1 from attempt_20110809181807236_0001_m_000000_0 -> (4, 54) from localhost
+2011-08-09 18:18:27,949 INFO  mapred.ReduceTask (ReduceTask.java:run(2731)) - GetMapEventsThread exiting
+2011-08-09 18:18:27,949 INFO  mapred.ReduceTask (ReduceTask.java:fetchOutputs(2230)) - getMapsEventsThread joined.
+2011-08-09 18:18:27,949 INFO  mapred.ReduceTask (ReduceTask.java:close(1120)) - Closed ram manager
+2011-08-09 18:18:27,950 INFO  mapred.ReduceTask (ReduceTask.java:fetchOutputs(2258)) - Interleaved on-disk merge complete: 0 files left.
+2011-08-09 18:18:27,950 INFO  mapred.ReduceTask (ReduceTask.java:fetchOutputs(2263)) - In-memory merge complete: 1 files left.
+2011-08-09 18:18:27,966 INFO  mapred.Merger (Merger.java:merge(402)) - Merging 1 sorted segments
+2011-08-09 18:18:27,966 INFO  mapred.Merger (Merger.java:merge(484)) - Down to the last merge-pass, with 1 segments left of total size: 678 bytes
+2011-08-09 18:18:27,976 INFO  mapred.ReduceTask (ReduceTask.java:createKVIterator(2364)) - Merged 1 segments, 678 bytes to disk to satisfy reduce memory limit
+2011-08-09 18:18:27,977 INFO  mapred.ReduceTask (ReduceTask.java:createKVIterator(2384)) - Merging 1 files, 682 bytes from disk
+2011-08-09 18:18:27,978 INFO  mapred.ReduceTask (ReduceTask.java:createKVIterator(2398)) - Merging 0 segments, 0 bytes from memory into reduce
+2011-08-09 18:18:27,978 INFO  mapred.Merger (Merger.java:merge(402)) - Merging 1 sorted segments
+2011-08-09 18:18:27,983 INFO  mapred.Merger (Merger.java:merge(484)) - Down to the last merge-pass, with 1 segments left of total size: 678 bytes
+2011-08-09 18:18:28,163 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_20110809181807236_0001_r_000000_0 is done. And is in the process of commiting
+2011-08-09 18:18:30,210 INFO  mapred.Task (Task.java:commit(864)) - Task attempt_20110809181807236_0001_r_000000_0 is allowed to commit now
+2011-08-09 18:18:30,247 WARN  hdfs.DFSClient (DFSClient.java:deleteUsingTrash(323)) - File /user/jeff/tmp/foo.har/_temporary/_attempt_20110809181807236_0001_r_000000_0 is being deleted only through Trash org.apache.hadoop.fs.FsShell.delete because all deletes must go through Trash.
+Deleted /user/jeff/tmp/foo.har/_temporary/_attempt_20110809181807236_0001_r_000000_0
+2011-08-09 18:18:30,267 INFO  mapred.FileOutputCommitter (FileOutputCommitter.java:commitTask(138)) - Saved output of task 'attempt_20110809181807236_0001_r_000000_0' to hdfs://localhost:54883/user/jeff/tmp/foo.har
+2011-08-09 18:18:30,273 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_20110809181807236_0001_r_000000_0' done.

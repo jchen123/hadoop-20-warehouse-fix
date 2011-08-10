@@ -1,0 +1,451 @@
+Testsuite: org.apache.hadoop.fs.TestDFSIO
+Tests run: 1, Failures: 0, Errors: 0, Time elapsed: 10.225 sec
+------------- Standard Output ---------------
+2011-08-09 18:12:18,811 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+2011-08-09 18:12:19,187 INFO  fs.TestDFSIO (TestDFSIO.java:createControlFile(128)) - creating control file: 10 mega bytes, 10 files
+2011-08-09 18:12:19,358 INFO  fs.TestDFSIO (TestDFSIO.java:createControlFile(149)) - created control files for: 10 files
+2011-08-09 18:12:19,395 INFO  jvm.JvmMetrics (JvmMetrics.java:init(71)) - Initializing JVM Metrics with processName=JobTracker, sessionId=
+2011-08-09 18:12:19,426 WARN  mapred.JobClient (JobClient.java:configureCommandLineOptions(656)) - Use GenericOptionsParser for parsing the arguments. Applications should implement Tool for the same.
+2011-08-09 18:12:19,428 WARN  mapred.JobClient (JobClient.java:configureCommandLineOptions(770)) - No job jar file set. User classes may not be found. See JobConf(Class) or JobConf#setJar(String).
+2011-08-09 18:12:19,908 INFO  mapred.FileInputFormat (FileInputFormat.java:listLocatedStatus(319)) - Total input paths to process : 10
+2011-08-09 18:12:20,188 WARN  conf.Configuration (Configuration.java:loadResource(1203)) - build/test/mapred/local/localRunner/job_local_0001.xml:a attempt to override final parameter: hadoop.tmp.dir;  Ignoring.
+2011-08-09 18:12:20,270 INFO  ipc.Server (Server.java:run(307)) - Starting SocketReader
+2011-08-09 18:12:20,279 INFO  metrics.RpcMetrics (RpcMetrics.java:<init>(59)) - Initializing RPC Metrics with hostName=LocalJobRunner$Job, port=45604
+2011-08-09 18:12:20,345 INFO  ipc.Server (Server.java:run(581)) - IPC Server Responder: starting
+2011-08-09 18:12:20,347 INFO  ipc.Server (Server.java:run(408)) - IPC Server listener on 45604: starting
+2011-08-09 18:12:20,353 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 1 on 45604: starting
+2011-08-09 18:12:20,353 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 0 on 45604: starting
+2011-08-09 18:12:20,354 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 2 on 45604: starting
+2011-08-09 18:12:20,355 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 3 on 45604: starting
+2011-08-09 18:12:20,355 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 4 on 45604: starting
+2011-08-09 18:12:20,355 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 5 on 45604: starting
+2011-08-09 18:12:20,356 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 6 on 45604: starting
+2011-08-09 18:12:20,356 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 7 on 45604: starting
+2011-08-09 18:12:20,357 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 8 on 45604: starting
+2011-08-09 18:12:20,357 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 9 on 45604: starting
+2011-08-09 18:12:20,359 INFO  mapred.JobClient (JobClient.java:monitorAndPrintJob(1627)) - Running job: job_local_0001
+2011-08-09 18:12:20,948 INFO  mapred.FileInputFormat (FileInputFormat.java:listLocatedStatus(319)) - Total input paths to process : 10
+2011-08-09 18:12:21,146 INFO  util.ProcessTree (ProcessTree.java:isSetsidSupported(51)) - setsid exited with exit code 0
+2011-08-09 18:12:21,278 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@ed0220c
+2011-08-09 18:12:21,283 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: file:/home/jeff/hadoop-20-warehouse/build/test/data/io_control/in_file_test_io_9:0+112
+2011-08-09 18:12:21,299 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:12:21,310 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:12:21,400 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:12:21,401 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:12:21,538 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(178)) - Number of bytes processed = 10485760
+2011-08-09 18:12:21,538 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(179)) - Exec time = 125
+2011-08-09 18:12:21,538 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(180)) - IO rate = 80.0
+2011-08-09 18:12:21,539 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:12:21,564 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:12:21,568 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0001_m_000000_0 is done. And is in the process of commiting
+2011-08-09 18:12:21,574 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished test_io_9 ::host = alexandria-dev
+2011-08-09 18:12:21,574 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0001_m_000000_0' done.
+2011-08-09 18:12:21,629 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@68a0864f
+2011-08-09 18:12:21,630 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: file:/home/jeff/hadoop-20-warehouse/build/test/data/io_control/in_file_test_io_8:0+112
+2011-08-09 18:12:21,631 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:12:21,631 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:12:21,681 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:12:21,681 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:12:21,765 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(178)) - Number of bytes processed = 10485760
+2011-08-09 18:12:21,766 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(179)) - Exec time = 80
+2011-08-09 18:12:21,766 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(180)) - IO rate = 125.0
+2011-08-09 18:12:21,766 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:12:21,770 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:12:21,772 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0001_m_000001_0 is done. And is in the process of commiting
+2011-08-09 18:12:21,773 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished test_io_8 ::host = alexandria-dev
+2011-08-09 18:12:21,774 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0001_m_000001_0' done.
+2011-08-09 18:12:21,791 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@1fc8efd1
+2011-08-09 18:12:21,792 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: file:/home/jeff/hadoop-20-warehouse/build/test/data/io_control/in_file_test_io_4:0+112
+2011-08-09 18:12:21,793 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:12:21,793 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:12:21,848 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:12:21,848 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:12:21,927 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(178)) - Number of bytes processed = 10485760
+2011-08-09 18:12:21,927 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(179)) - Exec time = 75
+2011-08-09 18:12:21,927 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(180)) - IO rate = 133.33333
+2011-08-09 18:12:21,927 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:12:21,930 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:12:21,934 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0001_m_000002_0 is done. And is in the process of commiting
+2011-08-09 18:12:21,935 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished test_io_4 ::host = alexandria-dev
+2011-08-09 18:12:21,935 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0001_m_000002_0' done.
+2011-08-09 18:12:21,974 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@68302e67
+2011-08-09 18:12:21,975 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: file:/home/jeff/hadoop-20-warehouse/build/test/data/io_control/in_file_test_io_1:0+112
+2011-08-09 18:12:21,976 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:12:21,976 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:12:22,043 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:12:22,043 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:12:22,125 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(178)) - Number of bytes processed = 10485760
+2011-08-09 18:12:22,125 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(179)) - Exec time = 78
+2011-08-09 18:12:22,125 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(180)) - IO rate = 128.20512
+2011-08-09 18:12:22,126 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:12:22,128 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:12:22,139 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0001_m_000003_0 is done. And is in the process of commiting
+2011-08-09 18:12:22,140 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished test_io_1 ::host = alexandria-dev
+2011-08-09 18:12:22,140 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0001_m_000003_0' done.
+2011-08-09 18:12:22,154 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@20e183e9
+2011-08-09 18:12:22,154 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: file:/home/jeff/hadoop-20-warehouse/build/test/data/io_control/in_file_test_io_2:0+112
+2011-08-09 18:12:22,155 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:12:22,156 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:12:22,209 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:12:22,209 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:12:22,346 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(178)) - Number of bytes processed = 10485760
+2011-08-09 18:12:22,346 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(179)) - Exec time = 123
+2011-08-09 18:12:22,347 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(180)) - IO rate = 81.30081
+2011-08-09 18:12:22,347 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:12:22,349 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:12:22,351 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0001_m_000004_0 is done. And is in the process of commiting
+2011-08-09 18:12:22,352 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished test_io_2 ::host = alexandria-dev
+2011-08-09 18:12:22,353 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0001_m_000004_0' done.
+2011-08-09 18:12:22,363 INFO  mapred.JobClient (JobClient.java:monitorAndPrintJob(1640)) -  map 100% reduce 0%
+2011-08-09 18:12:22,370 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@7f5d3388
+2011-08-09 18:12:22,370 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: file:/home/jeff/hadoop-20-warehouse/build/test/data/io_control/in_file_test_io_7:0+112
+2011-08-09 18:12:22,372 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:12:22,372 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:12:22,426 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:12:22,427 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:12:22,506 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(178)) - Number of bytes processed = 10485760
+2011-08-09 18:12:22,506 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(179)) - Exec time = 74
+2011-08-09 18:12:22,507 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(180)) - IO rate = 135.13513
+2011-08-09 18:12:22,507 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:12:22,509 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:12:22,512 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0001_m_000005_0 is done. And is in the process of commiting
+2011-08-09 18:12:22,513 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished test_io_7 ::host = alexandria-dev
+2011-08-09 18:12:22,513 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0001_m_000005_0' done.
+2011-08-09 18:12:22,529 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@76027982
+2011-08-09 18:12:22,529 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: file:/home/jeff/hadoop-20-warehouse/build/test/data/io_control/in_file_test_io_6:0+112
+2011-08-09 18:12:22,533 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:12:22,533 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:12:22,590 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:12:22,591 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:12:22,674 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(178)) - Number of bytes processed = 10485760
+2011-08-09 18:12:22,674 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(179)) - Exec time = 80
+2011-08-09 18:12:22,674 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(180)) - IO rate = 125.0
+2011-08-09 18:12:22,675 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:12:22,677 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:12:22,679 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0001_m_000006_0 is done. And is in the process of commiting
+2011-08-09 18:12:22,680 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished test_io_6 ::host = alexandria-dev
+2011-08-09 18:12:22,680 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0001_m_000006_0' done.
+2011-08-09 18:12:22,695 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@3c3a1834
+2011-08-09 18:12:22,696 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: file:/home/jeff/hadoop-20-warehouse/build/test/data/io_control/in_file_test_io_5:0+112
+2011-08-09 18:12:22,740 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:12:22,741 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:12:22,798 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:12:22,798 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:12:22,883 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(178)) - Number of bytes processed = 10485760
+2011-08-09 18:12:22,883 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(179)) - Exec time = 81
+2011-08-09 18:12:22,883 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(180)) - IO rate = 123.45679
+2011-08-09 18:12:22,884 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:12:22,886 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:12:22,890 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0001_m_000007_0 is done. And is in the process of commiting
+2011-08-09 18:12:22,891 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished test_io_5 ::host = alexandria-dev
+2011-08-09 18:12:22,891 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0001_m_000007_0' done.
+2011-08-09 18:12:22,934 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@606e1dec
+2011-08-09 18:12:22,934 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: file:/home/jeff/hadoop-20-warehouse/build/test/data/io_control/in_file_test_io_0:0+112
+2011-08-09 18:12:22,940 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:12:22,940 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:12:22,998 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:12:22,999 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:12:23,078 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(178)) - Number of bytes processed = 10485760
+2011-08-09 18:12:23,078 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(179)) - Exec time = 75
+2011-08-09 18:12:23,078 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(180)) - IO rate = 133.33333
+2011-08-09 18:12:23,079 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:12:23,081 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:12:23,084 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0001_m_000008_0 is done. And is in the process of commiting
+2011-08-09 18:12:23,086 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished test_io_0 ::host = alexandria-dev
+2011-08-09 18:12:23,086 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0001_m_000008_0' done.
+2011-08-09 18:12:23,100 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@7a70610a
+2011-08-09 18:12:23,101 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: file:/home/jeff/hadoop-20-warehouse/build/test/data/io_control/in_file_test_io_3:0+112
+2011-08-09 18:12:23,116 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:12:23,117 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:12:23,176 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:12:23,176 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:12:23,273 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(178)) - Number of bytes processed = 10485760
+2011-08-09 18:12:23,273 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(179)) - Exec time = 74
+2011-08-09 18:12:23,273 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(180)) - IO rate = 135.13513
+2011-08-09 18:12:23,274 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:12:23,276 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:12:23,279 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0001_m_000009_0 is done. And is in the process of commiting
+2011-08-09 18:12:23,280 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished test_io_3 ::host = alexandria-dev
+2011-08-09 18:12:23,280 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0001_m_000009_0' done.
+2011-08-09 18:12:23,360 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@5c95da38
+2011-08-09 18:12:23,360 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - 
+2011-08-09 18:12:23,390 INFO  mapred.Merger (Merger.java:merge(402)) - Merging 10 sorted segments
+2011-08-09 18:12:23,441 INFO  mapred.Merger (Merger.java:merge(484)) - Down to the last merge-pass, with 10 segments left of total size: 848 bytes
+2011-08-09 18:12:23,441 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - 
+2011-08-09 18:12:23,442 INFO  fs.AccumulatingReducer (AccumulatingReducer.java:<init>(55)) - Starting AccumulatingReducer !!!
+2011-08-09 18:12:23,454 INFO  fs.AccumulatingReducer (AccumulatingReducer.java:<init>(61)) - Starting AccumulatingReducer on alexandria-dev
+2011-08-09 18:12:23,461 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0001_r_000000_0 is done. And is in the process of commiting
+2011-08-09 18:12:23,462 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - 
+2011-08-09 18:12:23,462 INFO  mapred.Task (Task.java:commit(864)) - Task attempt_local_0001_r_000000_0 is allowed to commit now
+2011-08-09 18:12:23,470 INFO  mapred.FileOutputCommitter (FileOutputCommitter.java:commitTask(138)) - Saved output of task 'attempt_local_0001_r_000000_0' to file:/home/jeff/hadoop-20-warehouse/build/test/data/io_write
+2011-08-09 18:12:23,470 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished l:time ::host = alexandria-dev > reduce
+2011-08-09 18:12:23,529 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0001_r_000000_0' done.
+2011-08-09 18:12:23,530 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0001/attempt_local_0001_m_000000_0/output for task attempt_local_0001_m_000000_0
+2011-08-09 18:12:23,530 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0001/attempt_local_0001_m_000001_0/output for task attempt_local_0001_m_000001_0
+2011-08-09 18:12:23,531 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0001/attempt_local_0001_m_000002_0/output for task attempt_local_0001_m_000002_0
+2011-08-09 18:12:23,532 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0001/attempt_local_0001_m_000003_0/output for task attempt_local_0001_m_000003_0
+2011-08-09 18:12:23,532 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0001/attempt_local_0001_m_000004_0/output for task attempt_local_0001_m_000004_0
+2011-08-09 18:12:23,533 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0001/attempt_local_0001_m_000005_0/output for task attempt_local_0001_m_000005_0
+2011-08-09 18:12:23,534 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0001/attempt_local_0001_m_000006_0/output for task attempt_local_0001_m_000006_0
+2011-08-09 18:12:23,534 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0001/attempt_local_0001_m_000007_0/output for task attempt_local_0001_m_000007_0
+2011-08-09 18:12:23,535 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0001/attempt_local_0001_m_000008_0/output for task attempt_local_0001_m_000008_0
+2011-08-09 18:12:23,536 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0001/attempt_local_0001_m_000009_0/output for task attempt_local_0001_m_000009_0
+2011-08-09 18:12:23,536 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0001/attempt_local_0001_r_000000_0/output for task attempt_local_0001_r_000000_0
+2011-08-09 18:12:23,543 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 45604
+2011-08-09 18:12:23,544 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 0 on 45604: exiting
+2011-08-09 18:12:23,547 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 7 on 45604: exiting
+2011-08-09 18:12:23,547 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 8 on 45604: exiting
+2011-08-09 18:12:23,550 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 1 on 45604: exiting
+2011-08-09 18:12:23,550 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 4 on 45604: exiting
+2011-08-09 18:12:23,551 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 2 on 45604: exiting
+2011-08-09 18:12:23,551 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 6 on 45604: exiting
+2011-08-09 18:12:23,551 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 9 on 45604: exiting
+2011-08-09 18:12:23,551 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 5 on 45604: exiting
+2011-08-09 18:12:23,551 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 3 on 45604: exiting
+2011-08-09 18:12:23,560 INFO  ipc.Server (Server.java:run(447)) - Stopping IPC Server listener on 45604
+2011-08-09 18:12:23,561 INFO  ipc.Server (Server.java:run(646)) - Stopping IPC Server Responder
+2011-08-09 18:12:24,365 INFO  mapred.JobClient (JobClient.java:monitorAndPrintJob(1640)) -  map 100% reduce 100%
+2011-08-09 18:12:24,366 INFO  mapred.JobClient (JobClient.java:monitorAndPrintJob(1695)) - Job complete: job_local_0001
+2011-08-09 18:12:24,376 INFO  mapred.JobClient (Counters.java:log(515)) - Counters: 16
+2011-08-09 18:12:24,376 INFO  mapred.JobClient (Counters.java:log(517)) -   FileSystemCounters
+2011-08-09 18:12:24,377 INFO  mapred.JobClient (Counters.java:log(519)) -     FILE_BYTES_READ=8948
+2011-08-09 18:12:24,377 INFO  mapred.JobClient (Counters.java:log(519)) -     FILE_BYTES_WRITTEN=688581000
+2011-08-09 18:12:24,377 INFO  mapred.JobClient (Counters.java:log(517)) -   Map-Reduce Framework
+2011-08-09 18:12:24,377 INFO  mapred.JobClient (Counters.java:log(519)) -     Map input records=10
+2011-08-09 18:12:24,378 INFO  mapred.JobClient (Counters.java:log(519)) -     Reduce shuffle bytes=0
+2011-08-09 18:12:24,378 INFO  mapred.JobClient (Counters.java:log(519)) -     Spilled Records=100
+2011-08-09 18:12:24,378 INFO  mapred.JobClient (Counters.java:log(519)) -     Map output bytes=728
+2011-08-09 18:12:24,378 INFO  mapred.JobClient (Counters.java:log(519)) -     Total cumulative CPU milliseconds=0
+2011-08-09 18:12:24,379 INFO  mapred.JobClient (Counters.java:log(519)) -     Map input bytes=260
+2011-08-09 18:12:24,379 INFO  mapred.JobClient (Counters.java:log(519)) -     Combine input records=0
+2011-08-09 18:12:24,379 INFO  mapred.JobClient (Counters.java:log(519)) -     Reduce input records=50
+2011-08-09 18:12:24,379 INFO  mapred.JobClient (Counters.java:log(519)) -     Reduce input groups=5
+2011-08-09 18:12:24,380 INFO  mapred.JobClient (Counters.java:log(519)) -     Combine output records=0
+2011-08-09 18:12:24,380 INFO  mapred.JobClient (Counters.java:log(519)) -     Total physical memory in bytes=0
+2011-08-09 18:12:24,380 INFO  mapred.JobClient (Counters.java:log(519)) -     Reduce output records=5
+2011-08-09 18:12:24,380 INFO  mapred.JobClient (Counters.java:log(519)) -     Total virtual memory in bytes=0
+2011-08-09 18:12:24,381 INFO  mapred.JobClient (Counters.java:log(519)) -     Map output records=50
+2011-08-09 18:12:24,382 INFO  jvm.JvmMetrics (JvmMetrics.java:init(66)) - Cannot initialize JVM Metrics with processName=JobTracker, sessionId= - already initialized
+2011-08-09 18:12:24,386 WARN  mapred.JobClient (JobClient.java:configureCommandLineOptions(656)) - Use GenericOptionsParser for parsing the arguments. Applications should implement Tool for the same.
+2011-08-09 18:12:24,387 WARN  mapred.JobClient (JobClient.java:configureCommandLineOptions(770)) - No job jar file set. User classes may not be found. See JobConf(Class) or JobConf#setJar(String).
+2011-08-09 18:12:24,903 INFO  mapred.FileInputFormat (FileInputFormat.java:listLocatedStatus(319)) - Total input paths to process : 10
+2011-08-09 18:12:25,054 WARN  conf.Configuration (Configuration.java:loadResource(1203)) - build/test/mapred/local/localRunner/job_local_0002.xml:a attempt to override final parameter: hadoop.tmp.dir;  Ignoring.
+2011-08-09 18:12:25,070 INFO  ipc.Server (Server.java:run(307)) - Starting SocketReader
+2011-08-09 18:12:25,073 INFO  metrics.RpcMetrics (RpcMetrics.java:<init>(59)) - Initializing RPC Metrics with hostName=LocalJobRunner$Job, port=48002
+2011-08-09 18:12:25,075 INFO  ipc.Server (Server.java:run(581)) - IPC Server Responder: starting
+2011-08-09 18:12:25,076 INFO  ipc.Server (Server.java:run(408)) - IPC Server listener on 48002: starting
+2011-08-09 18:12:25,113 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 0 on 48002: starting
+2011-08-09 18:12:25,113 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 1 on 48002: starting
+2011-08-09 18:12:25,128 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 2 on 48002: starting
+2011-08-09 18:12:25,129 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 3 on 48002: starting
+2011-08-09 18:12:25,130 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 4 on 48002: starting
+2011-08-09 18:12:25,130 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 5 on 48002: starting
+2011-08-09 18:12:25,130 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 6 on 48002: starting
+2011-08-09 18:12:25,131 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 7 on 48002: starting
+2011-08-09 18:12:25,131 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 8 on 48002: starting
+2011-08-09 18:12:25,131 INFO  ipc.Server (Server.java:run(1044)) - IPC Server handler 9 on 48002: starting
+2011-08-09 18:12:25,132 INFO  mapred.JobClient (JobClient.java:monitorAndPrintJob(1627)) - Running job: job_local_0002
+2011-08-09 18:12:25,614 INFO  mapred.FileInputFormat (FileInputFormat.java:listLocatedStatus(319)) - Total input paths to process : 10
+2011-08-09 18:12:25,670 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@172fb0af
+2011-08-09 18:12:25,671 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: file:/home/jeff/hadoop-20-warehouse/build/test/data/io_control/in_file_test_io_9:0+112
+2011-08-09 18:12:25,673 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:12:25,674 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:12:25,810 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:12:25,811 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:12:25,967 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(178)) - Number of bytes processed = 10485760
+2011-08-09 18:12:25,968 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(179)) - Exec time = 152
+2011-08-09 18:12:25,968 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(180)) - IO rate = 65.789474
+2011-08-09 18:12:25,968 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:12:26,008 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:12:26,066 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0002_m_000000_0 is done. And is in the process of commiting
+2011-08-09 18:12:26,067 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished test_io_9 ::host = alexandria-dev
+2011-08-09 18:12:26,067 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0002_m_000000_0' done.
+2011-08-09 18:12:26,084 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@32dfcb47
+2011-08-09 18:12:26,085 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: file:/home/jeff/hadoop-20-warehouse/build/test/data/io_control/in_file_test_io_8:0+112
+2011-08-09 18:12:26,087 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:12:26,087 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:12:26,189 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:12:26,190 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:12:26,381 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(178)) - Number of bytes processed = 10485760
+2011-08-09 18:12:26,382 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(179)) - Exec time = 167
+2011-08-09 18:12:26,382 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(180)) - IO rate = 59.88024
+2011-08-09 18:12:26,382 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:12:26,384 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:12:26,387 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0002_m_000001_0 is done. And is in the process of commiting
+2011-08-09 18:12:26,388 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished test_io_8 ::host = alexandria-dev
+2011-08-09 18:12:26,388 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0002_m_000001_0' done.
+2011-08-09 18:12:26,396 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@77bf7b23
+2011-08-09 18:12:26,396 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: file:/home/jeff/hadoop-20-warehouse/build/test/data/io_control/in_file_test_io_4:0+112
+2011-08-09 18:12:26,397 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:12:26,398 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:12:26,465 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:12:26,465 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:12:26,559 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(178)) - Number of bytes processed = 10485760
+2011-08-09 18:12:26,559 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(179)) - Exec time = 49
+2011-08-09 18:12:26,559 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(180)) - IO rate = 204.08163
+2011-08-09 18:12:26,560 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:12:26,561 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:12:26,594 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0002_m_000002_0 is done. And is in the process of commiting
+2011-08-09 18:12:26,595 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished test_io_4 ::host = alexandria-dev
+2011-08-09 18:12:26,596 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0002_m_000002_0' done.
+2011-08-09 18:12:26,623 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@10987197
+2011-08-09 18:12:26,624 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: file:/home/jeff/hadoop-20-warehouse/build/test/data/io_control/in_file_test_io_1:0+112
+2011-08-09 18:12:26,625 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:12:26,625 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:12:26,690 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:12:26,691 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:12:26,745 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(178)) - Number of bytes processed = 10485760
+2011-08-09 18:12:26,745 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(179)) - Exec time = 48
+2011-08-09 18:12:26,745 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(180)) - IO rate = 208.33333
+2011-08-09 18:12:26,746 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:12:26,747 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:12:26,758 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0002_m_000003_0 is done. And is in the process of commiting
+2011-08-09 18:12:26,759 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished test_io_1 ::host = alexandria-dev
+2011-08-09 18:12:26,759 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0002_m_000003_0' done.
+2011-08-09 18:12:26,767 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@e4c6320
+2011-08-09 18:12:26,768 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: file:/home/jeff/hadoop-20-warehouse/build/test/data/io_control/in_file_test_io_2:0+112
+2011-08-09 18:12:26,769 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:12:26,769 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:12:26,830 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:12:26,830 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:12:26,891 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(178)) - Number of bytes processed = 10485760
+2011-08-09 18:12:26,891 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(179)) - Exec time = 45
+2011-08-09 18:12:26,892 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(180)) - IO rate = 222.22223
+2011-08-09 18:12:26,892 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:12:26,894 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:12:26,896 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0002_m_000004_0 is done. And is in the process of commiting
+2011-08-09 18:12:26,897 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished test_io_2 ::host = alexandria-dev
+2011-08-09 18:12:26,897 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0002_m_000004_0' done.
+2011-08-09 18:12:26,904 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@6c63a721
+2011-08-09 18:12:26,905 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: file:/home/jeff/hadoop-20-warehouse/build/test/data/io_control/in_file_test_io_7:0+112
+2011-08-09 18:12:26,906 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:12:26,907 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:12:26,963 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:12:26,964 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:12:27,033 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(178)) - Number of bytes processed = 10485760
+2011-08-09 18:12:27,033 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(179)) - Exec time = 43
+2011-08-09 18:12:27,033 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(180)) - IO rate = 232.55814
+2011-08-09 18:12:27,034 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:12:27,036 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:12:27,038 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0002_m_000005_0 is done. And is in the process of commiting
+2011-08-09 18:12:27,038 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished test_io_7 ::host = alexandria-dev
+2011-08-09 18:12:27,038 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0002_m_000005_0' done.
+2011-08-09 18:12:27,047 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@3ee7f6eb
+2011-08-09 18:12:27,048 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: file:/home/jeff/hadoop-20-warehouse/build/test/data/io_control/in_file_test_io_6:0+112
+2011-08-09 18:12:27,049 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:12:27,049 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:12:27,104 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:12:27,104 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:12:27,133 INFO  mapred.JobClient (JobClient.java:monitorAndPrintJob(1640)) -  map 100% reduce 0%
+2011-08-09 18:12:27,153 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(178)) - Number of bytes processed = 10485760
+2011-08-09 18:12:27,153 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(179)) - Exec time = 45
+2011-08-09 18:12:27,153 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(180)) - IO rate = 222.22223
+2011-08-09 18:12:27,154 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:12:27,155 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:12:27,159 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0002_m_000006_0 is done. And is in the process of commiting
+2011-08-09 18:12:27,160 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished test_io_6 ::host = alexandria-dev
+2011-08-09 18:12:27,160 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0002_m_000006_0' done.
+2011-08-09 18:12:27,167 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@31f9338f
+2011-08-09 18:12:27,167 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: file:/home/jeff/hadoop-20-warehouse/build/test/data/io_control/in_file_test_io_5:0+112
+2011-08-09 18:12:27,171 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:12:27,172 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:12:27,226 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:12:27,227 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:12:27,275 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(178)) - Number of bytes processed = 10485760
+2011-08-09 18:12:27,275 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(179)) - Exec time = 44
+2011-08-09 18:12:27,275 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(180)) - IO rate = 227.27272
+2011-08-09 18:12:27,275 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:12:27,277 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:12:27,279 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0002_m_000007_0 is done. And is in the process of commiting
+2011-08-09 18:12:27,280 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished test_io_5 ::host = alexandria-dev
+2011-08-09 18:12:27,281 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0002_m_000007_0' done.
+2011-08-09 18:12:27,288 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@307bd0d
+2011-08-09 18:12:27,288 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: file:/home/jeff/hadoop-20-warehouse/build/test/data/io_control/in_file_test_io_0:0+112
+2011-08-09 18:12:27,291 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:12:27,291 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:12:27,349 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:12:27,349 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:12:27,396 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(178)) - Number of bytes processed = 10485760
+2011-08-09 18:12:27,396 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(179)) - Exec time = 42
+2011-08-09 18:12:27,396 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(180)) - IO rate = 238.09525
+2011-08-09 18:12:27,396 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:12:27,398 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:12:27,400 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0002_m_000008_0 is done. And is in the process of commiting
+2011-08-09 18:12:27,401 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished test_io_0 ::host = alexandria-dev
+2011-08-09 18:12:27,401 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0002_m_000008_0' done.
+2011-08-09 18:12:27,408 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@221f7708
+2011-08-09 18:12:27,408 INFO  mapred.MapTask (MapTask.java:updateJobWithSplit(379)) - split: file:/home/jeff/hadoop-20-warehouse/build/test/data/io_control/in_file_test_io_3:0+112
+2011-08-09 18:12:27,409 INFO  mapred.MapTask (MapTask.java:runOldMapper(347)) - numReduceTasks: 1
+2011-08-09 18:12:27,412 INFO  mapred.MapTask (MapTask.java:<init>(777)) - io.sort.mb = 10
+2011-08-09 18:12:27,467 INFO  mapred.MapTask (MapTask.java:<init>(789)) - data buffer = 7969177/9961472
+2011-08-09 18:12:27,468 INFO  mapred.MapTask (MapTask.java:<init>(790)) - record buffer = 26214/32768
+2011-08-09 18:12:27,513 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(178)) - Number of bytes processed = 10485760
+2011-08-09 18:12:27,514 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(179)) - Exec time = 42
+2011-08-09 18:12:27,514 INFO  fs.TestDFSIO (TestDFSIO.java:collectStats(180)) - IO rate = 238.09525
+2011-08-09 18:12:27,514 INFO  mapred.MapTask (MapTask.java:flush(1116)) - Starting flush of map output
+2011-08-09 18:12:27,516 INFO  mapred.MapTask (MapTask.java:sortAndSpill(1296)) - Finished spill 0
+2011-08-09 18:12:27,518 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0002_m_000009_0 is done. And is in the process of commiting
+2011-08-09 18:12:27,519 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished test_io_3 ::host = alexandria-dev
+2011-08-09 18:12:27,519 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0002_m_000009_0' done.
+2011-08-09 18:12:27,590 INFO  mapred.Task (Task.java:initialize(487)) -  Using ResourceCalculatorPlugin : org.apache.hadoop.util.LinuxResourceCalculatorPlugin@9d686c1
+2011-08-09 18:12:27,590 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - 
+2011-08-09 18:12:27,594 INFO  mapred.Merger (Merger.java:merge(402)) - Merging 10 sorted segments
+2011-08-09 18:12:27,597 INFO  mapred.Merger (Merger.java:merge(484)) - Down to the last merge-pass, with 10 segments left of total size: 855 bytes
+2011-08-09 18:12:27,597 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - 
+2011-08-09 18:12:27,597 INFO  fs.AccumulatingReducer (AccumulatingReducer.java:<init>(55)) - Starting AccumulatingReducer !!!
+2011-08-09 18:12:27,600 INFO  fs.AccumulatingReducer (AccumulatingReducer.java:<init>(61)) - Starting AccumulatingReducer on alexandria-dev
+2011-08-09 18:12:27,604 INFO  mapred.Task (Task.java:done(752)) - Task:attempt_local_0002_r_000000_0 is done. And is in the process of commiting
+2011-08-09 18:12:27,605 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - 
+2011-08-09 18:12:27,605 INFO  mapred.Task (Task.java:commit(864)) - Task attempt_local_0002_r_000000_0 is allowed to commit now
+2011-08-09 18:12:27,607 INFO  mapred.FileOutputCommitter (FileOutputCommitter.java:commitTask(138)) - Saved output of task 'attempt_local_0002_r_000000_0' to file:/home/jeff/hadoop-20-warehouse/build/test/data/io_read
+2011-08-09 18:12:27,609 INFO  mapred.LocalJobRunner (LocalJobRunner.java:statusUpdate(545)) - finished l:time ::host = alexandria-dev > reduce
+2011-08-09 18:12:27,610 INFO  mapred.Task (Task.java:sendDone(823)) - Task 'attempt_local_0002_r_000000_0' done.
+2011-08-09 18:12:27,610 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0002/attempt_local_0002_m_000000_0/output for task attempt_local_0002_m_000000_0
+2011-08-09 18:12:27,610 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0002/attempt_local_0002_m_000001_0/output for task attempt_local_0002_m_000001_0
+2011-08-09 18:12:27,611 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0002/attempt_local_0002_m_000002_0/output for task attempt_local_0002_m_000002_0
+2011-08-09 18:12:27,612 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0002/attempt_local_0002_m_000003_0/output for task attempt_local_0002_m_000003_0
+2011-08-09 18:12:27,612 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0002/attempt_local_0002_m_000004_0/output for task attempt_local_0002_m_000004_0
+2011-08-09 18:12:27,613 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0002/attempt_local_0002_m_000005_0/output for task attempt_local_0002_m_000005_0
+2011-08-09 18:12:27,613 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0002/attempt_local_0002_m_000006_0/output for task attempt_local_0002_m_000006_0
+2011-08-09 18:12:27,614 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0002/attempt_local_0002_m_000007_0/output for task attempt_local_0002_m_000007_0
+2011-08-09 18:12:27,614 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0002/attempt_local_0002_m_000008_0/output for task attempt_local_0002_m_000008_0
+2011-08-09 18:12:27,615 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0002/attempt_local_0002_m_000009_0/output for task attempt_local_0002_m_000009_0
+2011-08-09 18:12:27,616 INFO  mapred.MapOutputFile (MapOutputFile.java:removeAll(188)) - Delete map ouput taskTracker/jobcache/job_local_0002/attempt_local_0002_r_000000_0/output for task attempt_local_0002_r_000000_0
+2011-08-09 18:12:27,621 INFO  ipc.Server (Server.java:stop(1226)) - Stopping server on 48002
+2011-08-09 18:12:27,621 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 0 on 48002: exiting
+2011-08-09 18:12:27,622 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 9 on 48002: exiting
+2011-08-09 18:12:27,670 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 1 on 48002: exiting
+2011-08-09 18:12:27,671 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 2 on 48002: exiting
+2011-08-09 18:12:27,671 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 3 on 48002: exiting
+2011-08-09 18:12:27,671 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 4 on 48002: exiting
+2011-08-09 18:12:27,671 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 5 on 48002: exiting
+2011-08-09 18:12:27,672 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 6 on 48002: exiting
+2011-08-09 18:12:27,672 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 8 on 48002: exiting
+2011-08-09 18:12:27,680 INFO  ipc.Server (Server.java:run(646)) - Stopping IPC Server Responder
+2011-08-09 18:12:27,680 INFO  ipc.Server (Server.java:run(1110)) - IPC Server handler 7 on 48002: exiting
+2011-08-09 18:12:27,681 INFO  ipc.Server (Server.java:run(447)) - Stopping IPC Server listener on 48002
+2011-08-09 18:12:29,133 INFO  mapred.JobClient (JobClient.java:monitorAndPrintJob(1640)) -  map 100% reduce 100%
+2011-08-09 18:12:29,134 INFO  mapred.JobClient (JobClient.java:monitorAndPrintJob(1695)) - Job complete: job_local_0002
+2011-08-09 18:12:29,143 INFO  mapred.JobClient (Counters.java:log(515)) - Counters: 16
+2011-08-09 18:12:29,144 INFO  mapred.JobClient (Counters.java:log(517)) -   FileSystemCounters
+2011-08-09 18:12:29,144 INFO  mapred.JobClient (Counters.java:log(519)) -     FILE_BYTES_READ=686932083
+2011-08-09 18:12:29,144 INFO  mapred.JobClient (Counters.java:log(519)) -     FILE_BYTES_WRITTEN=1166833466
+2011-08-09 18:12:29,144 INFO  mapred.JobClient (Counters.java:log(517)) -   Map-Reduce Framework
+2011-08-09 18:12:29,145 INFO  mapred.JobClient (Counters.java:log(519)) -     Map input records=10
+2011-08-09 18:12:29,145 INFO  mapred.JobClient (Counters.java:log(519)) -     Reduce shuffle bytes=0
+2011-08-09 18:12:29,145 INFO  mapred.JobClient (Counters.java:log(519)) -     Spilled Records=100
+2011-08-09 18:12:29,145 INFO  mapred.JobClient (Counters.java:log(519)) -     Map output bytes=735
+2011-08-09 18:12:29,146 INFO  mapred.JobClient (Counters.java:log(519)) -     Total cumulative CPU milliseconds=0
+2011-08-09 18:12:29,146 INFO  mapred.JobClient (Counters.java:log(519)) -     Map input bytes=260
+2011-08-09 18:12:29,146 INFO  mapred.JobClient (Counters.java:log(519)) -     Combine input records=0
+2011-08-09 18:12:29,146 INFO  mapred.JobClient (Counters.java:log(519)) -     Reduce input records=50
+2011-08-09 18:12:29,147 INFO  mapred.JobClient (Counters.java:log(519)) -     Reduce input groups=5
+2011-08-09 18:12:29,147 INFO  mapred.JobClient (Counters.java:log(519)) -     Combine output records=0
+2011-08-09 18:12:29,147 INFO  mapred.JobClient (Counters.java:log(519)) -     Total physical memory in bytes=0
+2011-08-09 18:12:29,147 INFO  mapred.JobClient (Counters.java:log(519)) -     Reduce output records=5
+2011-08-09 18:12:29,148 INFO  mapred.JobClient (Counters.java:log(519)) -     Total virtual memory in bytes=0
+2011-08-09 18:12:29,148 INFO  mapred.JobClient (Counters.java:log(519)) -     Map output records=50
+2011-08-09 18:12:29,148 INFO  fs.TestDFSIO (TestDFSIO.java:cleanup(390)) - Cleaning up test files
+------------- ---------------- ---------------
+
+Testcase: testIOs took 10.206 sec

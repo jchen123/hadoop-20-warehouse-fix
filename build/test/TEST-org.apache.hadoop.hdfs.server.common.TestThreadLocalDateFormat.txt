@@ -1,0 +1,4 @@
+Testsuite: org.apache.hadoop.hdfs.server.common.TestThreadLocalDateFormat
+Tests run: 1, Failures: 0, Errors: 0, Time elapsed: 30.172 sec
+
+Testcase: testDateFormat took 30.151 sec

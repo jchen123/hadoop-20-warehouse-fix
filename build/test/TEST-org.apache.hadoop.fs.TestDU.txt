@@ -1,0 +1,4 @@
+Testsuite: org.apache.hadoop.fs.TestDU
+Tests run: 1, Failures: 0, Errors: 0, Time elapsed: 5.368 sec
+
+Testcase: testDU took 5.343 sec

@@ -1,0 +1,55 @@
+Testsuite: org.apache.hadoop.conf.TestConfiguration
+Tests run: 16, Failures: 0, Errors: 0, Time elapsed: 100.386 sec
+------------- Standard Output ---------------
+2011-08-09 18:06:10,111 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+p=my.int
+assertEq: ${intvar}, ${intvar}
+assertEq: 42, 42
+p=intvar
+assertEq: 42, 42
+assertEq: 42, 42
+p=my.base
+assertEq: /tmp/${user.name}, /tmp/${user.name}
+p=my.file
+assertEq: hello, hello
+assertEq: hello, hello
+p=my.suffix
+assertEq: .txt, .txt
+assertEq: .txt, .txt
+p=my.relfile
+assertEq: ${my.file}${my.suffix}, ${my.file}${my.suffix}
+assertEq: hello.txt, hello.txt
+p=my.fullfile
+assertEq: ${my.base}/${my.file}${my.suffix}, ${my.base}/${my.file}${my.suffix}
+p=my.failsexpand
+assertEq: a${my.undefvar}b, a${my.undefvar}b
+assertEq: a${my.undefvar}b, a${my.undefvar}b
+2011-08-09 18:06:10,261 WARN  conf.Configuration (Configuration.java:loadResource(1203)) - /home/jeff/hadoop-20-warehouse/test-config2.xml:a attempt to override final parameter: my.var;  Ignoring.
+2011-08-09 18:06:10,315 WARN  conf.Configuration (Configuration.java:loadResource(1203)) - /home/jeff/hadoop-20-warehouse/test-config2.xml:a attempt to override final parameter: e;  Ignoring.
+XXX testIncludes
+first = 0-100
+second = 4-6,9-10,27-27
+third = 34-2147483647
+2011-08-09 18:06:10,568 WARN  conf.Configuration (Configuration.java:loadResource(1203)) - /home/jeff/hadoop-20-warehouse/test-config2.xml:a attempt to override final parameter: test.key1;  Ignoring.
+2011-08-09 18:06:10,586 WARN  conf.Configuration (Configuration.java:loadResource(1203)) - /home/jeff/hadoop-20-warehouse/test-config2.xml:a attempt to override final parameter: test.key3;  Ignoring.
+2011-08-09 18:06:10,917 WARN  conf.Configuration (Configuration.java:loadResource(1203)) - /home/jeff/hadoop-20-warehouse/test-config2.xml:a attempt to override final parameter: test.key2;  Ignoring.
+2011-08-09 18:06:10,974 WARN  conf.Configuration (Configuration.java:loadResource(1203)) - /home/jeff/hadoop-20-warehouse/test-config2.xml:a attempt to override final parameter: test.key2;  Ignoring.
+2011-08-09 18:06:10,987 WARN  conf.Configuration (Configuration.java:loadResource(1203)) - /home/jeff/hadoop-20-warehouse/test-config2.xml:a attempt to override final parameter: test.key2;  Ignoring.
+------------- ---------------- ---------------
+
+Testcase: testVariableSubstitution took 0.21 sec
+Testcase: testFinalParam took 0.061 sec
+Testcase: testOverlay took 0.054 sec
+Testcase: testCommentsInValue took 0.021 sec
+Testcase: testTrim took 0.034 sec
+Testcase: testToString took 0.001 sec
+Testcase: testIncludes took 0.061 sec
+Testcase: testIntegerRanges took 0.08 sec
+Testcase: testHexValues took 0.017 sec
+Testcase: testIntegerValues took 0.017 sec
+Testcase: testReload took 0.036 sec
+Testcase: testSize took 0.001 sec
+Testcase: testClear took 0.001 sec
+Testcase: testDumpConfiguration took 0.401 sec
+Testcase: testDumpConfiguratioWithoutDefaults took 0.003 sec
+Testcase: testConcurrentDefaultResourceChange took 99.358 sec

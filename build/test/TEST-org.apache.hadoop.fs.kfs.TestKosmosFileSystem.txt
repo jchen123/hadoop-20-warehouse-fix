@@ -1,0 +1,9 @@
+Testsuite: org.apache.hadoop.fs.kfs.TestKosmosFileSystem
+Tests run: 3, Failures: 0, Errors: 0, Time elapsed: 0.616 sec
+------------- Standard Output ---------------
+2011-08-09 18:21:45,712 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+------------- ---------------- ---------------
+
+Testcase: testDirs took 0.397 sec
+Testcase: testFiles took 0.086 sec
+Testcase: testFileIO took 0.109 sec

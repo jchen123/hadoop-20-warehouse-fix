@@ -1,0 +1,20 @@
+Testsuite: org.apache.hadoop.conf.TestJobConf
+Tests run: 7, Failures: 0, Errors: 0, Time elapsed: 0.787 sec
+------------- Standard Output ---------------
+2011-08-09 18:07:51,033 WARN  conf.Configuration (Configuration.java:<clinit>(191)) - DEPRECATED: hadoop-site.xml found in the classpath. Usage of hadoop-site.xml is deprecated. Instead use core-site.xml, mapred-site.xml and hdfs-site.xml to override properties of core-default.xml, mapred-default.xml and hdfs-default.xml respectively
+2011-08-09 18:07:51,533 WARN  mapred.JobConf (JobConf.java:getMaxVirtualMemoryForTask(1923)) - getMaxVirtualMemoryForTask() is deprecated. Instead use getMemoryForMapTask() and getMemoryForReduceTask()
+2011-08-09 18:07:51,556 WARN  mapred.JobConf (JobConf.java:getMaxVirtualMemoryForTask(1923)) - getMaxVirtualMemoryForTask() is deprecated. Instead use getMemoryForMapTask() and getMemoryForReduceTask()
+2011-08-09 18:07:51,576 WARN  mapred.JobConf (JobConf.java:getMaxVirtualMemoryForTask(1923)) - getMaxVirtualMemoryForTask() is deprecated. Instead use getMemoryForMapTask() and getMemoryForReduceTask()
+2011-08-09 18:07:51,597 WARN  mapred.JobConf (JobConf.java:getMaxVirtualMemoryForTask(1923)) - getMaxVirtualMemoryForTask() is deprecated. Instead use getMemoryForMapTask() and getMemoryForReduceTask()
+2011-08-09 18:07:51,616 WARN  mapred.JobConf (JobConf.java:getMaxVirtualMemoryForTask(1923)) - getMaxVirtualMemoryForTask() is deprecated. Instead use getMemoryForMapTask() and getMemoryForReduceTask()
+2011-08-09 18:07:51,635 WARN  mapred.JobConf (JobConf.java:setMaxVirtualMemoryForTask(1959)) - setMaxVirtualMemoryForTask() is deprecated.Instead use setMemoryForMapTask() and setMemoryForReduceTask()
+2011-08-09 18:07:51,654 WARN  mapred.JobConf (JobConf.java:setMaxVirtualMemoryForTask(1959)) - setMaxVirtualMemoryForTask() is deprecated.Instead use setMemoryForMapTask() and setMemoryForReduceTask()
+------------- ---------------- ---------------
+
+Testcase: testProfileParamsDefaults took 0.265 sec
+Testcase: testProfileParamsSetter took 0.051 sec
+Testcase: testProfileParamsGetter took 0.046 sec
+Testcase: testMemoryConfigForMapOrReduceTask took 0.228 sec
+Testcase: testNegativeValueForTaskVmem took 0.025 sec
+Testcase: testNegativeValuesForMemoryParams took 0.028 sec
+Testcase: testMaxVirtualMemoryForTask took 0.12 sec
